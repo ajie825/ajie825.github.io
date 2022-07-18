@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ajie825.github.io</id>
     <title>Gridea</title>
-    <updated>2022-07-18T09:01:05.937Z</updated>
+    <updated>2022-07-18T09:14:16.083Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ajie825.github.io"/>
     <link rel="self" href="https://ajie825.github.io/atom.xml"/>
@@ -231,10 +231,10 @@ spec:                          # Pod中容器的详细定义
         - key: string
           path: string
 </code></pre>
-<pre><code class="language-bash">#获取镜像的策略 Alawys表示下载镜像 IfnotPresent表示优先使用本地镜像，否则下载镜像，Nerver表示仅使用本地镜像
+<pre><code class="language-bash">#获取镜像的策略：Alawys表示下载镜像 IfnotPresent表示优先使用本地镜像，否则下载镜像，Nerver表示仅使用本地镜像
 imagePullPolicy: [Always | Never | IfNotPresent]
 
-#Pod的重启策略，Always表示一旦不管以何种方式终止运行，kubelet都将重启，OnFailure表示只有Pod以非0退出码退出才重启，Nerver表示不再重启该Pod
+#Pod的重启策略：Always表示一旦不管以何种方式终止运行，kubelet都将重启，OnFailure表示只有Pod以非0退出码退出才重启，Nerver表示不再重启该Pod
 restartPolicy: [Always | Never | OnFailure]
 </code></pre>
 ]]></content>
