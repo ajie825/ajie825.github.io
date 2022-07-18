@@ -1,0 +1,588 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>nginx代理缓存配置 | Gridea</title>
+<meta name="description" content="温故而知新">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1658133593757">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1658133593757" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Gridea</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">nginx代理缓存配置</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-04-30</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/icQcGmdlfx/">
+                    nginx
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <p>1）缓存准备</p>
+<table>
+<thead>
+<tr>
+<th>系统</th>
+<th>服务</th>
+<th>地址</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CentOS7</td>
+<td>Nginx Proxy</td>
+<td>10.0.0.7</td>
+</tr>
+<tr>
+<td>CentOS7</td>
+<td>Nginx Web</td>
+<td>10.0.0.8</td>
+</tr>
+</tbody>
+</table>
+<p>2）web节点准备</p>
+<pre><code class="language-shell">//建立相关站点目录
+[root@nginx ~]# mkdir -p /soft/code{1..3}
+
+//建立相关html文件
+[root@nginx ~]# for i in {1..3};do echo Code1-Url$i &gt; /soft/code1/url$i.html;done
+[root@nginx ~]# for i in {1..3};do echo Code2-Url$i &gt; /soft/code2/url$i.html;done
+[root@nginx ~]# for i in {1..3};do echo Code3-Url$i &gt; /soft/code3/url$i.html;done
+
+//配置nginx
+[root@nginx ~]# cat /apps/nginx/conf.d/web_node.conf 
+server {
+       listen 8081;
+       server_name 10.0.0.8;
+       root /soft/code1;
+       index index.html;
+}
+
+server {
+       listen 8082;
+       server_name 10.0.0.8;
+       root /soft/code2;
+       index index.html;
+}
+
+server {
+       listen 8083;
+       server_name 10.0.0.8;
+       root /soft/code3;
+       index index.html;
+}
+[root@nginx ~]# nginx -t
+[root@nginx ~]# nginx -s reload
+[root@nginx ~]# netstat -lnpt|grep 80
+tcp        0      0 0.0.0.0:8081            0.0.0.0:*               LISTEN      1532/nginx: master  
+tcp        0      0 0.0.0.0:8082            0.0.0.0:*               LISTEN      1532/nginx: master  
+tcp        0      0 0.0.0.0:8083            0.0.0.0:*               LISTEN      1532/nginx: master 
+
+[root@nginx ~]# curl 10.0.0.8:8081/url1.html
+Code1-Url1
+[root@nginx ~]# curl 10.0.0.8:8082/url1.html
+Code2-Url1
+[root@nginx ~]# curl 10.0.0.8:8083/url1.html
+Code3-Url1
+[root@nginx ~]# curl 10.0.0.8:8081/url2.html
+Code1-Url2
+[root@nginx ~]# curl 10.0.0.8:8082/url2.html
+Code2-Url2
+[root@nginx ~]# curl 10.0.0.8:8083/url2.html
+Code3-Url2
+[root@nginx ~]# curl 10.0.0.8:8081/url3.html
+Code1-Url3
+[root@nginx ~]# curl 10.0.0.8:8082/url3.html
+Code2-Url3
+[root@nginx ~]# curl 10.0.0.8:8083/url3.html
+Code3-Url3
+</code></pre>
+<p>3）代理配置缓存</p>
+<pre><code class="language-shell">#代理安装openresty
+[root@proxy ~]# mkdir -p /soft/cache
+[root@proxy conf]# cat nginx.conf
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+    proxy_cache_path /soft/cache levels=1:2 keys_zone=code_cache:10m max_size=10g inactive=60m use_temp_path=off;
+    ......
+}
+
+[root@proxy conf.d]# pwd
+/usr/local/openresty/nginx/conf/conf.d
+[root@proxy conf.d]# ls
+proxy_upload.conf   purge.lua
+[root@proxy conf.d]# cat proxy_upload.conf 
+upstream cache {
+    server 10.0.0.8:8081;
+    server 10.0.0.8:8082;
+    server 10.0.0.8:8083;
+}
+
+server {
+        listen 80;
+        server_name 10.0.0.7;
+        location / {
+            if ($request_method = PURGE) {
+                set $lua_purge_path &quot;/soft/cache&quot;;
+                set $lua_purge_levels &quot;1:2&quot;;
+                set $lua_purge_upstream &quot;http://cache&quot;;
+                content_by_lua_file  /usr/local/openresty/nginx/conf/conf.d/purge.lua;
+            }
+        proxy_pass http://cache;
+        proxy_cache code_cache;
+        proxy_cache_valid 200 304 12h;
+        proxy_cache_valid any 10m;
+        add_header Nginx-Cache &quot;$upstream_cache_status&quot;;
+        proxy_next_upstream error timeout invalid_header http_500 http_502 http_503 http_504;
+        include proxy_params;
+
+        }
+    }
+</code></pre>
+<pre><code class="language-shell">//此文件与nginx.conf在同一目录下
+cat proxy_params
+
+proxy_set_header Host $http_host;
+proxy_set_header X-Real-IP $remote_addr;
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;   
+
+proxy_connect_timeout 30;
+proxy_send_timeout 60;
+proxy_read_timeout 60;
+
+proxy_buffering on;
+proxy_buffer_size 32k;
+proxy_buffers 4 128k;
+</code></pre>
+<p>补充：nginx代理缓存的核心参数：</p>
+<pre><code class="language-shell">proxy_cache 配置语法
+syntax：proxy_cache zone |off;
+default：proxy_cache off;
+context:http、server、location
+
+缓存路径
+proxy_cache_path path [levels=levels] [use_temp_path=on|off] keys_zone=name:size [inactive=time] [max_size=size] [manager_files=number] [manager_sleep=time] [manager_threshold=time] [loader_files=number] [loader_sleep=time] [loader_threshold=time] [purger=on|off] [purger_files=number] [purger_sleep=time] [purger_threshold=time];
+default:——
+context：http
+#proxy_cache_path 存放缓存临时文件
+#levels 按照两层目录分级
+#keys_zone 开辟空间名，10m：开辟空间大小，1m可存放8000key
+#max_size 控制最大大小，超过后nginx会启用淘汰规则
+#inactive 60分钟没有被访问缓存会被清理
+#use_temp_path 临时文件，会影响性能，建议关闭
+proxy_cache_path /soft/cache levels=1:2 key_zone=code_cache:10m max_size=10g inactive=60m use_temp_path=off;
+
+缓存过期周期
+syntax：proxy_cache_valid [code ...] time;
+default：——
+context：http、server、location
+//示例
+proxy_cache_valid 200 302 10m;
+proxy_cache_valid 404 1m;
+
+缓存的维度
+syntax：proxy_cache_key string;
+default：proxy_cache_key $scheme$proxy_host$request_uri;
+context：http、server、location
+//示例
+proxy_cache_key $host$request_uri$cookie_user;
+proxy_cache_key $scheme$proxy_host$uri$is_args$args;
+
+//示例
+#proxy_cache 开启缓存
+#proxy_cache_valid 状态码200|304的过期为12h，其余状态码10分钟过期
+#proxy_cache_key 缓存key
+#add header 增加头信息，观察客户端respoce是否命中
+#proxy_next_upstream 出现502-504或错误，会跳过此台服务器访问下台
+   location / {
+   proxy_pass http://cache;
+   proxy_cache code_cache;
+   proxy_cache_valid 200 304 12h;
+   proxy_cache_valid any 10m;
+   add_header Nginx-Cache &quot;$upstream_cache_status&quot;;
+   proxy_next_upstream error timeout invalid_header http_500 http_502 http_503 http_504;
+   include proxy_params;
+   }
+</code></pre>
+<p>4）查看是否命中缓存</p>
+<pre><code class="language-shell">[root@proxy ~]# curl -s -I http://10.0.0.7/url1.html|grep &quot;Nginx-Cache&quot;
+Nginx-Cache: HIT
+</code></pre>
+<p>5）清理文件缓存脚本</p>
+<pre><code class="language-shell">[root@proxy conf.d]# cat purge.lua 
+-- Tit Petric, Monotek d.o.o., Thu 27 Oct 2016 10:43:38 AM CEST
+--
+
+-- Delete nginx cached assets with a PURGE request against an endpoint
+--
+
+local md5 = require 'md5'
+
+function file_exists(name)
+        local f = io.open(name, &quot;r&quot;)
+        if f~=nil then io.close(f) return true else return false end
+end
+
+function explode(d, p)
+        local t, ll
+        t={}
+        ll=0
+        if(#p == 1) then return {p} end
+                while true do
+                        l=string.find(p, d, ll, true) -- find the next d in the string
+                        if l~=nil then -- if &quot;not not&quot; found then..
+                                table.insert(t, string.sub(p, ll, l-1)) -- Save it in our array.
+                                ll=l+1 -- save just after where we found it for searching next time.
+                        else
+                                table.insert(t, string.sub(p, ll)) -- Save what's left in our array.
+                                break -- Break at end, as it should be, according to the lua manual.
+                        end
+                end
+        return t
+end
+
+function cache_filename(cache_path, cache_levels, cache_key)
+        local md5sum = md5.sumhexa(cache_key)
+        local levels = explode(&quot;:&quot;, cache_levels)
+        local filename = &quot;&quot;
+
+        local index = string.len(md5sum)
+        for k, v in pairs(levels) do
+                local length = tonumber(v)
+                -- add trailing [length] chars to index
+                index = index - length;
+                filename = filename .. md5sum:sub(index+1, index+length) .. &quot;/&quot;;
+        end
+        if cache_path:sub(-1) ~= &quot;/&quot; then
+                cache_path = cache_path .. &quot;/&quot;;
+        end
+        filename = cache_path .. filename .. md5sum
+        return filename
+
+end
+
+function purge(filename)
+        if (file_exists(filename)) then
+                os.remove(filename)
+        end
+end
+
+if ngx ~= nil then
+        local cache_key = ngx.var.lua_purge_upstream .. ngx.var.request_uri
+        local filename = cache_filename(ngx.var.lua_purge_path, ngx.var.lua_purge_levels, cache_key)
+        purge(filename)
+        ngx.say(&quot;OK&quot;)
+        ngx.exit(ngx.OK)
+end
+</code></pre>
+<p>5）清理缓存</p>
+<pre><code class="language-shell">[root@proxy ~]# curl -s -I http://10.0.0.7/url3.html|grep &quot;Nginx-Cache&quot;
+Nginx-Cache: MISS
+[root@proxy ~]# curl -s -I http://10.0.0.7/url3.html|grep &quot;Nginx-Cache&quot;
+Nginx-Cache: HIT
+[root@proxy ~]# curl -X PURGE  http://10.0.0.7/url3.html               
+OK
+[root@proxy ~]# curl -s -I http://10.0.0.7/url3.html|grep &quot;Nginx-Cache&quot;
+Nginx-Cache: MISS
+</code></pre>
+<p>6）清理目录或匹配多个文件脚本</p>
+<pre><code class="language-shell">-- Tit Petric, Monotek d.o.o., Tue 03 Jan 2017 06:54:56 PM CET
+--
+
+-- Delete nginx cached assets with a PURGE request against an endpoint
+
+-- supports extended regular expression PURGE requests (/upload/.*)
+--
+
+function file_exists(name)
+        local f = io.open(name, &quot;r&quot;)
+        if f~=nil then io.close(f) return true else return false end
+end
+
+function explode(d, p)
+        local t, ll
+        t={}
+        ll=0
+        if(#p == 1) then return {p} end
+                while true do
+                        l=string.find(p, d, ll, true) -- find the next d in the string
+                        if l~=nil then -- if &quot;not not&quot; found then..
+                                table.insert(t, string.sub(p, ll, l-1)) -- Save it in our array.
+                                ll=l+1 -- save just after where we found it for searching next time.
+                        else
+                                table.insert(t, string.sub(p, ll)) -- Save what's left in our array.
+                                break -- Break at end, as it should be, according to the lua manual.
+                        end
+                end
+        return t
+end
+
+function purge(filename)
+        if (file_exists(filename)) then
+                os.remove(filename)
+        end
+end
+
+function trim(s)
+        return (string.gsub(s, &quot;^%s*(.-)%s*$&quot;, &quot;%1&quot;))
+end
+
+function exec(cmd)
+        local handle = io.popen(cmd)
+        local result = handle:read(&quot;*all&quot;)
+        handle:close()
+        ngx.log(ngx.INFO, result)
+        return trim(result)
+end
+
+function list_files(cache_path, purge_upstream, purge_pattern)
+        local cmd = &quot;/usr/bin/find &quot; .. cache_path .. &quot; -type f | /usr/bin/xargs --no-run-if-empty -n1000 /bin/grep -El -m 1 '^KEY: &quot; .. purge_upstream .. purge_pattern .. &quot;' 2&gt;&amp;1&quot;
+        ngx.log(ngx.INFO, cmd)
+        local result = exec(cmd)
+        if result == &quot;&quot; then
+                return {}
+        end
+        return explode(&quot;\n&quot;, result)
+end
+
+if ngx ~= nil then
+        -- list all cached items matching upstream+request_uri (extended regex)
+        local files = list_files(ngx.var.lua_purge_path, ngx.var.lua_purge_upstream, ngx.var.request_uri)
+
+        ngx.header[&quot;Content-type&quot;] = &quot;text/plain; charset=utf-8&quot;
+        ngx.header[&quot;X-Purged-Count&quot;] = table.getn(files)
+        for k, v in pairs(files) do
+                purge(v)
+        end
+        ngx.say(&quot;OK&quot;)
+        ngx.exit(ngx.OK)
+
+end
+</code></pre>
+<p>7）测试</p>
+<pre><code class="language-shell">[root@proxy ~]# curl -s -I http://10.0.0.7/url1.html|grep &quot;Nginx-Cache&quot;
+Nginx-Cache: MISS
+[root@proxy ~]# curl -s -I http://10.0.0.7/url1.html|grep &quot;Nginx-Cache&quot;
+Nginx-Cache: HIT
+[root@proxy ~]# curl -s -I http://10.0.0.7/url2.html|grep &quot;Nginx-Cache&quot;
+Nginx-Cache: MISS
+[root@proxy ~]# curl -s -I http://10.0.0.7/url2.html|grep &quot;Nginx-Cache&quot;
+Nginx-Cache: HIT
+[root@proxy ~]# curl -s -I http://10.0.0.7/url3.html|grep &quot;Nginx-Cache&quot;
+Nginx-Cache: MISS
+[root@proxy ~]# curl -s -I http://10.0.0.7/url3.html|grep &quot;Nginx-Cache&quot;
+Nginx-Cache: HIT
+</code></pre>
+<pre><code class="language-shell">[root@proxy ~]# curl -X PURGE '10.0.0.7/.*html' -i        
+HTTP/1.1 200 OK
+Server: openresty/1.19.9.1
+Date: Mon, 09 May 2022 06:17:54 GMT
+Content-Type: text/plain; charset=utf-8
+Transfer-Encoding: chunked
+Connection: keep-alive
+X-Purged-Count: 3
+OK
+
+[root@proxy ~]# curl -X PURGE 10.0.0.7/.*
+OK
+</code></pre>
+<p>8）用脚本清除nginx代理缓存</p>
+<pre><code class="language-shell">#!/bin/bash
+#Auto Clean Nginx Proxy_Cache Shell Scripts  
+
+echo -e &quot;\n\n&quot;  
+echo -n -e &quot;\e[35;1m请输入Nginx Proxy_cache缓存的具体路径(友情提示:可以使用Tab补全功能哦!)\e[0m\e[34;5m:\e[0m&quot;  
+read -e path  
+CACHE_DIR=$path  
+echo -e &quot;\e[32;1m----------------------------------------------------------------\e[0m&quot;  
+echo -e &quot;\e[32;1m----------------------------------------------------------------\e[0m&quot;  
+echo -n -e &quot;\e[32;1m请输入你要删除的动作\n1.按文件类型删除\t2.按具体文件名删除\t3.按文件目录删除\n:&quot;  
+read action  
+     case $action in  
+1)  
+echo -e &quot;\e[32;1m----------------------------------------------------------------\e[0m&quot;  
+echo -e &quot;\e[32;1m----------------------------------------------------------------\e[0m&quot;  
+echo -n -e &quot;\e[34;1m 请输入你要删除的缓存文件类型(可以输入多个参数空格隔开)\e[0m\e[34;5m:\e[0m&quot;  
+read -a FILE  
+for i in `echo ${FILE[*]}|sed 's/ /\n/g'`  
+do  
+grep -r -a  \.$i ${CACHE_DIR}| awk 'BEGIN {FS=&quot;:&quot;} {print $1}'  &gt; /tmp/cache_list.txt  
+ for j in `cat /tmp/cache_list.txt`  
+do  
+   rm  -rf  $j  
+   echo &quot;$i  $j 删除成功!&quot;  
+ done  
+done  
+;;  
+2)  
+echo -e &quot;\e[32;1m----------------------------------------------------------------\e[0m&quot;  
+echo -e &quot;\e[32;1m----------------------------------------------------------------\e[0m&quot;  
+echo -n -e &quot;\e[33;1m 请输入你要删除的缓存文件具体名称(可以输入多个参数空格隔开)\e[0m\e[34;5m:\e[0m&quot;  
+read -a FILE  
+for i in `echo ${FILE[*]}|sed 's/ /\n/g'`  
+do  
+grep -r -a  $i ${CACHE_DIR}| awk 'BEGIN {FS=&quot;:&quot;} {print $1}'  &gt; /tmp/cache_list.txt  
+ for j in `cat /tmp/cache_list.txt`  
+do  
+   rm  -rf  $j  
+   echo &quot;$i  $j 删除成功!&quot;  
+ done  
+done  
+;;  
+3)  
+echo -e &quot;\e[32;1m----------------------------------------------------------------\e[0m&quot;  
+echo -e &quot;\e[32;1m----------------------------------------------------------------\e[0m&quot;  
+echo -n -e &quot;\e[33;1m支持的模式有:\n1.清除网站store目录下的所有缓存:test.dd.com/data/upload/shop/store\n2.清除网站shop下的所有缓存:test.dd.com/data/upload/shop\e[0m\n&quot;  
+echo -n -e &quot;\e[34;1m 请输入你要删除的缓存文件具体目录\e[0m\e[34;5m:\e[0m&quot;  
+read -a FILE  
+for i in `echo ${FILE[*]}|sed 's/ /\n/g'`  
+do  
+grep -r -a  &quot;$i&quot; ${CACHE_DIR}| awk 'BEGIN {FS=&quot;:&quot;} {print $1}'  &gt; /tmp/cache_list.txt  
+ for j in `cat /tmp/cache_list.txt`  
+do  
+   rm  -rf  $j  
+   echo &quot;$i  $j 删除成功!&quot;  
+ done  
+done  
+;;  
+*)  
+echo &quot;输入错误,请重新输入&quot;  
+;;  
+esac
+</code></pre>
+<pre><code>文献参考：https://lichi6174.github.io/nginx-cache/
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/an-zhuang-bao-ta-jiao-ben/">
+              <h3 class="post-title">
+                下一篇：安装宝塔脚本
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">温故而知新</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>
