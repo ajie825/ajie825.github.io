@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ajie825.github.io</id>
     <title>Gridea</title>
-    <updated>2022-07-19T07:23:41.072Z</updated>
+    <updated>2022-07-19T09:01:56.495Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ajie825.github.io"/>
     <link rel="self" href="https://ajie825.github.io/atom.xml"/>
@@ -392,6 +392,59 @@ podaffinity： pod节点亲和性，pod倾向于哪个pod
 nodeaffinity：node节点亲和性，pod倾向于哪个node
 </code></pre>
 <h2 id="污点-容忍度">污点、容忍度</h2>
+<pre><code class="language-bash">给了节点选择的主动权，我们给节点打一个污点，不容忍的pod就运行不上来，污点就是定义在节点上的键值属性数据，可以
+决定拒绝哪些pod；
+taints是键值数据，用在节点上，定义污点；
+toleration是键值数据，用在pod上，定义容忍度，能容忍哪些污点；
+pod亲和性是pod属性；但是污点是节点的属性，污点定义在nodeSelector上。
+</code></pre>
+<pre><code class="language-bash">[root@master1 ~]# kubectl explain node.spec.taints
+KIND:     Node
+VERSION:  v1
+
+RESOURCE: taints &lt;[]Object&gt;
+
+DESCRIPTION:
+     If specified, the node's taints.
+     The node this Taint is attached to has the &quot;effect&quot; on any pod that does
+     not tolerate the Taint.
+
+FIELDS:
+   effect       &lt;string&gt; -required-
+     Required. The effect of the taint on pods that do not tolerate the taint.
+     Valid effects are NoSchedule, PreferNoSchedule and NoExecute.
+   key  &lt;string&gt; -required-
+   timeAdded    &lt;string&gt;
+   value        &lt;string&gt;
+   
+taints的effect用来定义对pod对象的排斥等级：
+NoSchedule：
+仅影响pod调度过程，当pod能容忍这个节点污点，就可以调度到当前节点，后来这个节点的污点改了，加了一个新的污点，
+使得之前调度的pod不能容忍了，那么这个pod会怎么处理，对现存的pod对象不产生影响。
+NoExecute：
+既影响调度过程，又影响现存的pod对象，如果现存的pod不能容忍节点后来加的污点，这个pod就会被驱逐。
+PreferNoSchedule：
+最好不，也可以，是NoSchedule的柔性版本。
+</code></pre>
+<pre><code class="language-bash">在pod对象定义容忍度的时候支持两种操作：
+1）等值密钥：key和value上完全匹配。
+2）存在性判断，key和effect必须同时匹配，vaue可以是空。
+在pod上定义的容忍度可能不止一个，在节点上定义的污点可能多个，需要逐个检查容忍度和污点能否匹配，每个污点都能被容忍，
+才能完成调度。
+[root@master1 ~]# kubectl describe nodes master1
+Taints:         node-role.kubernetes.io/master:NoSchedule
+上面可以看到master这个节点的污点是NoSchedule
+
+我们创建的pod都不会调度到master上，因为我们创建的pod没有容忍度
+[root@master1 ~]# kubectl describe pods kube-apiserver-master1 -n kube-system 
+Node-Selectors:    &lt;none&gt;
+Tolerations:       :NoExecute op=Exists
+Events:            &lt;none&gt;
+可以看到这个pod的容忍度是NoExecute，则可以调度到master1节点上。
+
+管理节点污点
+[root@master1 ~]# kubectl taint --help
+</code></pre>
 ]]></content>
     </entry>
     <entry>
