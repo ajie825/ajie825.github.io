@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ajie825.github.io</id>
     <title>Gridea</title>
-    <updated>2022-07-19T03:53:44.515Z</updated>
+    <updated>2022-07-19T03:56:10.966Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ajie825.github.io"/>
     <link rel="self" href="https://ajie825.github.io/atom.xml"/>
@@ -34,7 +34,6 @@ FIELDS:
    requiredDuringSchedulingIgnoredDuringExecution       &lt;Object&gt;
 #preferred表示有节点尽量满足这个位置定义的亲和性，这不是一个必须的条件，软亲和性
 #required表示必须有节点满足这个位置定义的亲和性，这是个硬性条件，硬亲和性
-#当节点标签改变而不再符合此节点亲和性规则时，不会将Pod从该节点移出，仅对新建的Pod对象生效
 </code></pre>
 <pre><code class="language-bash">[root@master1 ~]# kubectl explain pods.spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms
 KIND:     Pod
@@ -132,6 +131,8 @@ node/node1 labeled
 #重新查看Pod的状态
 [root@master1 ~]# kubectl get pods -o wide|grep pod-node-affinity-demo
 pod-node-affinity-demo        1/1     Running   0          6m25s   10.244.166.150   node1
+
+#当节点标签改变而不再符合此节点亲和性规则时，不会将Pod从该节点移出，仅对新建的Pod对象生效
 </code></pre>
 ]]></content>
     </entry>
