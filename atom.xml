@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ajie825.github.io</id>
     <title>Gridea</title>
-    <updated>2022-07-19T05:36:17.751Z</updated>
+    <updated>2022-07-19T05:41:04.362Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ajie825.github.io"/>
     <link rel="self" href="https://ajie825.github.io/atom.xml"/>
@@ -126,6 +126,20 @@ pod-node-affinity-demo        1/1     Running   0          6m25s   10.244.166.15
 #当节点标签改变而不再符合此节点亲和性规则时，不会将Pod从该节点移出，仅对新建的Pod对象生效
 </code></pre>
 <pre><code class="language-bash">#使用preferredDuringSchedulingIgnoredDuringExecution软亲和性
+[root@master1 ~]# kubectl explain pods.spec.affinity.nodeAffinity.preferredDuringSchedulingIgnoredDuringExecution
+KIND:     Pod
+VERSION:  v1
+
+RESOURCE: preferredDuringSchedulingIgnoredDuringExecution &lt;[]Object&gt;
+
+DESCRIPTION:
+
+FIELDS:
+   preference   &lt;Object&gt; -required-
+
+   weight       &lt;integer&gt; -required-
+     range 1-100.
+     
 [root@master1 ~]# kubectl explain pods.spec.affinity.nodeAffinity.preferredDuringSchedulingIgnoredDuringExecution.preference
 KIND:     Pod
 VERSION:  v1
