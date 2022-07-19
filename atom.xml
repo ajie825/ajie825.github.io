@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ajie825.github.io</id>
-    <title>Gridea</title>
-    <updated>2022-07-19T09:01:56.495Z</updated>
+    <title>Ajie的博客</title>
+    <updated>2022-07-19T10:00:18.807Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ajie825.github.io"/>
     <link rel="self" href="https://ajie825.github.io/atom.xml"/>
     <subtitle>温故而知新</subtitle>
     <logo>https://ajie825.github.io/images/avatar.png</logo>
     <icon>https://ajie825.github.io/favicon.ico</icon>
-    <rights>All rights reserved 2022, Gridea</rights>
+    <rights>All rights reserved 2022, Ajie的博客</rights>
     <entry>
         <title type="html"><![CDATA[污点-容忍度-亲和性]]></title>
         <id>https://ajie825.github.io/post/wu-dian-rong-ren-du-qin-he-xing/</id>
