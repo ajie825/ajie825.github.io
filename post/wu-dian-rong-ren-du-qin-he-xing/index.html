@@ -1,0 +1,269 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>污点-容忍度-亲和性 | Gridea</title>
+<meta name="description" content="温故而知新">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1658202241955">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1658202241955" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Gridea</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">污点-容忍度-亲和性</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-07-19</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/lw6Ii3pbB/">
+                    k8s
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="亲和性">亲和性</h2>
+<h3 id="node节点亲和性">node节点亲和性</h3>
+<pre><code class="language-bash">node节点亲和性调度：nodeAffinity
+[root@master1 ~]# kubectl explain pods.spec.affinity.nodeAffinity
+KIND:     Pod
+VERSION:  v1
+
+RESOURCE: nodeAffinity &lt;Object&gt;
+
+DESCRIPTION:
+     Describes node affinity scheduling rules for the pod.
+     Node affinity is a group of node affinity scheduling rules.
+
+FIELDS:
+   preferredDuringSchedulingIgnoredDuringExecution      &lt;[]Object&gt;
+   requiredDuringSchedulingIgnoredDuringExecution       &lt;Object&gt;
+#preferred表示有节点尽量满足这个位置定义的亲和性，这不是一个必须的条件，软亲和性
+#required表示必须有节点满足这个位置定义的亲和性，这是个硬性条件，硬亲和性
+</code></pre>
+<pre><code class="language-bash">[root@master1 ~]# kubectl explain pods.spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms
+KIND:     Pod
+VERSION:  v1
+
+RESOURCE: nodeSelectorTerms &lt;[]Object&gt;
+
+DESCRIPTION:
+     Required. A list of node selector terms. The terms are ORed.
+
+     A null or empty node selector term matches no objects. The requirements of
+     them are ANDed. The TopologySelectorTerm type implements a subset of the
+     NodeSelectorTerm.
+
+FIELDS:
+   #匹配表达式的
+   matchExpressions  &lt;[]Object&gt;
+   #匹配字段的
+   matchFields  &lt;[]Object&gt;
+</code></pre>
+<pre><code class="language-bash">[root@master1 ~]# kubectl explain pods.spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms.matchFields
+KIND:     Pod
+VERSION:  v1
+
+RESOURCE: matchFields &lt;[]Object&gt;
+
+DESCRIPTION:
+
+FIELDS:
+   key  &lt;string&gt; -required-
+   operator     &lt;string&gt; -required-
+   values       &lt;[]string&gt;
+</code></pre>
+<pre><code class="language-bash">[root@master1 ~]# kubectl explain pods.spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms.matchExpressions
+KIND:     Pod
+VERSION:  v1
+
+RESOURCE: matchExpressions &lt;[]Object&gt;
+
+DESCRIPTION:
+     A list of node selector requirements by node's labels.
+
+     A node selector requirement is a selector that contains values, a key, and
+     an operator that relates the key and values.
+
+FIELDS:
+   key  &lt;string&gt; -required-
+   operator     &lt;string&gt; -required-
+   values       &lt;[]string&gt;
+#key：     检查label
+#operator：做等值选择还是不等值选择
+#values：  给定值
+</code></pre>
+<pre><code class="language-bash">#使用requiredDuringSchedulingIgnoredDuringExecution硬亲和性
+#把myapp-v1.tar.gz上传到node1和node2上，手动解压：
+[root@node1 ~]# docker load -i myapp-v1.tar.gz 
+Loaded image: ikubernetes/myapp:v1
+[root@node2 ~]# docker load -i myapp-v1.tar.gz 
+Loaded image: ikubernetes/myapp:v1
+
+[root@master1 ~]# cat pod-nodeAffinify-demo.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-node-affinity-demo
+  namespace: default
+  labels:
+    app: myapp
+    tier: frontend
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: zone
+            operator: In
+            values:
+            - foo
+            - bar
+  containers:
+  - name: myapp
+    image: ikubernetes/myapp:v1
+    imagePullPolicy: IfNotPresent
+我们检查如果有节点拥有zone标签的值是foo或者bar，就可以把pod调度到这个node节点上
+[root@master1 ~]# kubectl apply -f pod-nodeAffinify-demo.yaml 
+[root@master1 ~]# kubectl get pods |grep pod-node-affinity-demo       
+pod-node-affinity-demo        0/1     Pending   0          2m11s
+status的状态是Pending，说明没有完成调度，因为没有节点拥有zone的标签值是foo或者bar，而且使用的是硬亲和性，
+必须满足条件才能完成调度。
+
+#给node1节点打标签zone=foo
+[root@master1 ~]# kubectl label nodes node1 zone=foo
+node/node1 labeled
+#重新查看Pod的状态
+[root@master1 ~]# kubectl get pods -o wide|grep pod-node-affinity-demo
+pod-node-affinity-demo        1/1     Running   0          6m25s   10.244.166.150   node1
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/namespace-ming-cheng-kong-jian/">
+              <h3 class="post-title">
+                下一篇：namespace名称空间
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">温故而知新</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>
