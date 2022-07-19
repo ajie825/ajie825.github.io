@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
 
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
-<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1658202966667">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1658208973107">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
 <link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
 
@@ -30,7 +30,7 @@
   <div class="site-header">
     <div class="left">
       <a href="https://ajie825.github.io">
-        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1658202966667" alt="" width="32px" height="32px">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1658208973107" alt="" width="32px" height="32px">
       </a>
       <a href="https://ajie825.github.io">
         <h1 class="site-title">Gridea</h1>
@@ -122,11 +122,6 @@ VERSION:  v1
 RESOURCE: nodeSelectorTerms &lt;[]Object&gt;
 
 DESCRIPTION:
-     Required. A list of node selector terms. The terms are ORed.
-
-     A null or empty node selector term matches no objects. The requirements of
-     them are ANDed. The TopologySelectorTerm type implements a subset of the
-     NodeSelectorTerm.
 
 FIELDS:
    #匹配表达式的
@@ -154,10 +149,6 @@ VERSION:  v1
 RESOURCE: matchExpressions &lt;[]Object&gt;
 
 DESCRIPTION:
-     A list of node selector requirements by node's labels.
-
-     A node selector requirement is a selector that contains values, a key, and
-     an operator that relates the key and values.
 
 FIELDS:
    key  &lt;string&gt; -required-
@@ -214,6 +205,55 @@ pod-node-affinity-demo        1/1     Running   0          6m25s   10.244.166.15
 
 #当节点标签改变而不再符合此节点亲和性规则时，不会将Pod从该节点移出，仅对新建的Pod对象生效
 </code></pre>
+<pre><code class="language-bash">#使用preferredDuringSchedulingIgnoredDuringExecution软亲和性
+[root@master1 ~]# kubectl explain pods.spec.affinity.nodeAffinity.preferredDuringSchedulingIgnoredDuringExecution.preference
+KIND:     Pod
+VERSION:  v1
+
+RESOURCE: preference &lt;Object&gt;
+
+DESCRIPTION:
+
+FIELDS:
+   matchExpressions     &lt;[]Object&gt;
+
+   matchFields  &lt;[]Object&gt;
+   
+[root@master1 ~]# cat pod-nodeAffinify-demo-2.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-node-affinity-demo-2
+  namespace: default
+  labels:
+    app: myapp
+    tier: frontend
+spec:
+  affinity:
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 10
+        preference:
+          matchExpressions:
+          - key: zone1
+            operator: In
+            values:
+            - foo1
+            - bar1
+  containers:
+  - name: myapp
+    image: ikubernetes/myapp:v1
+    imagePullPolicy: IfNotPresent
+ [root@master1 ~]# kubectl apply -f  pod-nodeAffinify-demo-2.yaml
+ 
+ [root@master1 ~]# kubectl get pods -o wide pod-node-affinity-demo-2
+NAME                       READY   STATUS    RESTARTS   AGE    IP              NODE   
+pod-node-affinity-demo-2   1/1     Running   0          109s   10.244.104.30   node2
+#说明软亲和性是可以运行这个pod的，尽管没有node节点定义zone1这个标签。
+
+node节点亲和性针对的是pod和node的关系，pod调度到node节点的时候匹配的条件。
+</code></pre>
+<h3 id="pod节点亲和性">pod节点亲和性</h3>
 
           </div>
         </div>
