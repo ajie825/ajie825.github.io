@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ajie825.github.io</id>
     <title>Gridea</title>
-    <updated>2022-07-18T09:24:51.744Z</updated>
+    <updated>2022-07-19T02:26:13.085Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ajie825.github.io"/>
     <link rel="self" href="https://ajie825.github.io/atom.xml"/>
@@ -153,7 +153,7 @@ pod-first   1/1     Running   2          2d19h   app=tomcat-pod-first,release=v1
 #查看所有名称空间下的所有pod的标签
 [root@master1 ~]# kubectl get pods --all-namespaces --show-labels 
 </code></pre>
-<h3 id="pod资源清单详细解读">pod资源清单详细解读</h3>
+<h2 id="pod资源清单详细解读">pod资源清单详细解读</h2>
 <pre><code class="language-bash">apiVersion: v1                 #版本号，例如v1
 kind: Pod                      #资源类型，如Pod
 metadata:                      #元数据
@@ -235,6 +235,82 @@ spec:                          #Pod中容器的详细定义
 imagePullPolicy: [Always | Never | IfNotPresent]
 #Pod的重启策略：Always表示不管pod以何种方式终止运行，kubelet都将重启，OnFailure表示只有Pod以非0退出才重启，Nerver表示不再重启该Pod。
 restartPolicy: [Always | Never | OnFailure]
+</code></pre>
+<h2 id="node节点选择器">node节点选择器</h2>
+<pre><code class="language-bash">我们在创建pod资源的时候，pod会根据scheduler进行调度，那么默认会调度到随机的一个工作节点，如果我们想要pod调度到指定
+节点或者调度到一些具有相同特点的node节点，怎么办？
+可以使用pod中的nodeName或者nodeSelector字段指定要调度的node节点。
+</code></pre>
+<h3 id="nodename">nodeName</h3>
+<pre><code class="language-bash">指定pod节点运行在哪个具体node上
+#把tomcat.tar.gz上传到node1和node2，手动解压：
+[root@node1 ~]# docker load -i tomcat.tar.gz
+tomcat             8.5-jre8-alpine   8b8b1eb786b5   3 years ago     106MB
+[root@node2 ~]# docker load -i tomcat.tar.gz
+[root@node2 ~]# docker images|grep tomcat
+tomcat             8.5-jre8-alpine   8b8b1eb786b5   3 years ago     106MB
+
+[root@master1 ~]# cat pod-node.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: demo-pod-1
+  namespace: default
+  labels:
+    app: myapp
+    env: dev
+spec:
+  nodeName: node1
+  containers:
+  - name: tomcat-pod-java
+    image: tomcat:8.5-jre8-alpine
+    imagePullPolicy: IfNotPresent
+    ports:
+    - containerPort: 8080
+  - name: busybox
+    image: busybox:latest
+    command:
+    - &quot;/bin/sh&quot;
+    - &quot;-c&quot;
+    - &quot;sleep 3600&quot;
+[root@master1 ~]# kubectl apply -f pod-node.yaml 
+
+#查看pod调度到哪个节点
+[root@master1 ~]# kubectl get pods -o wide|grep demo-pod-1
+demo-pod-1      2/2     Running   0          3m31s   10.244.166.149   node1
+</code></pre>
+<h3 id="nodeselector">nodeSelector</h3>
+<pre><code class="language-bash">指定pod调度到具有哪些标签的node节点上
+#给node节点打具有disk=ceph的标签
+[root@master1 ~]# kubectl label nodes node2 disk=ceph 
+node/node2 labeled
+[root@master1 ~]# kubectl get nodes -l disk=ceph
+NAME    STATUS   ROLES    AGE     VERSION
+node2   Ready    worker   4d17h   v1.20.6
+
+#定义pod的时候指定要调度到具有disk=ceph标签的node上
+[root@master1 ~]# cat pod-node-2.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: demo-pod-2
+  namespace: default
+  labels:
+    app: myapp
+    env: dev
+spec:
+  nodeSelector:
+    disk: ceph
+  containers:
+  - name: tomcat-pod-java
+    image: tomcat:8.5-jre8-alpine
+    imagePullPolicy: IfNotPresent
+    ports:
+    - containerPort: 8080
+[root@master1 ~]# kubectl apply -f pod-node-2.yaml 
+#查看pod调度到哪个节点
+[root@master1 ~]# kubectl get pods -o wide |grep demo-pod-2
+demo-pod-2        1/1     Running   0          6m11s   10.244.104.29    node2
 </code></pre>
 ]]></content>
     </entry>
