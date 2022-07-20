@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
 
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
-<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1658279860405">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1658283898108">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
 <link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
 
@@ -30,7 +30,7 @@
   <div class="site-header">
     <div class="left">
       <a href="https://ajie825.github.io">
-        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1658279860405" alt="" width="32px" height="32px">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1658283898108" alt="" width="32px" height="32px">
       </a>
       <a href="https://ajie825.github.io">
         <h1 class="site-title">Ajie的博客</h1>
@@ -494,7 +494,7 @@ FIELDS:
    timeAdded    &lt;string&gt;
    value        &lt;string&gt;
    
-taints的effect用来定义对pod对象的排斥等级：
+taints的effect用来定义对pod对象的排斥等级（效果）：
 NoSchedule：
 仅影响pod调度过程，当pod能容忍这个节点污点，就可以调度到当前节点，后来这个节点的污点改了，加了一个新的污点，
 使得之前调度的pod不能容忍了，那么这个pod会怎么处理，对现存的pod对象不产生影响。
@@ -504,8 +504,8 @@ PreferNoSchedule：
 最好不，也可以，是NoSchedule的柔性版本。
 </code></pre>
 <pre><code class="language-bash">在pod对象定义容忍度的时候支持两种操作：
-1）等值密钥：key和value上完全匹配。
-2）存在性判断，key和effect必须同时匹配，vaue可以是空。
+1）等值密钥（equal）：key和value上完全匹配。
+2）存在性判断（exists），key和effect必须同时匹配，vaue可以是空。
 在pod上定义的容忍度可能不止一个，在节点上定义的污点可能多个，需要逐个检查容忍度和污点能否匹配，每个污点都能被容忍，
 才能完成调度。
 [root@master1 ~]# kubectl describe nodes master1
@@ -521,6 +521,167 @@ Events:            &lt;none&gt;
 
 管理节点污点
 [root@master1 ~]# kubectl taint --help
+</code></pre>
+<pre><code class="language-bash">例：把node2当成生产环境专用的，其他node是测试的
+#给node2打污点，pod如果不能容忍就不会调度过来
+[root@master1 ~]# kubectl taint node node2 node-type=production:NoSchedule
+node/node2 tainted
+[root@master1 ~]# kubectl describe nodes node2
+Taints:          node-type=production:NoSchedule
+[root@master1 ~]# cat pod-taint.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: taint-pod
+  namespace: default
+  labels:
+    tomcat:  tomcat-pod
+spec:
+  containers:
+  - name:  taint-pod
+    image: tomcat:8.5-jre8-alpine
+    imagePullPolicy: IfNotPresent 
+    ports:
+    - containerPort: 8080
+[root@master1 ~]# kubectl apply -f pod-taint.yaml 
+[root@master1 ~]# kubectl get pods -o wide|grep taint-pod
+taint-pod         1/1     Running   0          28s     10.244.166.157   node1 
+#可以看到被调度到node1节点，因为node2这个节点打了污点，而我们在创建pod的时候没有定义容忍度，所以node2上不会有pod调度上去。
+</code></pre>
+<pre><code class="language-bash">#给node1也打上污点
+[root@master1 ~]# kubectl delete -f pod-taint.yaml 
+[root@master1 ~]# kubectl taint node node1 node-type=dev:NoExecute
+node/node1 tainted
+[root@master1 ~]# kubectl describe node node1
+Taints:          node-type=dev:NoExecute
+[root@master1 ~]# kubectl get pods -o wide|grep taint-pod         
+taint-pod                     0/1     Pending   0          6s
+[root@master1 ~]# kubectl describe pods taint-pod 
+Warning  FailedScheduling  default-scheduler  0/3 nodes are available: 1 node(s) had taint {node-role.kubernetes.io/master: }, 1 node(s) had taint {node-type: dev}, 1 node(s) had taint {node-type: production}
+#可以看到pod处于Pending状态，因为三个节点因为都打了污点，pod调度失败。
+</code></pre>
+<pre><code class="language-bash">#给pod定义容忍度
+[root@master1 ~]# kubectl get pods -o wide|grep taint-pod
+[root@master1 ~]# cat pod-taint-2.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-deploy
+  namespace: default
+  labels:
+    app: myapp
+    release: canary
+spec:
+  containers:
+  - name: myapp
+    image: ikubernetes/myapp:v1
+    ports:
+    - containerPort: 80
+  tolerations:
+  - key: &quot;node-type&quot;
+    operator: &quot;Equal&quot;
+    value: &quot;production&quot;
+    effect: &quot;NoExecute&quot;
+    tolerationSeconds: 3600
+[root@master1 ~]# kubectl apply -f pod-taint-2.yaml 
+pod/myapp-deploy created
+[root@master1 ~]# kubectl get pod -o wide|grep myapp-deploy
+myapp-deploy          0/1     Pending   0          28s
+
+#还是显示Pending状态，因为我们使用的是equal（等值匹配），所以key和value、effect必须和node节点定义的污点完全匹配才可以。
+</code></pre>
+<pre><code class="language-bash">#修改pod-taint-2.yaml，把effect: &quot;NoExecute&quot;变成effect: &quot;NoSchedule&quot;，tolerationSeconds: 3600去掉
+[root@master1 ~]# kubectl delete -f pod-taint-2.yaml       
+pod &quot;myapp-deploy&quot; deleted
+[root@master1 ~]# cat pod-taint-2.yaml     
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-deploy
+  namespace: default
+  labels:
+    app: myapp
+    release: canary
+spec:
+  containers:
+  - name: myapp
+    image: ikubernetes/myapp:v1
+    ports:
+    - containerPort: 80
+  tolerations:
+  - key: &quot;node-type&quot;
+    operator: &quot;Equal&quot;
+    value: &quot;production&quot;
+    effect: &quot;NoSchedule&quot;
+[root@master1 ~]# kubectl apply -f pod-taint-2.yaml 
+[root@master1 ~]# kubectl get pod -o wide|grep myapp-deploy                 
+myapp-deploy          1/1     Running   0          33s     10.244.104.42   node2 
+
+#显示pod被成功调度到node2，状态为Running。
+</code></pre>
+<pre><code class="language-bash">#再次对pod-taint-2.yaml进行修改
+[root@master1 ~]# kubectl delete -f pod-taint-2.yaml 
+[root@master1 ~]# cat pod-taint-2.yaml                     
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-deploy
+  namespace: default
+  labels:
+    app: myapp
+    release: canary
+spec:
+  containers:
+  - name: myapp
+    image: ikubernetes/myapp:v1
+    ports:
+    - containerPort: 80
+  tolerations:
+  - key: &quot;node-type&quot;
+    operator: &quot;Exists&quot;
+    value: &quot;&quot;
+    effect: &quot;NoSchedule&quot;
+#只要对应的键是存在的，exists其值被自动定义成通配符
+[root@master1 ~]# kubectl apply -f pod-taint-2.yaml 
+[root@master1 ~]# kubectl get pod -o wide|grep myapp-deploy
+myapp-deploy          1/1     Running   0          100s    10.244.104.43   node2
+
+#发现还是调度到node2节点，状态时Running。
+</code></pre>
+<pre><code class="language-bash">#再次对pod-taint-2.yaml进行修改
+[root@master1 ~]# kubectl delete -f pod-taint-2.yaml
+[root@master1 ~]# cat pod-taint-2.yaml                     
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-deploy
+  namespace: default
+  labels:
+    app: myapp
+    release: canary
+spec:
+  containers:
+  - name: myapp
+    image: ikubernetes/myapp:v1
+    ports:
+    - containerPort: 80
+  tolerations:
+  - key: &quot;node-type&quot;
+    operator: &quot;Exists&quot;
+    value: &quot;&quot;
+    effect: &quot;&quot;
+#有一个node-type的键，不管值是什么，不管什么污点，都能容忍
+[root@master1 ~]# kubectl apply -f pod-taint-2.yaml 
+[root@master1 ~]# kubectl get pod -o wide|grep myapp-deploy
+myapp-deploy          1/1     Running   0          17s     10.244.166.158   node1
+
+#可以看到pod有可能被调度到node1和node2节点。
+</code></pre>
+<pre><code class="language-bash">#删除污点
+[root@master1 ~]# kubectl taint node node1 node-type:NoExecute-
+node/node1 untainted
+[root@master1 ~]# kubectl taint node node2 node-type-
+node/node2 untainted
 </code></pre>
 
           </div>
