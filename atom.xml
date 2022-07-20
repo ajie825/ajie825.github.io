@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ajie825.github.io</id>
     <title>Ajie的博客</title>
-    <updated>2022-07-20T05:11:22.227Z</updated>
+    <updated>2022-07-20T05:13:57.222Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ajie825.github.io"/>
     <link rel="self" href="https://ajie825.github.io/atom.xml"/>
@@ -43,7 +43,9 @@ CrashLoopBackOff：容器曾经启动了，但可能又异常退出了。
 Error状态：pod启动过程中发生了错误。
 
 排错：
+#查看pod的详细信息
 kubectl describe pod名称
+#查看pod的日志
 kubectl logs pod名称
 </code></pre>
 <h3 id="pod重启策略">pod重启策略</h3>
