@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ajie825.github.io</id>
     <title>Ajie的博客</title>
-    <updated>2022-07-20T08:18:41.851Z</updated>
+    <updated>2022-07-20T09:30:12.660Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ajie825.github.io"/>
     <link rel="self" href="https://ajie825.github.io/atom.xml"/>
@@ -148,10 +148,23 @@ myapp-pod                     1/1     Running   0
 </code></pre>
 <h3 id="主容器">主容器</h3>
 <pre><code class="language-bash">容器钩子
-初始化容器启动之后，开始启动主容器，在主容器启动之后有一个postStart hook（容器启动后钩子），主容器终止前有一个preStop hook（容器结束前钩子），
-无论启动后还是结束前所做的事我们可以把它放两个钩子，这个钩子就表示用户可以用它来钩住一些命令，来执行它，做开场前的预设，结束前的清理，如awk有
+初始化容器启动之后，开始启动主容器，在主容器创建之后有一个postStart hook（容器创建后钩子），主容器终止前有一个preStop hook（容器结束前钩子）；
+无论创建后还是终止前所做的事我们可以把它放两个钩子，这个钩子表示用户可以用它来钩住一些命令，来执行它，做开场前的预设，结束前的清理，如awk有
 begin、end，和这个效果类似；
+postStart：该钩子在容器创建后立刻触发，通知容器它已经被创建。如果该钩子对应的hook handler执行失败，则该容器会被杀死，并根据该容
+器的重启策略决定是否要重启该容器，这个钩子不需要传递任何参数。
+preStop：该钩子在容器被删除前触发，其所对应的hook handler必须在删除容器的请求发送给docker daemon之前完成，在该对应的hook handler
+完成后不论执行的结果如何，都会发送一个SGTERN信号量给docker daemon来删除容器，这个钩子不需要传递任何参数。
 </code></pre>
+<pre><code class="language-bash">在k8s中支持两类对pod的检测
+第一类叫做livenessprobe（pod存活性探测）：
+存活性探针主要作用是，用指定的方式检测pod中的容器应用是否正常运行，如果检测失败，则认为容器不健康，那么kubelet将根据pod中设置的restartPolicy
+来判断pod是否要进行重启操作，如果容器配置中没有配置livenessProbe，kubelet将认为存活探针探测一直为成功状态。
+第二类叫做readinessprobe（pod就绪性探测）：
+就绪性探针主要作用是，用于判断容器中应用是否启动完成，当探测成功后才使pod对外提高网络访问。设置容器ready状态为true，如果探测失败，则设置容器
+的ready状态为false。
+</code></pre>
+<h3 id="创建pod需要经过哪些阶段">创建pod需要经过哪些阶段</h3>
 ]]></content>
     </entry>
     <entry>
