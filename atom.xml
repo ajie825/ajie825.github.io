@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ajie825.github.io</id>
     <title>Ajie的博客</title>
-    <updated>2022-07-19T10:00:18.807Z</updated>
+    <updated>2022-07-20T01:17:48.576Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ajie825.github.io"/>
     <link rel="self" href="https://ajie825.github.io/atom.xml"/>
@@ -405,9 +405,6 @@ VERSION:  v1
 RESOURCE: taints &lt;[]Object&gt;
 
 DESCRIPTION:
-     If specified, the node's taints.
-     The node this Taint is attached to has the &quot;effect&quot; on any pod that does
-     not tolerate the Taint.
 
 FIELDS:
    effect       &lt;string&gt; -required-
