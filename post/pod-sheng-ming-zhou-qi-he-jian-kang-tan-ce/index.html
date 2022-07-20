@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
 
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
-<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1658295570513">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1658298132302">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
 <link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
 
@@ -30,7 +30,7 @@
   <div class="site-header">
     <div class="left">
       <a href="https://ajie825.github.io">
-        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1658295570513" alt="" width="32px" height="32px">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1658298132302" alt="" width="32px" height="32px">
       </a>
       <a href="https://ajie825.github.io">
         <h1 class="site-title">Ajie的博客</h1>
@@ -154,6 +154,84 @@ spec:
 </code></pre>
 <h2 id="pod生命周期">pod生命周期</h2>
 <figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1658295567848.png" alt="" loading="lazy"></figure>
+<h3 id="init容器">Init容器</h3>
+<pre><code class="language-bash">pod里面可以有一个或者多个容器，部署应用的容器可以称为主容器，在创建pod的时候，pod中可以有一个或多个先于主容器启动的init容器，
+这个init容器就可以成为初始化容器；
+
+初始化容器一旦执行完成，它从启动开始到初始化代码执行完就退出了，它不会一直存在，所以在主容器启动之前执行初始化；
+
+初始化容器可以有多个，多个初始化容器是要串行执行的，先执行初始化容器1，再执行初始化容器2等，等初始化容器执行完初始化就退出了，
+然后再执行主容器；
+
+主容器一退出，pod就结束了，主容器退出的时间点就是pod的结束点，它俩时间轴是一致的；
+
+由于一个pod里的存储卷是共享的，所以init container里产生的数据可以被主容器使用到；
+
+init container可以在多种k8s资源里被使用到，如Deployment、daemonSet、StatefulSet、Job等，但都是在主容器启动前执行，做初始化
+工作。
+</code></pre>
+<pre><code class="language-bash">init容器与普通容器区别是：
+1）init容器不支持readiness，因为它们必须在pod就绪之前运行完成；
+2）每个init容器必须运行成功，下一个才能够运行；
+3）如果pod的init容器失败，k8s会不断的重启该pod，直到init容器成功为止，然而，如果pod对应的RestartPolicy值为Never，它不会重新启动。
+初始化容器的官方地址：
+https://kubernetes.io/docs/concepts/workloads/pods/init-containers/#init-containers-in-use
+</code></pre>
+<pre><code class="language-bash">[root@master1 ~]# cat init.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-pod
+  namespace: default
+  labels:
+    app: myapp
+spec:
+  containers:
+  - name: myapp-container
+    image: busybox:1.28
+    imagePullPolicy: IfNotPresent
+    command: ['sh', '-c', 'echo The app is running! &amp;&amp; sleep 3600']
+  initContainers:
+  - name: init-myservice
+    image: busybox:1.28
+    imagePullPolicy: IfNotPresent
+    command: ['sh', '-c', &quot;until nslookup myservice.$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace).svc.cluster.local; do echo waiting for myservice; sleep 2; done&quot;]
+  - name: init-mydb
+    image: busy:1.28
+    imagePullPolicy: IfNotPresent
+    command: ['sh', '-c', &quot;until nslookup mydb.$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace).svc.cluster.local; do echo waiting for mydb; sleep 2; done&quot;]
+[root@master1 ~]# kubectl apply -f init.yaml
+[root@master1 ~]# kubectl get pods|grep myapp-pod
+myapp-pod             0/1     Init:0/2   0          48s
+</code></pre>
+<pre><code class="language-bash">[root@master1 ~]# cat service.yaml 
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: myservice
+spec:
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 9376
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mydb
+spec:
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 9377
+[root@master1 ~]# kubectl apply -f service.yaml 
+service/myservice created
+service/mydb created
+[root@master1 ~]# kubectl get pods|grep myapp-pod              
+myapp-pod                     1/1     Running   0 
+</code></pre>
+<h3 id="主容器">主容器</h3>
 
           </div>
         </div>
