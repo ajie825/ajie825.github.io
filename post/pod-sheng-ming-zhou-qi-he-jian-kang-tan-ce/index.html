@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
 
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
-<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1658294033000">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1658295570513">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
 <link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
 
@@ -30,7 +30,7 @@
   <div class="site-header">
     <div class="left">
       <a href="https://ajie825.github.io">
-        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1658294033000" alt="" width="32px" height="32px">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1658295570513" alt="" width="32px" height="32px">
       </a>
       <a href="https://ajie825.github.io">
         <h1 class="site-title">Ajie的博客</h1>
@@ -129,6 +129,31 @@ kubectl describe pod名称
 kubectl logs pod名称
 </code></pre>
 <h3 id="pod重启策略">pod重启策略</h3>
+<pre><code class="language-bash">pod的重启策略（RestartPolicy）应用于pod内的所有容器，并且仅在pod所处的node上由kubelet进行判断和重启操作。
+当某个容器异常退出或者健康检查失败时，kubelet将根据RestartPolicy的设置来进行相应的操作。
+pod的重启策略包括Always、Never、OnFailure，默认值为Always。
+Always：当容器失败时，由kubelet自动重启该容器。
+Never：不论容器运行状态如何，kubelet都不会重启该容器。
+OnFailure：当容器终止运行且退出码不为0时，由kubelet自动重启该容器。
+
+[root@master1 ~]# cat pod.yaml 
+apiVersion: v1
+kind: Pod
+metadata: 
+  name: demo-pod
+  namespace: default
+  tables:
+spec:
+  restartPolicy: Always
+  containers:
+  - name: tomat-pod-java
+    image: tomcat:8.5-jre8-alpine
+    imagePullPolicy: IfNotPresent
+    ports:
+    - containerPort: 8080
+</code></pre>
+<h2 id="pod生命周期">pod生命周期</h2>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1658295567848.png" alt="" loading="lazy"></figure>
 
           </div>
         </div>
