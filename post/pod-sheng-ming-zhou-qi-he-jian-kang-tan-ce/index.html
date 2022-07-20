@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
 
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
-<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1658310604548">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1658311186047">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
 <link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
 
@@ -30,7 +30,7 @@
   <div class="site-header">
     <div class="left">
       <a href="https://ajie825.github.io">
-        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1658310604548" alt="" width="32px" height="32px">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1658311186047" alt="" width="32px" height="32px">
       </a>
       <a href="https://ajie825.github.io">
         <h1 class="site-title">Ajie的博客</h1>
@@ -228,8 +228,8 @@ myapp-pod                     1/1     Running   0
 </code></pre>
 <h3 id="主容器">主容器</h3>
 <pre><code class="language-bash">容器钩子
-初始化容器启动之后，开始启动主容器，在主容器创建之后有一个postStart hook（容器创建后钩子），主容器终止前有一个preStop hook（容器结束前钩子）；
-无论创建后还是终止前所做的事我们可以把它放两个钩子，这个钩子表示用户可以用它来钩住一些命令，来执行它，做开场前的预设，结束前的清理，如awk有
+初始化容器启动之后，开始启动主容器，在主容器启动前有一个postStart hook（容器创建钩子），主容器终止前有一个preStop hook（容器结束前钩子）；
+无论启动前还是终止前所做的事我们可以把它放两个钩子，这个钩子表示用户可以用它来钩住一些命令，来执行它，做开场前的预设，结束前的清理，如awk有
 begin、end，和这个效果类似；
 postStart：该钩子在容器创建后立刻触发，通知容器它已经被创建。如果该钩子对应的hook handler执行失败，则该容器会被杀死，并根据该容
 器的重启策略决定是否要重启该容器，这个钩子不需要传递任何参数。
