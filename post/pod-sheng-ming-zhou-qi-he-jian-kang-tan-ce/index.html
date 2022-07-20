@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
 
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
-<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1658298132302">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1658305117369">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
 <link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
 
@@ -30,7 +30,7 @@
   <div class="site-header">
     <div class="left">
       <a href="https://ajie825.github.io">
-        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1658298132302" alt="" width="32px" height="32px">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1658305117369" alt="" width="32px" height="32px">
       </a>
       <a href="https://ajie825.github.io">
         <h1 class="site-title">Ajie的博客</h1>
@@ -157,16 +157,11 @@ spec:
 <h3 id="init容器">Init容器</h3>
 <pre><code class="language-bash">pod里面可以有一个或者多个容器，部署应用的容器可以称为主容器，在创建pod的时候，pod中可以有一个或多个先于主容器启动的init容器，
 这个init容器就可以成为初始化容器；
-
 初始化容器一旦执行完成，它从启动开始到初始化代码执行完就退出了，它不会一直存在，所以在主容器启动之前执行初始化；
-
 初始化容器可以有多个，多个初始化容器是要串行执行的，先执行初始化容器1，再执行初始化容器2等，等初始化容器执行完初始化就退出了，
 然后再执行主容器；
-
 主容器一退出，pod就结束了，主容器退出的时间点就是pod的结束点，它俩时间轴是一致的；
-
 由于一个pod里的存储卷是共享的，所以init container里产生的数据可以被主容器使用到；
-
 init container可以在多种k8s资源里被使用到，如Deployment、daemonSet、StatefulSet、Job等，但都是在主容器启动前执行，做初始化
 工作。
 </code></pre>
@@ -232,6 +227,11 @@ service/mydb created
 myapp-pod                     1/1     Running   0 
 </code></pre>
 <h3 id="主容器">主容器</h3>
+<pre><code class="language-bash">容器钩子
+初始化容器启动之后，开始启动主容器，在主容器启动之后有一个postStart hook（容器启动后钩子），主容器终止前有一个preStop hook（容器结束前钩子），
+无论启动后还是结束前所做的事我们可以把它放两个钩子，这个钩子就表示用户可以用它来钩住一些命令，来执行它，做开场前的预设，结束前的清理，如awk有
+begin、end，和这个效果类似；
+</code></pre>
 
           </div>
         </div>
