@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
 
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
-<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1658288612813">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1658293878037">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
 <link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
 
@@ -30,7 +30,7 @@
   <div class="site-header">
     <div class="left">
       <a href="https://ajie825.github.io">
-        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1658288612813" alt="" width="32px" height="32px">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1658293878037" alt="" width="32px" height="32px">
       </a>
       <a href="https://ajie825.github.io">
         <h1 class="site-title">Ajie的博客</h1>
@@ -682,6 +682,11 @@ myapp-deploy          1/1     Running   0          17s     10.244.166.158   node
 node/node1 untainted
 [root@master1 ~]# kubectl taint node node2 node-type-
 node/node2 untainted
+#查看污点
+[root@master1 ~]# kubectl describe nodes node1|grep Taints
+Taints:             &lt;none&gt;
+[root@master1 ~]# kubectl describe nodes node2|grep Taints 
+Taints:             &lt;none&gt;
 </code></pre>
 
           </div>
