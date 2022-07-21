@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
 
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
-<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1658394843054">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1658396921250">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
 <link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
 
@@ -30,7 +30,7 @@
   <div class="site-header">
     <div class="left">
       <a href="https://ajie825.github.io">
-        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1658394843054" alt="" width="32px" height="32px">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1658396921250" alt="" width="32px" height="32px">
       </a>
       <a href="https://ajie825.github.io">
         <h1 class="site-title">Ajie的博客</h1>
@@ -102,9 +102,7 @@
 [root@master1 ~]# kubectl explain pods.spec.affinity.nodeAffinity
 KIND:     Pod
 VERSION:  v1
-
 RESOURCE: nodeAffinity &lt;Object&gt;
-
 DESCRIPTION:
      Describes node affinity scheduling rules for the pod.
      Node affinity is a group of node affinity scheduling rules.
@@ -118,9 +116,7 @@ FIELDS:
 <pre><code class="language-bash">[root@master1 ~]# kubectl explain pods.spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms
 KIND:     Pod
 VERSION:  v1
-
 RESOURCE: nodeSelectorTerms &lt;[]Object&gt;
-
 DESCRIPTION:
 
 FIELDS:
@@ -132,9 +128,7 @@ FIELDS:
 <pre><code class="language-bash">[root@master1 ~]# kubectl explain pods.spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms.matchFields
 KIND:     Pod
 VERSION:  v1
-
 RESOURCE: matchFields &lt;[]Object&gt;
-
 DESCRIPTION:
 
 FIELDS:
@@ -145,9 +139,7 @@ FIELDS:
 <pre><code class="language-bash">[root@master1 ~]# kubectl explain pods.spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms.matchExpressions
 KIND:     Pod
 VERSION:  v1
-
 RESOURCE: matchExpressions &lt;[]Object&gt;
-
 DESCRIPTION:
 
 FIELDS:
@@ -209,28 +201,22 @@ pod-node-affinity-demo        1/1     Running   0          6m25s   10.244.166.15
 [root@master1 ~]# kubectl explain pods.spec.affinity.nodeAffinity.preferredDuringSchedulingIgnoredDuringExecution
 KIND:     Pod
 VERSION:  v1
-
 RESOURCE: preferredDuringSchedulingIgnoredDuringExecution &lt;[]Object&gt;
-
 DESCRIPTION:
 
 FIELDS:
    preference   &lt;Object&gt; -required-
-
    weight       &lt;integer&gt; -required-
      range 1-100.
      
 [root@master1 ~]# kubectl explain pods.spec.affinity.nodeAffinity.preferredDuringSchedulingIgnoredDuringExecution.preference
 KIND:     Pod
 VERSION:  v1
-
 RESOURCE: preference &lt;Object&gt;
-
 DESCRIPTION:
 
 FIELDS:
    matchExpressions     &lt;[]Object&gt;
-
    matchFields  &lt;[]Object&gt;
    
 [root@master1 ~]# cat pod-nodeAffinify-demo-2.yaml 
@@ -283,13 +269,10 @@ podunaffinity：pod和pod更倾向不在一起，如果部署两套程序，那�
 <pre><code class="language-bash">[root@master1 ~]# kubectl explain pods.spec.affinity.podAffinity
 KIND:     Pod
 VERSION:  v1
-
 RESOURCE: podAffinity &lt;Object&gt;
-
 DESCRIPTION:
      Describes pod affinity scheduling rules (e.g. co-locate this pod in the
      same node, zone, etc. as some other pod(s)).
-
      Pod affinity is a group of inter pod affinity scheduling rules.
 
 FIELDS:
@@ -301,9 +284,7 @@ FIELDS:
 [root@master1 ~]# kubectl explain pods.spec.affinity.podAffinity.requiredDuringSchedulingIgnoredDuringExecution
 KIND:     Pod
 VERSION:  v1
-
 RESOURCE: requiredDuringSchedulingIgnoredDuringExecution &lt;[]Object&gt;
-
 DESCRIPTION:
 
 FIELDS:
@@ -311,21 +292,17 @@ FIELDS:
    namespaces   &lt;[]string&gt;
    topologyKey  &lt;string&gt; -required-
    
-topologyKey：位置拓扑的键，这个是必须字段
+#topologyKey：位置拓扑的键，这个是必须字段
 rack=rack1
 row=row1
-使用rack的键是同一个位置，使用row的键是同一个位置。
-
-labelSelector：我们要判断pod跟别的pod亲和，跟哪个pod亲和，需要靠labelSelector，通过labelSelector选择一组作为亲和对象的pod资源。
-
-namespace：labelSelector需要选择一组资源，通过namespace指定这组资源是在哪个名称空间中，如果不指定namespaces，那么就是当前创建pod的名称空间。
+#使用rack的键是同一个位置，使用row的键是同一个位置。
+#labelSelector：我们要判断pod跟别的pod亲和，跟哪个pod亲和，需要靠labelSelector，通过labelSelector选择一组作为亲和对象的pod资源。
+#namespace：labelSelector需要选择一组资源，通过namespace指定这组资源是在哪个名称空间中，如果不指定namespaces，那么就是当前创建pod的名称空间。
 
 [root@master1 ~]# kubectl explain pods.spec.affinity.podAffinity.requiredDuringSchedulingIgnoredDuringExecution.labelSelector 
 KIND:     Pod
 VERSION:  v1
-
 RESOURCE: labelSelector &lt;Object&gt;
-
 DESCRIPTION:
 
 FIELDS:
@@ -481,9 +458,7 @@ pod亲和性是pod属性；但是污点是节点的属性，污点定义在nodeS
 <pre><code class="language-bash">[root@master1 ~]# kubectl explain node.spec.taints
 KIND:     Node
 VERSION:  v1
-
 RESOURCE: taints &lt;[]Object&gt;
-
 DESCRIPTION:
 
 FIELDS:
