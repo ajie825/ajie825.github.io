@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ajie825.github.io</id>
     <title>Ajie的博客</title>
-    <updated>2022-07-21T09:48:45.503Z</updated>
+    <updated>2022-07-21T10:01:08.943Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ajie825.github.io"/>
     <link rel="self" href="https://ajie825.github.io/atom.xml"/>
@@ -154,8 +154,8 @@ spec:
       containers:              #定义pod里运行的容器
       - name: php-redis        #定义容器的名字
         image: yecc/gcr.io-google_samples-gb-frontend:v3
-          ports:               #定义端口
-          - containerPort:  80 #定义容器暴露的端口
+        ports:                 #定义端口
+        - containerPort:  80   #定义容器暴露的端口
 </code></pre>
 <h2 id="rs管理pod扩容-缩容-更新">RS管理pod：扩容、缩容、更新</h2>
 ]]></content>
