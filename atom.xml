@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ajie825.github.io</id>
     <title>Ajie的博客</title>
-    <updated>2022-07-21T07:03:09.612Z</updated>
+    <updated>2022-07-21T07:26:49.170Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ajie825.github.io"/>
     <link rel="self" href="https://ajie825.github.io/atom.xml"/>
@@ -25,6 +25,14 @@
 </code></pre>
 <h2 id="rs控制器的概念和原理">RS控制器的概念和原理</h2>
 <h3 id="replicaset概述">replicaset概述</h3>
+<pre><code class="language-bash">replicaset是k8s中的一种副本控制器，简称rs，主要作用是控制其管理的pod副本数量始终维持在预设的个数，它会持续
+监听这些pod的运行状态，在pod发生故障时重启pod，pod数量减少时重新运行新的pod副本，确保pod数量始终保持期望的
+状态。
+官方推荐不要直接使用replicaset，用deployment取而代之，deployment是比replicaset更高级的控制器，它会管理
+replicaset并提供很多有用的特性，最重要的是deployment支持声明式更新，声明式更新的好处是不会丢失历史变更，所
+以deployment控制器不直接管理pod对象，而是由deployment管理replicaset，再由replicaset负责管理pod对象。
+</code></pre>
+<h3 id="replicaset工作原理">replicaset工作原理</h3>
 ]]></content>
     </entry>
     <entry>

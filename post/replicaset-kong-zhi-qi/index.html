@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
 
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
-<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1658386985759">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1658388404767">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
 <link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
 
@@ -30,7 +30,7 @@
   <div class="site-header">
     <div class="left">
       <a href="https://ajie825.github.io">
-        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1658386985759" alt="" width="32px" height="32px">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1658388404767" alt="" width="32px" height="32px">
       </a>
       <a href="https://ajie825.github.io">
         <h1 class="site-title">Ajie的博客</h1>
@@ -105,6 +105,14 @@
 </code></pre>
 <h2 id="rs控制器的概念和原理">RS控制器的概念和原理</h2>
 <h3 id="replicaset概述">replicaset概述</h3>
+<pre><code class="language-bash">replicaset是k8s中的一种副本控制器，简称rs，主要作用是控制其管理的pod副本数量始终维持在预设的个数，它会持续
+监听这些pod的运行状态，在pod发生故障时重启pod，pod数量减少时重新运行新的pod副本，确保pod数量始终保持期望的
+状态。
+官方推荐不要直接使用replicaset，用deployment取而代之，deployment是比replicaset更高级的控制器，它会管理
+replicaset并提供很多有用的特性，最重要的是deployment支持声明式更新，声明式更新的好处是不会丢失历史变更，所
+以deployment控制器不直接管理pod对象，而是由deployment管理replicaset，再由replicaset负责管理pod对象。
+</code></pre>
+<h3 id="replicaset工作原理">replicaset工作原理</h3>
 
           </div>
         </div>
