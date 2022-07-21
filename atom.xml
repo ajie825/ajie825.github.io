@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ajie825.github.io</id>
     <title>Ajie的博客</title>
-    <updated>2022-07-21T07:26:49.170Z</updated>
+    <updated>2022-07-21T08:39:16.043Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ajie825.github.io"/>
     <link rel="self" href="https://ajie825.github.io/atom.xml"/>
@@ -33,6 +33,65 @@ replicaset并提供很多有用的特性，最重要的是deployment支持声明
 以deployment控制器不直接管理pod对象，而是由deployment管理replicaset，再由replicaset负责管理pod对象。
 </code></pre>
 <h3 id="replicaset工作原理">replicaset工作原理</h3>
+<pre><code class="language-bash">replicaset核心作用在于代用户创建指定数量的pod副本，并确保pod副本一直处于满足用户期望的数量，起到多退少补的
+作用，并且还具有自动扩容缩容等机制。
+replicaset控制器主要由三个部分组成：
+1）用户期望的pod副本数：用来定义由这个控制器管控的pod副本有几个；
+2）标签选择器：选定哪些pod是自己管理的，如果通过标签选择器选到的pod副本数量少于我们指定的数量，需要用到下面的
+组件；
+3）pod资源模板：如果集群中现存的pod数量不够我们期望的数量怎么办，需要新建pod，这就需要pod模板，新建的pod是
+基于模板来创建的。
+</code></pre>
+<h2 id="rs资源清单文件编写技巧">RS资源清单文件编写技巧</h2>
+<pre><code class="language-bash">#查看定义replicaset资源需要的字段有哪些？
+[root@master1 ~]# kubectl explain rs
+KIND:     ReplicaSet
+VERSION:  apps/v1
+
+DESCRIPTION:
+     ReplicaSet ensures that a specified number of pod replicas are running at
+     any given time.
+FIELDS:
+   apiVersion   &lt;string&gt; #当前资源使用的api版本，跟apiVersion: apps/v1保持一致
+   kind &lt;string&gt;         #资源类型，跟kind: ReplicaSet保持一致
+   metadata     &lt;Object&gt; #元数据，定义replicaset名字、名称空间、标签
+   spec &lt;Object&gt;         #定义副本数、定义标签选择器、定义pod模板
+   status       &lt;Object&gt; #状态信息，不能改
+</code></pre>
+<pre><code class="language-bash">#查看replicaset的spec字段如果定义？
+[root@master1 ~]# kubectl explain rs.spec
+KIND:     ReplicaSet
+VERSION:  apps/v1
+RESOURCE: spec &lt;Object&gt;
+DESCRIPTION:
+     Spec defines the specification of the desired behavior of the ReplicaSet.
+     
+FIELDS:
+   minReadySeconds      &lt;integer&gt;
+   replicas     &lt;integer&gt;           #定义的pod副本数，根据我们指定的值创建对应数量的pod
+   selector     &lt;Object&gt; -required- #用于匹配pod的标签选择器
+   template     &lt;Object&gt;            #定义pod的模板，基于这个模板定义的所有pod是一样的
+</code></pre>
+<pre><code class="language-bash">#查看replicaset的spec.template字段如何定义？
+[root@master1 ~]# kubectl explain rs.spec.template
+KIND:     ReplicaSet
+VERSION:  apps/v1
+RESOURCE: template &lt;Object&gt;
+DESCRIPTION:
+
+FIELDS:
+   metadata     &lt;Object&gt;
+   spec &lt;Object&gt;
+
+[root@master1 ~]# kubectl explain rs.spec.template.spec
+通过上面可以看到，replicaset资源中有两个spec字段：
+第一个spec声明的是replicaset定义多少个pod副本（默认仅部署1个pod）、匹配pod标签的选择器、创建pod模板；
+第二个spec主要用于pod的元数据和容器属性等配置。
+spec.template里的内容声明pod对象时要定义的各种属性，所以这部分也叫做pod模板，还有一个值得注意的地方是：
+在spec.slector中定义的标签选择器必须能够匹配到spec.template.metadata.labels里定义的pod标签，否则k8s
+将不允许创建replicaset。
+</code></pre>
+<h2 id="replicaset使用案例">replicaset使用案例</h2>
 ]]></content>
     </entry>
     <entry>
