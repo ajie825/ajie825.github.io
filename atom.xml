@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ajie825.github.io</id>
     <title>Ajie的博客</title>
-    <updated>2022-07-21T02:41:17.670Z</updated>
+    <updated>2022-07-21T03:02:26.185Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ajie825.github.io"/>
     <link rel="self" href="https://ajie825.github.io/atom.xml"/>
@@ -253,8 +253,21 @@ spec:
 3）Unknown：表示检测没有正常进行。
 </code></pre>
 <pre><code class="language-bash">pod探针相关的属性：
-探针（probe）有许多可选字段，
+探针（probe）有许多可选字段，可以用来更加精确的控制liveness和readiness两种探针的行为。
+initialDelaySeconds：pod启动后首次进行检查的等待时间，单位为&quot;秒&quot;。
+periodSeconds：      检查的间隔时间，默认为10s，单位为&quot;秒&quot;。
+timeoutSeconds：     探针执行检测请求后，等待响应的超时时间，默认为1s,单位为&quot;秒&quot;。
+successThreshold：   连续探测几次成功，才认为探测成功，默认为1，在liveness探针中必须为1，最小值为1。
+failureThreshold：   探测失败的重试次数，重试一定次数后将认为失败，在readiness探针中，pod会被标记为未就绪，
+默认为3，最小值为1。
+
 </code></pre>
+<pre><code class="language-bash">两种探针区别：
+readinessProbe和livenessProbe可以使用相同探测方式，只是对pod的处置方式不同：
+readinessProbe当检测失败后，将pod的ip:port从对应的EndPoint列表中删除。
+livenessProbe当检测失败后，将杀死容器并根据Pod的重启策略来决定作出对应的措施。
+</code></pre>
+<h3 id="pod探针使用示例">pod探针使用示例</h3>
 ]]></content>
     </entry>
     <entry>

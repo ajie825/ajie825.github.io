@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
 
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
-<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1658371270710">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1658372539910">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
 <link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
 
@@ -30,7 +30,7 @@
   <div class="site-header">
     <div class="left">
       <a href="https://ajie825.github.io">
-        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1658371270710" alt="" width="32px" height="32px">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1658372539910" alt="" width="32px" height="32px">
       </a>
       <a href="https://ajie825.github.io">
         <h1 class="site-title">Ajie的博客</h1>
@@ -333,8 +333,21 @@ spec:
 3）Unknown：表示检测没有正常进行。
 </code></pre>
 <pre><code class="language-bash">pod探针相关的属性：
-探针（probe）有许多可选字段，
+探针（probe）有许多可选字段，可以用来更加精确的控制liveness和readiness两种探针的行为。
+initialDelaySeconds：pod启动后首次进行检查的等待时间，单位为&quot;秒&quot;。
+periodSeconds：      检查的间隔时间，默认为10s，单位为&quot;秒&quot;。
+timeoutSeconds：     探针执行检测请求后，等待响应的超时时间，默认为1s,单位为&quot;秒&quot;。
+successThreshold：   连续探测几次成功，才认为探测成功，默认为1，在liveness探针中必须为1，最小值为1。
+failureThreshold：   探测失败的重试次数，重试一定次数后将认为失败，在readiness探针中，pod会被标记为未就绪，
+默认为3，最小值为1。
+
 </code></pre>
+<pre><code class="language-bash">两种探针区别：
+readinessProbe和livenessProbe可以使用相同探测方式，只是对pod的处置方式不同：
+readinessProbe当检测失败后，将pod的ip:port从对应的EndPoint列表中删除。
+livenessProbe当检测失败后，将杀死容器并根据Pod的重启策略来决定作出对应的措施。
+</code></pre>
+<h3 id="pod探针使用示例">pod探针使用示例</h3>
 
           </div>
         </div>
