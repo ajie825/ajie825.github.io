@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
 
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
-<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1658311186047">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1658371270710">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
 <link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
 
@@ -30,7 +30,7 @@
   <div class="site-header">
     <div class="left">
       <a href="https://ajie825.github.io">
-        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1658311186047" alt="" width="32px" height="32px">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1658371270710" alt="" width="32px" height="32px">
       </a>
       <a href="https://ajie825.github.io">
         <h1 class="site-title">Ajie的博客</h1>
@@ -258,7 +258,83 @@ apiserver再存到etcd中；在这个过程中，etcd和apiserver一直在打交
 3）主容器结束前可以做结束前钩子
 4）在主容器运行中可以做一些健康检测，如livenessprobe，readinessprobe
 </code></pre>
-<h3 id="pod容器探测和钩子">pod容器探测和钩子</h3>
+<h3 id="pod容器钩子">pod容器钩子</h3>
+<pre><code class="language-bash">postStart：容器创建成功后，运行前的任务，用于资源部署、环境准备等。
+preStop：在容器被终止前的任务，用于优雅关闭应用程序、通知其他系统等。
+</code></pre>
+<pre><code class="language-bash">#演示postStart和preStop用法
+......
+containers:
+- name: war 
+  image: sample:v2
+  lifecycle：
+    postStart:
+      exec:
+        command:
+        - “cp”
+        - “/sample.war”
+        - “/app”
+     prestop:
+       httpGet:
+         host: monitor.com
+         path: /waring
+         port: 8080
+         scheme: HTTP
+......
+以上示例中，定义了一个pod，包含一个JAVA的web应用容器，其中设置了postStart和preStop回调函数，即在容器
+创建成功后，复制/sample.war到/app目录中。而在容器终止之前，发送HTTP请求到http://monitor.com:8080/waring，
+即向监控系统发送告警。
+</code></pre>
+<pre><code class="language-bash">优雅的删除资源对象
+当用户请求删除含有pod的资源对象时（rs、deployment等）。k8s为了让应用程序优雅关闭（即让应用程序完成正在处理
+的请求后，再关闭软件），k8s提供两种信息通知：
+1）默认：k8s通知node执行docker stop命令，docker会先向容器中PID为1的进程发送系统信号SIGTERM，然后等待容器
+中的应用程序终止执行，如果等待时间达到设定的超时时间，或者默认超时时间（30s），会继续发送SIGKILL的系统信号
+强行kill掉进程。
+2）使用pod生命周期（利用preStop回调函数），它执行在发送终止信号之前。
+默认情况下，所有的删除操作的优雅退出时间都在30s以内。kubectl delete命令支持--grace-period=的选项，允许用户
+来修改默认值，0表示删除立即执行，并且立即从API中删除pod，在节点上，被设置了立即结束的pod，仍然会给一个很短的
+优雅退出时间段，才会开始被强制杀死，如下：
+spec:
+      containers:
+      - name: nginx-demo
+        image: centos:nginx
+        lifecycle:
+          preStop:
+            exec:
+              # nginx -s quit gracefully terminate while SIGTERM triggers a quick exit
+              command: [&quot;/usr/local/nginx/sbin/nginx&quot;,&quot;-s&quot;,&quot;quit&quot;]
+        ports:
+          - name: http
+            containerPort: 80
+</code></pre>
+<h3 id="存活性探测livenessprobe和就绪性探测readinessprobe">存活性探测livenessProbe和就绪性探测readinessProbe</h3>
+<pre><code class="language-bash">livenessProbe：存活性探测
+许多应用程序经过长时间运行，最终过渡到无法运行的状态，除了重启，无法恢复。通常情况下，k8s会发现应用程序已经终止，
+然后重启应用程序pod。有时应用程序可能因为某些原因（后端服务故障等）导致暂时无法对外提供服务，但应用软件没有终止，
+导致k8s无法隔离有故障的pod，调用者可能会访问到有故障的pod，导致业务不稳定，k8s提供livenessProbe来检测容器是否
+正常运行，并且对相应状况进行相应的补救措施。
+</code></pre>
+<pre><code class="language-bash">readinessProbe：就绪性探测
+在没有配置readinessProbe的资源对象中，pod中的容器启动完成后，就认为pod中的应用程序可以对外提供服务，该pod就会
+加入相对应的service，对外提供服务。但有时一些应用程序启动后，需要较长时间的加载才能对外提供服务，如果这时对外提
+供服务，执行结果必然无法达到预期效果，影响用户体验，比如使用tomcat的应用程序来说，并不是简单的说tomcat启动成功
+就可以对外提供服务的，还需要等待spring容器初始化，数据库连接上等等。
+</code></pre>
+<pre><code class="language-bash">目前livenessProbe和readinessProbe两种探针都支持下面三种探测方法：
+1）ExecAction：在容器中执行指定的命令，如果执行成功，退出码为0则探测成功。
+2）TCPSocketAction：通过容器的IP地址和端口号执行TCP检查，如果能够建立TCP连接，则表明容器健康。
+3）HTTPGetAction：通过容器的IP地址、端口号及路径调用HTTP Get方法，如果响应的状态码大于等于200且小于400，
+则认为容器健康。
+</code></pre>
+<pre><code class="language-bash">探针探测结果有以下值：
+1）Success：表示通过检测。
+2）Failure：表示未通过检测。
+3）Unknown：表示检测没有正常进行。
+</code></pre>
+<pre><code class="language-bash">pod探针相关的属性：
+探针（probe）有许多可选字段，
+</code></pre>
 
           </div>
         </div>
