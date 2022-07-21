@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ajie825.github.io</id>
     <title>Ajie的博客</title>
-    <updated>2022-07-21T06:34:37.313Z</updated>
+    <updated>2022-07-21T06:56:33.389Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ajie825.github.io"/>
     <link rel="self" href="https://ajie825.github.io/atom.xml"/>
@@ -16,7 +16,15 @@
         <link href="https://ajie825.github.io/post/replicaset-kong-zhi-qi/">
         </link>
         <updated>2022-07-21T06:33:11.000Z</updated>
-        <content type="html"><![CDATA[<p>让我们开始吧！</p>
+        <content type="html"><![CDATA[<pre><code class="language-bash">前面我们学习了pod，我们在定义pod资源时，可以通过yaml文件创建一个自主式pod，但是存在一个问题，假如pod被删
+除了，那这个pod就不能自我恢复，就会彻底被删除，线上这种情况非常危险，所以我们学习pod的控制器。
+所谓控制器就是能够管理pod，监测pod的运行状况，当pod发生故障，可以自动恢复pod，也就是说能够代我们去管理pod
+中间层，并确保每一个pod资源始终处于所定义或者所期望的目标状态，一旦pod资源出现故障，那么控制器会尝试重启pod
+或者里面的容器，如果一直重启有问题它可能会基于某种策略来进行重新部署或者编排，如果pod副本数量低于用户所定义
+的目标数量，它也会自动补全，如果多余，也会自动终止pod资源。
+</code></pre>
+<h2 id="rs控制器的概念和原理">RS控制器的概念和原理</h2>
+<h3 id="replicaset概述">replicaset概述</h3>
 ]]></content>
     </entry>
     <entry>
