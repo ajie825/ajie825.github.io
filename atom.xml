@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ajie825.github.io</id>
     <title>Ajie的博客</title>
-    <updated>2022-07-22T06:42:53.520Z</updated>
+    <updated>2022-07-22T07:00:35.328Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ajie825.github.io"/>
     <link rel="self" href="https://ajie825.github.io/atom.xml"/>
@@ -214,6 +214,51 @@ spec:
       - containerPort: 80            #容器里的应用的端口
 </code></pre>
 <h2 id="deployment管理pod扩容-缩容-滚动更新-回滚">Deployment管理pod：扩容、缩容、滚动更新、回滚</h2>
+<h3 id="deployment实现pod扩容">deployment实现pod扩容</h3>
+<pre><code class="language-bash">#把pod副本数变成3，修改deploy-demo.yaml，将replicas: 2 修改为replicas: 3
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: myapp
+#修改之后保存退出，执行
+[root@master1 ~]# kubectl apply -f deploy-demo.yaml 
+deployment.apps/myapp-v1 configured
+[root@master1 ~]# kubectl get deployments.apps 
+NAME       READY   UP-TO-DATE   AVAILABLE   AGE
+myapp-v1   3/3     3            3           40m
+You have new mail in /var/spool/mail/root
+[root@master1 ~]# kubectl get rs
+NAME                  DESIRED   CURRENT   READY   AGE
+myapp-v1-67fd9fc9c8   3         3         3       40m
+[root@master1 ~]# kubectl get pod
+NAME                        READY   STATUS    RESTARTS   AGE
+myapp-v1-67fd9fc9c8-96rwt   1/1     Running   0          40m
+myapp-v1-67fd9fc9c8-bkfpf   1/1     Running   0          40m
+myapp-v1-67fd9fc9c8-sz95c   1/1     Running   0          34s
+#上面可以看到pod副本已经变成3个
+</code></pre>
+<h3 id="deployment实现pod缩容">deployment实现pod缩容</h3>
+<pre><code class="language-bash">#把pod副本数变成2，方法同扩容一致
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: myapp
+[root@master1 ~]# kubectl apply -f deploy-demo.yaml 
+[root@master1 ~]# kubectl get deployments.apps 
+NAME       READY   UP-TO-DATE   AVAILABLE   AGE
+myapp-v1   2/2     2            2           43m
+[root@master1 ~]# kubectl get rs
+NAME                  DESIRED   CURRENT   READY   AGE
+myapp-v1-67fd9fc9c8   2         2         2       43m
+[root@master1 ~]# kubectl get pods
+NAME                        READY   STATUS    RESTARTS   AGE
+myapp-v1-67fd9fc9c8-96rwt   1/1     Running   0          43m
+myapp-v1-67fd9fc9c8-bkfpf   1/1     Running   0          43m
+#deployment的扩容、缩容和replicaset的步骤、方法一致
+</code></pre>
+<h3 id="deployment实现滚动更新">deployment实现滚动更新</h3>
 ]]></content>
     </entry>
     <entry>
