@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ajie825.github.io</id>
     <title>Ajie的博客</title>
-    <updated>2022-07-21T10:01:08.943Z</updated>
+    <updated>2022-07-22T02:21:57.489Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ajie825.github.io"/>
     <link rel="self" href="https://ajie825.github.io/atom.xml"/>
@@ -158,6 +158,116 @@ spec:
         - containerPort:  80   #定义容器暴露的端口
 </code></pre>
 <h2 id="rs管理pod扩容-缩容-更新">RS管理pod：扩容、缩容、更新</h2>
+<h3 id="replicaset实现pod的动态扩容">replicaset实现pod的动态扩容</h3>
+<pre><code class="language-bash">replicaset最核心的功能是可以动态扩容和缩容，如果我们觉得两个pod副本太少了，想要增加，只需要修改配置文件rs-guestbook.yaml
+里的replicas的值即可，原来replicas: 3现在变成replicas: 4，修改之后，执行如下命令更新：
+[root@master1 ~]# kubectl apply -f rs-guestbook.yaml 
+replicaset.apps/frontend configured
+[root@master1 ~]# kubectl get rs
+NAME       DESIRED   CURRENT   READY   AGE
+frontend   4         4         4       16h
+[root@master1 ~]# kubectl get pods
+NAME             READY   STATUS    RESTARTS   AGE
+frontend-6nc9v   1/1     Running   0          45s
+frontend-cmcwg   1/1     Running   1          16h
+frontend-v4nds   1/1     Running   1          16h
+frontend-w72ts   1/1     Running   1          16h
+
+#也可以直接编辑控制器实现扩容
+[root@master1 ~]# kubectl edit rs frontend    #这个是把请求提交给了apiserver，实时修改
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      tier: frontend
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        tier: frontend
+ #把上面的spec.replicas后面的值改成5，保存退出
+ [root@master1 ~]# kubectl get rs           
+NAME       DESIRED   CURRENT   READY   AGE
+frontend   5         5         5       16h
+[root@master1 ~]# kubectl get pods         
+NAME             READY   STATUS    RESTARTS   AGE
+frontend-6nc9v   1/1     Running   0          5m41s
+frontend-cmcwg   1/1     Running   1          16h
+frontend-csfxl   1/1     Running   0          5s
+frontend-v4nds   1/1     Running   1          16h
+frontend-w72ts   1/1     Running   1          16h
+</code></pre>
+<h3 id="replicaset实现pod的动态缩容">replicaset实现pod的动态缩容</h3>
+<pre><code class="language-bash">如果我们觉得5个pod副本太多了，想要减少，只需要修改配置文件rs-guestbook.yaml的replicas的值即可，把replicas: 4
+变成replicas: 2，修改之后，执行如下命令更新：
+[root@master1 ~]# kubectl apply -f rs-guestbook.yaml 
+replicaset.apps/frontend configured
+[root@master1 ~]# kubectl get rs
+NAME       DESIRED   CURRENT   READY   AGE
+frontend   2         2         2       16h
+[root@master1 ~]# kubectl get pods                   
+NAME             READY   STATUS    RESTARTS   AGE
+frontend-v4nds   1/1     Running   1          16h
+frontend-w72ts   1/1     Running   1          16h
+#同样也可以直接编辑控制器实现缩容
+</code></pre>
+<h3 id="replicaset实现pod的更新">replicaset实现pod的更新</h3>
+<pre><code class="language-bash">1）把myapp-v2.tar.gz上传到node1和node2上，手动解压：
+[root@node1 ~]# docker load -i myapp-v2.tar.gz 
+[root@node2 ~]# docker load -i myapp-v2.tar.gz 
+Loaded image: ikubernetes/myapp:v2
+
+2）修改镜像image: yecc/gcr.io-google_samples-gb-frontend:v3变成image: ikubernetes/myapp:v2，修改之后保存退出
+ spec:
+      containers:
+      - image: ikubernetes/myapp:v2
+        imagePullPolicy: IfNotPresent
+        name: php-redis
+        resources: {}
+        
+3）可以看到镜像变成了ikubernetes/myapp:v2，说明滚动升级成功了
+[root@master1 ~]# kubectl get rs frontend -o wide
+NAME       DESIRED   CURRENT   READY   AGE   CONTAINERS   IMAGES                 SELECTOR
+frontend   2         2         2       16h   php-redis    ikubernetes/myapp:v2   tier=frontend
+[root@master1 ~]# kubectl get pods -o wide
+NAME             READY   STATUS    RESTARTS   AGE   IP               NODE    
+frontend-v4nds   1/1     Running   1          16h   10.244.166.181   node1   
+frontend-w72ts   1/1     Running   1          16h   10.244.166.180   node1
+
+4）访问pod的IP可以看到镜像已经更新了，但是原来的pod使用的还是之前的镜像
+[root@master1 ~]# curl 10.244.166.181
+&lt;div style=&quot;width: 50%; margin-left: 20px&quot;&gt;
+      &lt;h2&gt;Guestbook&lt;/h2&gt;
+    &lt;form&gt;
+    &lt;fieldset&gt;
+[root@master1 ~]# curl 10.244.166.180
+&lt;div style=&quot;width: 50%; margin-left: 20px&quot;&gt;
+      &lt;h2&gt;Guestbook&lt;/h2&gt;
+    &lt;form&gt;
+    &lt;fieldset&gt;
+    
+5）删除旧的pod，新创建的pod才会使用最新的镜像
+#删除10.244.166.181这个ip对应的pod
+[root@master1 ~]# kubectl delete pods frontend-v4nds
+pod &quot;frontend-v4nds&quot; deleted
+#重新生成一个新的pod：frontend-zp8zb 
+[root@master1 ~]# kubectl get pods -o wide          
+NAME             READY   STATUS    RESTARTS   AGE   IP               NODE 
+frontend-w72ts   1/1     Running   1          16h   10.244.166.180   node1  
+frontend-zp8zb   1/1     Running   0          21s   10.244.104.3     node2
+#新生成的pod镜像已经变成了myapp的，说明更新完成了
+[root@master1 ~]# curl 10.244.104.3
+Hello MyApp | Version: v2 | &lt;a href=&quot;hostname.html&quot;&gt;Pod Name&lt;/a&gt;
+</code></pre>
+<pre><code class="language-bash">#同样如果我们直接修改rs-guestbook.yaml文件，把image: yecc/gcr.io-google_samples-gb-frontend:v3
+变成image: ikubernetes/myapp:v2
+[root@master1 ~]# kubectl apply -f rs-guestbook.yaml
+#发现原来的pod还是用的frontend:v3这个镜像，没有实现自动更新
+</code></pre>
+<pre><code class="language-bash">生产环境如果升级，可以删除一个pod，观察一段时间之后没问题再删除另一个pod，但是这样需要人工干预多次；
+实际生产环境一般采用蓝绿发布，原来有一个rs1，再创建一个rs2（控制器），通过修改service标签，可以匹配到rs2的控制器，这样才是蓝绿发布；
+这个也需要我们精心的部署规划，我们有一个控制器就是建立在rs之上完成的，叫做deployment。
+</code></pre>
 ]]></content>
     </entry>
     <entry>
