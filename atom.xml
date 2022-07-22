@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ajie825.github.io</id>
     <title>Ajie的博客</title>
-    <updated>2022-07-22T02:50:48.016Z</updated>
+    <updated>2022-07-22T03:01:21.029Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ajie825.github.io"/>
     <link rel="self" href="https://ajie825.github.io/atom.xml"/>
@@ -20,8 +20,10 @@
 https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
 </code></pre>
 <h2 id="deployment概述">deployment概述</h2>
-<pre><code class="language-bash">deployment是k8s中最常用的资源对象，为replicaset和pod的创建提供了一种声明式的定义方法，在deployment对象中描述一个期望的状态，deployment控制器就会按照一定的控制速率把实际状态改成期望状态；
-通过定义一个deployment控制器会创建一个新的replicaset控制器，通过replicaset创建pod，删除deployment控制器，也会删除deployment控制器下对应的replicaset控制器和pod资源。
+<pre><code class="language-bash">deployment是k8s中最常用的资源对象，为replicaset和pod的创建提供了一种声明式的定义方法，在deployment对象中描述一个期望
+的状态，deployment控制器就会按照一定的控制速率把实际状态改成期望状态；
+通过定义一个deployment控制器会创建一个新的replicaset控制器，通过replicaset创建pod，删除deployment控制器，也会删除deployment
+控制器下对应的replicaset控制器和pod资源。
 
 使用deployment而不直接创建replicaset是因为deployment对象拥有许多replicaset没有的特性，例如滚动升级和回滚。
 扩展：声明式定义是指直接修改资源清单yaml文件，然后通过kubectl apply -f 资源清单yaml文件，就可以更改资源。
@@ -30,6 +32,9 @@ deployment控制器是建立在rs之上的一个控制器，可以管理多个rs
 多个rs同时存在，但是只有一个rs运行。
 </code></pre>
 <figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1658458225288.png" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">rs v1控制三个pod，删除一个pod，在rs v2上重新建立一个，依次类推，直到全部都是由rs v2控制，如果rs v2有问题，还可以回滚，
+deployment是建立在rs之上的，多个rs组成一个deployment，但是只有一个rs处于活跃状态。
+</code></pre>
 ]]></content>
     </entry>
     <entry>
