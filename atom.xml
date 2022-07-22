@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ajie825.github.io</id>
     <title>Ajie的博客</title>
-    <updated>2022-07-22T03:13:47.247Z</updated>
+    <updated>2022-07-22T03:54:47.439Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ajie825.github.io"/>
     <link rel="self" href="https://ajie825.github.io/atom.xml"/>
@@ -36,6 +36,26 @@ deployment控制器是建立在rs之上的一个控制器，可以管理多个rs
 deployment是建立在rs之上的，多个rs组成一个deployment，但是只有一个rs处于活跃状态。
 </code></pre>
 <h2 id="deployment工作原理">deployment工作原理</h2>
+<pre><code class="language-bash">如何管理rs和pod？
+deployment可以使用声明式定义，直接在命令行通过纯命令的方式完成对应资源版本内容的修改，也就是通过打补丁的方式进行修改；
+deployment能提供滚动式自定义自控制的更新；
+对deployment来讲，我们在实现更新时还可以实现控制更新节奏和更新逻辑。
+</code></pre>
+<pre><code class="language-bash">#什么叫做更新节奏和更新逻辑呢？
+比如说deployment控制5个pod副本，pod的期望值是5个，但是升级的时候需要额外多几个pod，那deployment控制器可以控制在5个pod副本
+之外还能再增加几个pod副本；比方说能多一个，但是不能少，那么升级的时候就是先增加一个，再删除一个，增加一个删除一个，始终保持pod
+副本数是5个；
+还有一种情况，最多允许多一个，最少允许少一个，也就是最多6个，最少4个，第一次加一个，删除两个，第二次加两个，删除两个，依次类推，
+可以自己控制更新方式，这种滚动更新需要加readinessProbe和livenessProbe探测，确保pod中容器里的应用都正常启动了才删除之前的pod，
+这就是我们可以自己控制节奏来控制更新的方法。
+</code></pre>
+<pre><code class="language-bash">通过deployment对象，你可以轻松的做到以下事情：
+1）创建replicaset和pod
+2）滚动升级（不停止旧服务的状态下升级）和回滚应用（将应用回滚到之前的版本）
+3）平滑的扩容和缩容
+4）暂停和继续deployment
+</code></pre>
+<h2 id="deployment资源清单文件编写技巧">deployment资源清单文件编写技巧</h2>
 ]]></content>
     </entry>
     <entry>
