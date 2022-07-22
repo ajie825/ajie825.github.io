@@ -5,7 +5,7 @@
     
 <meta charset="utf-8" >
 
-<title>mysql innobackup增备脚本 | Ajie的博客</title>
+<title>deployment控制器 | Ajie的博客</title>
 <meta name="description" content="以前总是嬉皮笑脸，从未想过有一天，为了生活，为了钱而彻夜难眠！">
 
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
@@ -80,22 +80,15 @@
       <div class="content-container">
         <div class="post-detail">
           
-          <h2 class="post-title">mysql innobackup增备脚本</h2>
+          <h2 class="post-title">deployment控制器</h2>
           <div class="post-info post-detail-info">
-            <span><i class="icon-calendar-outline"></i> 2022-04-22</span>
+            <span><i class="icon-calendar-outline"></i> 2022-07-22</span>
             
               <span>
                 <i class="icon-pricetags-outline"></i>
                 
-                  <a href="https://ajie825.github.io/tag/uTy1C0637g/">
-                    mysql
-                    
-                      ，
-                    
-                  </a>
-                
-                  <a href="https://ajie825.github.io/tag/c8LAY539n3/">
-                    脚本
+                  <a href="https://ajie825.github.io/tag/lw6Ii3pbB/">
+                    k8s
                     
                   </a>
                 
@@ -103,33 +96,8 @@
             
           </div>
           <div class="post-content">
-            <pre><code class="language-shell">#!/bin/bash
-BACK_UP_PATH=&quot;/backup/&quot;
-BACK_UP_GZ_PATH=&quot;/db_back_gz/&quot;
-FULL_DIR_NAME=&quot;full&quot;
-INCR_DIR_NAME=&quot;incr&quot;
-DB_USER=&quot;root&quot;
-DB_PASS=&quot;123&quot;
-DB_CONFIG_FILE=&quot;/etc/my.cnf&quot;
-SOCKET_FILE='/tmp/mysql.sock'
-DB_NAME='world'
-
-for filename in `find ${BACK_UP_PATH}${INCR_DIR_NAME} -maxdepth 1 -type d -mmin -90`;
-do
-  if [ &quot;$filename&quot; != &quot;${BACK_UP_PATH}${INCR_DIR_NAME}&quot; ]; then
-        BASE_DIR=${filename}
-  fi
-done
-if [ &quot;$BASE_DIR&quot; = &quot;&quot; ]; then
-   for filename in `find  ${BACK_UP_PATH}${FULL_DIR_NAME} -maxdepth 1 -type d`;
-do
-   if [ &quot;$filename&quot; != &quot;${BACK_UP_PATH}${FULL_DIR_NAME}&quot; ]; then
-        BASE_DIR=${filename}
-   fi
-done
-fi
-
-innobackupex  --defaults-file=$DB_CONFIG_FILE --lock-wait-threshold=40 --lock-wait-query-type=all --lock-wait-timeout=180 --kill-long-queries-timeout=20 --kill-long-query-type=all  --user=$DB_USER --password=$DB_PASS --socket=$SOCKET_FILE --databases=$DB_NAME --incremental --incremental-basedir=$BASE_DIR $BACK_UP_PATH$INCR_DIR_NAME
+            <pre><code class="language-bash">#Deployment官方文档：
+https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
 </code></pre>
 
           </div>
@@ -137,9 +105,9 @@ innobackupex  --defaults-file=$DB_CONFIG_FILE --lock-wait-threshold=40 --lock-wa
 
         
           <div class="next-post">
-            <a class="purple-link" href="https://ajie825.github.io/post/mysql-innobackup-quan-bei-jiao-ben/">
+            <a class="purple-link" href="https://ajie825.github.io/post/replicaset-kong-zhi-qi/">
               <h3 class="post-title">
-                下一篇：mysql innobackup全备脚本
+                下一篇：replicaset控制器
               </h3>
             </a>
           </div>
