@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
 
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
-<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1658456507434">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1658456770018">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
 <link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
 
@@ -30,7 +30,7 @@
   <div class="site-header">
     <div class="left">
       <a href="https://ajie825.github.io">
-        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1658456507434" alt="" width="32px" height="32px">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1658456770018" alt="" width="32px" height="32px">
       </a>
       <a href="https://ajie825.github.io">
         <h1 class="site-title">Ajie的博客</h1>
@@ -340,7 +340,7 @@ frontend-zp8zb   1/1     Running   0          21s   10.244.104.3     node2
 Hello MyApp | Version: v2 | &lt;a href=&quot;hostname.html&quot;&gt;Pod Name&lt;/a&gt;
 </code></pre>
 <pre><code class="language-bash">#同样如果我们直接修改rs-guestbook.yaml文件，把image: yecc/gcr.io-google_samples-gb-frontend:v3
-变成image: ikubernetes/myapp:v2
+#变成image: ikubernetes/myapp:v2
 [root@master1 ~]# kubectl apply -f rs-guestbook.yaml
 #发现原来的pod还是用的frontend:v3这个镜像，没有实现自动更新
 </code></pre>

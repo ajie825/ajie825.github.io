@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ajie825.github.io</id>
     <title>Ajie的博客</title>
-    <updated>2022-07-22T02:21:57.489Z</updated>
+    <updated>2022-07-22T02:26:15.977Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ajie825.github.io"/>
     <link rel="self" href="https://ajie825.github.io/atom.xml"/>
@@ -260,7 +260,7 @@ frontend-zp8zb   1/1     Running   0          21s   10.244.104.3     node2
 Hello MyApp | Version: v2 | &lt;a href=&quot;hostname.html&quot;&gt;Pod Name&lt;/a&gt;
 </code></pre>
 <pre><code class="language-bash">#同样如果我们直接修改rs-guestbook.yaml文件，把image: yecc/gcr.io-google_samples-gb-frontend:v3
-变成image: ikubernetes/myapp:v2
+#变成image: ikubernetes/myapp:v2
 [root@master1 ~]# kubectl apply -f rs-guestbook.yaml
 #发现原来的pod还是用的frontend:v3这个镜像，没有实现自动更新
 </code></pre>
