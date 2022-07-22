@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
 
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
-<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1658473182768">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1658479359253">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
 <link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
 
@@ -30,7 +30,7 @@
   <div class="site-header">
     <div class="left">
       <a href="https://ajie825.github.io">
-        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1658473182768" alt="" width="32px" height="32px">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1658479359253" alt="" width="32px" height="32px">
       </a>
       <a href="https://ajie825.github.io">
         <h1 class="site-title">Ajie的博客</h1>
@@ -339,6 +339,90 @@ myapp-v1-67fd9fc9c8-bkfpf   1/1     Running   0          43m
 #deployment的扩容、缩容和replicaset的步骤、方法一致
 </code></pre>
 <h3 id="deployment实现滚动更新">deployment实现滚动更新</h3>
+<pre><code class="language-bash">1）在一个终端窗口执行如下：
+[root@master1 ~]# kubectl get pods -l app=myapp -w
+NAME                        READY   STATUS    RESTARTS   AGE
+myapp-v1-67fd9fc9c8-96rwt   1/1     Running   0          64m
+myapp-v1-67fd9fc9c8-bkfpf   1/1     Running   0          64m
+
+2）打开一个新的终端更改镜像版本，按如下操作
+[root@master1 ~]# vim deploy-demo.yaml 
+#把image: janakiramm/myapp:v1 变成image: janakiramm/myapp:v2
+ spec:
+      containers:
+      - name: myapp
+        image: janakiramm/myapp:v2
+        imagePullPolicy: IfNotPresent
+[root@master1 ~]# kubectl apply -f deploy-demo.yaml 
+deployment.apps/myapp-v1 configured
+
+3）再回到刚才执行监测kubectl get pods -l app=myapp -w的那个窗口，可以看到信息如下：
+[root@master1 ~]# kubectl get pods -l app=myapp -w
+NAME                        READY   STATUS           RESTARTS     AGE
+myapp-v1-67fd9fc9c8-96rwt   1/1     Running             0          64m
+myapp-v1-67fd9fc9c8-bkfpf   1/1     Running             0          64m
+myapp-v1-75fb478d6c-xg757   0/1     Pending             0          0s
+myapp-v1-75fb478d6c-xg757   0/1     Pending             0          0s
+myapp-v1-75fb478d6c-xg757   0/1     ContainerCreating   0          0s
+myapp-v1-75fb478d6c-xg757   0/1     ContainerCreating   0          0s
+myapp-v1-75fb478d6c-xg757   1/1     Running             0          1s
+myapp-v1-67fd9fc9c8-bkfpf   1/1     Terminating         0          67m
+myapp-v1-75fb478d6c-f5br7   0/1     Pending             0          0s
+myapp-v1-75fb478d6c-f5br7   0/1     Pending             0          0s
+myapp-v1-75fb478d6c-f5br7   0/1     ContainerCreating   0          0s
+myapp-v1-67fd9fc9c8-bkfpf   1/1     Terminating         0          67m
+myapp-v1-75fb478d6c-f5br7   0/1     ContainerCreating   0          1s
+myapp-v1-67fd9fc9c8-bkfpf   0/1     Terminating         0          67m
+myapp-v1-75fb478d6c-f5br7   1/1     Running             0          2s
+myapp-v1-67fd9fc9c8-96rwt   1/1     Terminating         0          67m
+myapp-v1-67fd9fc9c8-96rwt   1/1     Terminating         0          67m
+#Pending表示正在进行调度，ContainerCreating表示真正创建一个pod，Running表示允许一个pod，Running起来一个pod之后再
+#Terminating（停掉）一个pod，以此类推，直到所有pod完成滚动升级。
+
+4）在另一个窗口执行
+[root@master1 ~]# kubectl get rs
+#显示如下，可以看到rs有两个，上面那个是升级之前的，已经被停掉，但是可以随时可以回滚
+NAME                  DESIRED   CURRENT   READY   AGE
+myapp-v1-67fd9fc9c8   0         0         0       73m
+myapp-v1-75fb478d6c   2         2         2       5m22s
+[root@master1 ~]# kubectl get pods -o wide
+NAME                        READY   STATUS    RESTARTS   AGE   IP               NODE  
+myapp-v1-75fb478d6c-f5br7   1/1     Running   0          52m   10.244.104.2     node2   
+myapp-v1-75fb478d6c-xg757   1/1     Running   0          52m   10.244.166.186   node1
+[root@master1 ~]# curl 10.244.104.2
+background-color: green;
+[root@master1 ~]# curl 10.244.166.186
+background-color: green;
+
+5）查看myapp-v1这个deployment控制器的历史版本
+[root@master1 ~]# kubectl rollout history deployment myapp-v1 
+deployment.apps/myapp-v1 
+REVISION  CHANGE-CAUSE
+1         &lt;none&gt;
+2         &lt;none&gt;
+
+6）回滚
+[root@master1 ~]# kubectl rollout undo deployment myapp-v1 --to-revision=1
+deployment.apps/myapp-v1 rolled backdeployment.apps/myapp-v1 rolled back
+[root@master1 ~]# kubectl rollout history deployment myapp-v1             
+deployment.apps/myapp-v1 
+REVISION  CHANGE-CAUSE
+2         &lt;none&gt;
+3         &lt;none&gt;
+[root@master1 ~]# kubectl get rs
+NAME                  DESIRED   CURRENT   READY   AGE
+myapp-v1-67fd9fc9c8   2         2         2       135m
+myapp-v1-75fb478d6c   0         0         0       68m
+[root@master1 ~]# kubectl get pods -o wide
+NAME                        READY   STATUS    RESTARTS   AGE     IP               NODE 
+myapp-v1-67fd9fc9c8-g8s84   1/1     Running   0          2m41s   10.244.166.187   node1 
+myapp-v1-67fd9fc9c8-m9vlj   1/1     Running   0          2m39s   10.244.104.4     node2
+[root@master1 ~]# curl 10.244.104.4
+background-color: blue;
+[root@master1 ~]# curl 10.244.166.187 
+background-color: blue;
+</code></pre>
+<h3 id="自定义滚动更新策略">自定义滚动更新策略</h3>
 
           </div>
         </div>
