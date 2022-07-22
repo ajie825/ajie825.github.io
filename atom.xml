@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ajie825.github.io</id>
     <title>Ajie的博客</title>
-    <updated>2022-07-22T03:54:47.439Z</updated>
+    <updated>2022-07-22T06:42:53.520Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ajie825.github.io"/>
     <link rel="self" href="https://ajie825.github.io/atom.xml"/>
@@ -21,11 +21,11 @@ https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
 </code></pre>
 <h2 id="deployment概述">deployment概述</h2>
 <pre><code class="language-bash">deployment是k8s中最常用的资源对象，为replicaset和pod的创建提供了一种声明式的定义方法，在deployment对象中描述一个期望
-的状态，deployment控制器就会按照一定的控制速率把实际状态改成期望状态；
-通过定义一个deployment控制器会创建一个新的replicaset控制器，通过replicaset创建pod，删除deployment控制器，也会删除deployment
+的状态，deployment控制器就会按照一定的控制速率把实际状态变成期望状态；
+通过定义deployment控制器会创建新的replicaset控制器，通过replicaset创建pod，删除deployment控制器，也会删除deployment
 控制器下对应的replicaset控制器和pod资源。
 
-使用deployment而不直接创建replicaset是因为deployment对象拥有许多replicaset没有的特性，例如滚动升级和回滚。
+使用deployment而不直接创建replicaset是因为deployment拥有许多replicaset没有的特性，例如滚动升级和回滚。
 扩展：声明式定义是指直接修改资源清单yaml文件，然后通过kubectl apply -f 资源清单yaml文件，就可以更改资源。
 
 deployment控制器是建立在rs之上的一个控制器，可以管理多个rs，每次更新镜像版本，都会生成一个新的rs，把旧的rs替换掉，
@@ -56,6 +56,164 @@ deployment能提供滚动式自定义自控制的更新；
 4）暂停和继续deployment
 </code></pre>
 <h2 id="deployment资源清单文件编写技巧">deployment资源清单文件编写技巧</h2>
+<pre><code class="language-bash">#查看Deployment资源对象由哪几部分组成
+[root@master1 ~]# kubectl explain deployment
+KIND:     Deployment
+VERSION:  apps/v1
+
+DESCRIPTION:
+     Deployment enables declarative updates for Pods and ReplicaSets.
+
+FIELDS:
+   apiVersion   &lt;string&gt;   #当前资源使用的api版本，跟apiVersion: apps/v1保持一致
+   kind &lt;string&gt;           #资源类型，和kind: Deployment保持一致
+   metadata     &lt;Object&gt;   #元数据，包括资源的名称、名称空间、标签
+   spec &lt;Object&gt;           #定义副本数、定义标签选择器、定义pod模板等
+   status       &lt;Object&gt;   #状态，不可修改
+</code></pre>
+<pre><code class="language-bash">#查看Deployment下的spec字段
+[root@master1 ~]# kubectl explain deployment.spec
+KIND:     Deployment
+VERSION:  apps/v1
+RESOURCE: spec &lt;Object&gt;
+DESCRIPTION:
+    
+FIELDS:
+   minReadySeconds      &lt;integer&gt;
+   #k8s在等待设置的时间后才进行升级，如果没有设置该值，k8s会假设该容器启动后就提供服务
+   paused       &lt;boolean&gt;           #暂停，我们更新的时候创建的pod先暂停，不是立即更新
+   progressDeadlineSeconds  &lt;integer&gt;
+   #k8s在升级过程中有可能由于各种原因升级被卡住（这个时候还没有明确升级失败），比如在拉取被墙的镜像、权限不够等错误；
+   #那么这个时候就需要有deadline，在deadline之内如果还卡着，那么就上报这个情况，这个时候deployment状态被标记为Flase,
+   #并且注明原因，但是它不会阻止deployment继续进行卡住后面的操作，完全由用户进行控制。
+   replicas     &lt;integer&gt;           #副本数
+   revisionHistoryLimit &lt;integer&gt;   #保留的历史版本，默认是10
+   selector     &lt;Object&gt; -required- #标签选择器，选择它关联的pod
+   strategy     &lt;Object&gt; #更新策略
+   template     &lt;Object&gt; -required- #定义pod的模板
+</code></pre>
+<pre><code class="language-bash">#查看Deployment下的spec.strategy字段
+[root@master1 ~]# kubectl explain deploy.spec.strategy
+KIND:     Deployment
+VERSION:  apps/v1
+RESOURCE: strategy &lt;Object&gt;
+DESCRIPTION:
+
+FIELDS:
+   rollingUpdate        &lt;Object&gt;
+     
+   type &lt;string&gt;
+     Type of deployment. Can be &quot;Recreate&quot; or &quot;RollingUpdate&quot;. Default is
+     RollingUpdate.
+#支持两种更新，Recreate和RollingUpdate
+#Recreate是重建式更新，删除一个更新一个
+#RollingUpdate滚动式更新，也就是pod能多几个，少几个
+</code></pre>
+<pre><code class="language-bash">#查看Deployment下的spec.strategy.rollingUpdate字段
+[root@master1 ~]# kubectl explain deploy.spec.strategy.rollingUpdate
+KIND:     Deployment
+VERSION:  apps/v1
+RESOURCE: rollingUpdate &lt;Object&gt;
+DESCRIPTION:
+
+FIELDS:
+   maxSurge     &lt;string&gt;
+   #我们更新的过程当中最多允许超出的指定目标副本数有几个；
+   #它有两种取值方式，第一种直接给定数量，第二种根据百分比，百分比表示原本是5个，最多可以超出20%，那就允许多一个
+   maxUnavailable       &lt;string&gt;  #最多允许几个不可用，假设5个副本，最多一个不可用，就表示最少4个可用 
+</code></pre>
+<h2 id="deployment使用案例">deployment使用案例</h2>
+<pre><code class="language-bash">#deployment是一个三级结构，deployment管理replicaset，replicaset管理pod
+1）把myapp-blue-v1.tar.gz和myapp-blue-v2.tar.gz上传到node1和node2上，手动解压：
+[root@node1 ~]# docker load -i myapp-blue-v1.tar.gz
+[root@node1 ~]# docker load -i myapp-blue-v2.tar.gz
+[root@node2 ~]# docker load -i myapp-blue-v1.tar.gz
+[root@node2 ~]# docker load -i myapp-blue-v2.tar.gz
+
+2）编写资源清单文件
+[root@master1 ~]# cat deploy-demo.yaml 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp-v1
+  namespace: default
+  labels:
+    app: myapp
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+        version: v1
+    spec:
+      containers:
+      - name: myapp
+        image: janakiramm/myapp:v1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+
+3）查看资源信息
+[root@master1 ~]# kubectl apply -f deploy-demo.yaml
+[root@master1 ~]# kubectl get deployments.apps 
+NAME       READY   UP-TO-DATE   AVAILABLE   AGE
+myapp-v1   2/2     2            2           52s
+NAME：      #创建的控制器名字是myapp-v1
+READY：     #显示deployment有多少副本数，它遵循ready/desired的模式
+UP-TO-DATE：#显示已更新到所需状态的副本数
+AVAILABLE： #显示你可以使用多少个应用程序副本
+AGE：       #显示应用程序已运行的时间
+
+#查看deployment创建的rs信息
+[root@master1 ~]# kubectl get rs
+NAME                  DESIRED   CURRENT   READY   AGE
+myapp-v1-67fd9fc9c8   2         2         2       6m36s
+NAME：      #创建的RS控制器名称，由deployment的名称-随机数组成
+DESIRED：   #显示应用程序的所需副本数，这些副本数是在创建时定义的
+CURRENT：   #显示当前正在运行多少个副本
+READY：     #显示你的用户可以使用多少个应用程序副本
+AGE：       #显示应用程序已运行的时间
+
+#查看deployment创建的pod信息
+[root@master1 ~]# kubectl get pods -o wide
+NAME                        READY   STATUS    RESTARTS   AGE   IP               NODE   
+myapp-v1-67fd9fc9c8-96rwt   1/1     Running   0          15m   10.244.104.1     node2  
+myapp-v1-67fd9fc9c8-bkfpf   1/1     Running   0          15m   10.244.166.184   node1  
+#pod的名字是由RS的名字-随机数组成的
+[root@master1 ~]# curl 10.244.104.1
+background-color: blue;
+[root@master1 ~]# curl 10.244.166.184
+background-color: blue;
+</code></pre>
+<h2 id="资源清单文件详细解读">资源清单文件详细解读</h2>
+<pre><code class="language-bash">apiVersion: apps/v1                  #deployment对应的api版本
+kind: Deployment                     #创建的资源是deployment
+metadata:
+  name: myapp-v1                     #deployment的名字
+spec:
+  replicas: 2                        #deployment管理的pod副本数
+  selector:                          #标签选择器
+   matchLabels:                      #matchLabels下定义的标签需要跟template.metadata.labels定义的标签一致
+    app: myapp
+    version: v1
+  template:
+   metadata:
+    labels:
+     app: myapp
+     version: v1
+   spec:                             #定义容器的属性
+    containers:  
+    - name: myapp
+      image: janakiramm/myapp:v1     #容器使用的镜像
+      imagePullPolicy: IfNotPresent  #镜像拉取策略
+      ports:
+      - containerPort: 80            #容器里的应用的端口
+</code></pre>
+<h2 id="deployment管理pod扩容-缩容-滚动更新-回滚">Deployment管理pod：扩容、缩容、滚动更新、回滚</h2>
 ]]></content>
     </entry>
     <entry>
