@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ajie825.github.io</id>
     <title>Ajie的博客</title>
-    <updated>2022-07-22T08:42:43.332Z</updated>
+    <updated>2022-07-23T03:00:04.775Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ajie825.github.io"/>
     <link rel="self" href="https://ajie825.github.io/atom.xml"/>
@@ -189,7 +189,7 @@ background-color: blue;
 [root@master1 ~]# curl 10.244.166.184
 background-color: blue;
 </code></pre>
-<h2 id="资源清单文件详细解读">资源清单文件详细解读</h2>
+<h3 id="资源清单文件详细解读">资源清单文件详细解读</h3>
 <pre><code class="language-bash">apiVersion: apps/v1                  #deployment对应的api版本
 kind: Deployment                     #创建的资源是deployment
 metadata:
@@ -213,7 +213,7 @@ spec:
       ports:
       - containerPort: 80            #容器里的应用的端口
 </code></pre>
-<h2 id="deployment管理pod扩容-缩容-滚动更新-回滚">Deployment管理pod：扩容、缩容、滚动更新、回滚</h2>
+<h2 id="deployment管理pod扩容-缩容-滚动更新-回滚">deployment管理pod：扩容、缩容、滚动更新、回滚</h2>
 <h3 id="deployment实现pod扩容">deployment实现pod扩容</h3>
 <pre><code class="language-bash">#把pod副本数变成3，修改deploy-demo.yaml，将replicas: 2 修改为replicas: 3
 spec:
@@ -259,7 +259,8 @@ myapp-v1-67fd9fc9c8-bkfpf   1/1     Running   0          43m
 #deployment的扩容、缩容和replicaset的步骤、方法一致
 </code></pre>
 <h3 id="deployment实现滚动更新">deployment实现滚动更新</h3>
-<pre><code class="language-bash">1）在一个终端窗口执行如下：
+<pre><code class="language-bash">#重建式更新---删除一个更新一个
+1）在一个终端窗口执行如下：
 [root@master1 ~]# kubectl get pods -l app=myapp -w
 NAME                        READY   STATUS    RESTARTS   AGE
 myapp-v1-67fd9fc9c8-96rwt   1/1     Running   0          64m
@@ -343,6 +344,128 @@ background-color: blue;
 background-color: blue;
 </code></pre>
 <h3 id="自定义滚动更新策略">自定义滚动更新策略</h3>
+<pre><code class="language-bash">maxSurge和maxUnavailable用来控制滚动更新的更新策略
+1）取值范围
+数值：maxSurge [0，副本数]，maxUnavailable [0，副本数]
+注意：两者不能同时为0。
+比例：
+maxSurge：      [0%，100%] 向上取整，比如10个副本，5%的话=0.5个，按计算1个；
+maxUnavailable：[0%，100%] 向下取整，比如10个副本，5%的话=0.5个，按计算0个。
+注意：两者不能同时为0。
+2）建议配置
+maxSurge == 1
+maxUnavailable == 0
+这是我们生产环境提供给用户的默认配置，即 &quot;一上一下，先上后下&quot; 最平滑的原则；
+1个新版本pod ready（结合readiness）后，才销毁旧版本pod，此配置适用场景是平滑更新、保证服务平稳，但也有缺点，
+就是 &quot;太慢&quot; 了。
+总结：
+maxSurge：      和期望的副本数比，超过期望副本数量最大比例（或最大值），这个值调的越大，副本更新速度越快。
+maxUnavailable：和期望的副本数比，不可用副本数量最大比例（或最大值），这个值越小，越能保证服务稳定，更新越平滑。
+</code></pre>
+<pre><code class="language-bash">#自定义更新策略
+修改更新策略：maxUnavailable=1，maxSurge=1 
+[root@master1 ~]# cat deploy-demo.yaml 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp-v1
+  namespace: default
+  labels:
+    app: myapp
+spec:
+  replicas: 2
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+        version: v1
+    spec:
+      containers:
+      - name: myapp
+        image: janakiramm/myapp:v2
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+或者采用打补丁的方法
+[root@master1 ~]# kubectl patch deployment myapp-v1 -p '{&quot;spec&quot;:{&quot;strategy&quot;:{&quot;rollingUpdate&quot;: {&quot;maxSurge&quot;:1,&quot;maxUnavailable&quot;:0}}}}'
+
+#查看myapp-v1这个控制器的详细信息
+[root@master1 ~]# kubectl describe deployments.apps myapp-v1 
+RollingUpdateStrategy:  0 max unavailable, 1 max surge
+#这就是通过控制RollingUpdateStrategy这个字段来设置滚动更新策略的
+</code></pre>
+<h2 id="deployment资源清单详解">deployment资源清单详解</h2>
+<pre><code class="language-bash">apiVersion: apps/v1
+kind: Deployment 
+metadata:
+  name: portal
+  namespace: ms 
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      project: ms
+      app: portal
+  template:
+    metadata:
+      labels:
+        project: ms 
+        app: portal
+    spec:
+      containers:
+      - name: portal
+        image: portal:v1
+        imagePullPolicy: Always
+        ports:
+          - protocol: TCP
+            containerPort: 8080 
+        resources:         #资源配额
+          limits:          #资源限制，最多可用的cpu和内存
+            cpu: 1
+            memory: 1Gi
+         requests：        #最少需要多少资源才可以运行Pod
+            cpu: 0.5
+            memory: 1Gi
+        readinessProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 10
+</code></pre>
+<pre><code class="language-bash">livenessProbe   #存活性探测
+用于判断容器是否存活，即pod是否为Running状态，如果livenessProbe探针探测到容器不健康，则kubelet将kill掉容器，并
+根据容器的重启策略是否重启，如果一个容器不包含livenessProbe探针，则kubelet认为容器的livenessProbe探针的返回值
+永远成功。
+tcpSocket: 
+  port: 8080             #检测8080端口是否存在
+initialDelaySeconds: 60  #Pod启动60s执行第一次检查
+periodSeconds: 10        #第一次检查后每隔10s检查一次
+
+readinessProbe   #就绪性探测
+有时候应用程序可能暂时无法接受请求，比如pod已经Running了，但是容器内应用程序尚未启动成功，在这种情况下，如果没有
+readinessProbe，则k8s认为它可以处理请求了，然而此时，程序还没启动成功是不能接收用户请求的，所以不希望k8s把请求
+调度给它，则使用readinessPorbe探针。
+readinessProbe探针探测容器是否已准备就绪，如果未准备就绪则k8s不会将流量转发给此pod。
+tcpSocket: 
+  port: 8080             
+initialDelaySeconds: 60  
+periodSeconds: 10       
+
+livenessProbe和readinessProbe可以使用相同探测方式，只是对pod的处置方式不同，readinessProbe是将pod的IP：port
+从对应的EndPoint列表中删除，而livenessProbe则kill容器并根据pod的重启策略来决定作出对应的措施。
+</code></pre>
 ]]></content>
     </entry>
     <entry>
