@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ajie825.github.io</id>
     <title>Ajie的博客</title>
-    <updated>2022-07-23T03:05:13.062Z</updated>
+    <updated>2022-07-23T03:46:43.262Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ajie825.github.io"/>
     <link rel="self" href="https://ajie825.github.io/atom.xml"/>
@@ -18,6 +18,13 @@
         <updated>2022-07-23T03:02:46.000Z</updated>
         <content type="html"><![CDATA[<h2 id="service的概念-原理解读">service的概念、原理解读</h2>
 <h3 id="为什么要有service">为什么要有service</h3>
+<pre><code class="language-bash">在k8s中，pod是有生命周期的，如果pod重启它的IP很有可能会发生变化，如果我们的服务都是将pod的IP地址写死，pod挂掉或者
+重启，和刚才的pod相关联的其他服务将会找不到它所关联的pod，为了解决这个问题，在k8s中定义了service资源对象，service
+定义了一个服务访问的入口，客户端通过这个入口即可访问服务背后的应用集群实例，service是一组pod的逻辑集合，这一组pod能
+够被service访问到，通常是通过Label Selector实现的。
+可以看下面的图：
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1658547995019.png" alt="" loading="lazy"></figure>
 ]]></content>
     </entry>
     <entry>

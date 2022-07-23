@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
 
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
-<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1658545508616">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1658547997169">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
 <link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
 
@@ -30,7 +30,7 @@
   <div class="site-header">
     <div class="left">
       <a href="https://ajie825.github.io">
-        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1658545508616" alt="" width="32px" height="32px">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1658547997169" alt="" width="32px" height="32px">
       </a>
       <a href="https://ajie825.github.io">
         <h1 class="site-title">Ajie的博客</h1>
@@ -98,6 +98,13 @@
           <div class="post-content">
             <h2 id="service的概念-原理解读">service的概念、原理解读</h2>
 <h3 id="为什么要有service">为什么要有service</h3>
+<pre><code class="language-bash">在k8s中，pod是有生命周期的，如果pod重启它的IP很有可能会发生变化，如果我们的服务都是将pod的IP地址写死，pod挂掉或者
+重启，和刚才的pod相关联的其他服务将会找不到它所关联的pod，为了解决这个问题，在k8s中定义了service资源对象，service
+定义了一个服务访问的入口，客户端通过这个入口即可访问服务背后的应用集群实例，service是一组pod的逻辑集合，这一组pod能
+够被service访问到，通常是通过Label Selector实现的。
+可以看下面的图：
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1658547995019.png" alt="" loading="lazy"></figure>
 
           </div>
         </div>
