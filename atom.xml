@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ajie825.github.io</id>
     <title>Ajie的博客</title>
-    <updated>2022-07-23T09:28:13.362Z</updated>
+    <updated>2022-07-23T09:53:51.042Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ajie825.github.io"/>
     <link rel="self" href="https://ajie825.github.io/atom.xml"/>
@@ -135,17 +135,17 @@ RESOURCE: ports &lt;[]Object&gt;
 DESCRIPTION:
 
 FIELDS:
-   name &lt;string&gt; #定义端口的名字
+   name &lt;string&gt;             #定义端口的名字
    nodePort     &lt;integer&gt;
-   #宿主机上映射的端口，比如一个web应用需要被k8s集群之外的其他用户访问，那么需要配置type=NodePort，
-   #若配置nodePort=30001，那么其他集群就可以通过浏览器访问scheme://k8s集群中的任何一个节点ip:30001
-   #即可访问到该服务，例如http://192.168.40.181:30001，如果在k8s中部署MySQL数据库，MySQL数据库可
-   #能不需要被外界访问，只需要被内部服务访问，那么就不需要设置NodePort。
+   宿主机上映射的端口，比如一个web应用需要被k8s集群之外的其他用户访问，那么需要配置type=NodePort，
+   若配置nodePort=30001，那么其他集群就可以通过浏览器访问scheme://k8s集群中的任何一个节点ip:30001
+   即可访问到该服务，例如http://192.168.40.181:30001，如果在k8s中部署MySQL数据库，MySQL数据库可
+   能不需要被外界访问，只需要被内部服务访问，那么就不需要设置NodePort。
    port &lt;integer&gt; -required- #service的端口，这个是k8s集群内部服务可访问的端口
-   protocol     &lt;string&gt; #端口的协议
+   protocol     &lt;string&gt;     #端口的协议
    targetPort   &lt;string&gt;
-   #targetPort是pod上的端口，从port和nodePort上来的流量，经过kube-proxy流入到后端pod的targetPort上，
-   #最后进入容器，与制作容器时暴露的端口一致（使用DockerFile中的EXPOSE），例如官方的nginx暴露80端口。
+   targetPort是pod上的端口，从port和nodePort上来的流量，经过kube-proxy流入到后端pod的targetPort上，
+   最后进入容器，与制作容器时暴露的端口一致（使用DockerFile中的EXPOSE），例如官方的nginx暴露80端口。
 </code></pre>
 <h3 id="创建类型是clusterip的service">创建类型是ClusterIP的service</h3>
 <pre><code class="language-bash">1）创建pod
@@ -203,8 +203,8 @@ my-nginx-d4d698656-kxd9d   1/1     Running   0          75s   10.244.104.11    n
 &lt;title&gt;Welcome to nginx!&lt;/title&gt;
 &lt;/body&gt;
 &lt;/html&gt;
-#需要注意的是：pod虽然定义了容器端口，但是不会调度到该节点的80端口，也不会使用特定的NAT规则去路由流量到pod上，
-#这意味着可以在同一个节点可以运行多个pod，使用相同的容器端口，并且可以从集群中任何节点使用IP的方式访问到它。
+需要注意的是：pod虽然定义了容器端口，但是不会调度到该节点的80端口，也不会使用特定的NAT规则去路由流量到pod上，
+这意味着可以在同一个节点可以运行多个pod，使用相同的容器端口，并且可以从集群中任何节点使用IP的方式访问到它。
 
 #误删除其中一个pod
 [root@master1 ~]# kubectl delete pods my-nginx-d4d698656-8qvgh
@@ -213,8 +213,8 @@ pod &quot;my-nginx-d4d698656-8qvgh&quot; deleted
 NAME                       READY   STATUS    RESTARTS   AGE   IP               NODE   
 my-nginx-d4d698656-kgw4c   1/1     Running   0          7s    10.244.166.130   node1  
 my-nginx-d4d698656-kxd9d   1/1     Running   0          14m   10.244.104.11    node2  
-#通过上面看到重新生成一个pod：my-nginx-d4d698656-kgw4c，ip是10.244.166.130，在k8s中如果pod被删除，重新生成
-#的pod ip地址会发生变化，所以需要在pod前端加一个固定接入层，就是service。
+通过上面看到重新生成一个pod：my-nginx-d4d698656-kgw4c，ip是10.244.166.130，在k8s中如果pod被删除，重新生成
+的pod ip地址会发生变化，所以需要在pod前端加一个固定接入层，就是service。
 
 #查看pod的标签
 [root@master1 ~]# kubectl get pods -l run=my-nginx
@@ -250,13 +250,17 @@ my-nginx   ClusterIP   10.102.52.44   &lt;none&gt;        80/TCP    10m
 &lt;title&gt;Welcome to nginx!&lt;/title&gt;
 &lt;/body&gt;
 &lt;/html&gt;
-#注意：上面的10.102.52.44只能在k8s集群内部可以访问，在外部无法访问，比方说我们想要通过浏览器访问，是访问不通的，如果想要在
-#k8s集群之外访问，需要把service type类型改成nodePort。
+注意：上面的10.102.52.44只能在k8s集群内部可以访问，在外部无法访问，比方说我们想要通过浏览器访问，是访问不通的，如果想要在
+k8s集群之外访问，需要把service type类型改成nodePort。
 
 #查看endpoint的信息
 [root@master1 ~]# kubectl get ep -l run=my-nginx
 NAME       ENDPOINTS                            AGE
 my-nginx   10.244.104.11:80,10.244.166.130:80   11m
+service可以对外提供统一固定的ip地址，并将请求重定向至集群中的pod，就是通过endpoint与selector协同工作实现的；
+selector用于选择pod，由selector选择出来的pod的IP地址和端口号，会被记录在endpoint中；
+当一个请求访问到service的IP地址时，就会从endpoint中选择出一个IP地址和端口号，然后将请求重定向至pod中；
+具体把请求代理到哪个pod，是由kube-proxy轮询实现的。
 </code></pre>
 ]]></content>
     </entry>
