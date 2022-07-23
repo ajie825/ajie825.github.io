@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
 
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
-<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1658548510427">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1658556654700">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
 <link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
 
@@ -30,7 +30,7 @@
   <div class="site-header">
     <div class="left">
       <a href="https://ajie825.github.io">
-        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1658548510427" alt="" width="32px" height="32px">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1658556654700" alt="" width="32px" height="32px">
       </a>
       <a href="https://ajie825.github.io">
         <h1 class="site-title">Ajie的博客</h1>
@@ -109,6 +109,41 @@
 2）pod ip在k8s集群之外无法访问，所以需要创建service，这个service可以在k8s集群外访问的。
 </code></pre>
 <h3 id="service概述">service概述</h3>
+<pre><code class="language-bash">service是一个固定接入层，客户端可以通过访问service的ip和端口，就可以访问到service关联的后端pod；
+service工作依赖于在k8s集群上部署的一个组件，就是k8s的conredns服务，service的名称解析是依赖于dns组件的，因此在部署完k8s
+之后还需要再部署dns组件；
+k8s要想给客户端提供网络功能，需要依赖第三方的网络插件（flannel、calico等）；
+每个k8s节点上都有一个组件叫做kube-proxy，kube-proxy这个组件始终监视着apiserver中有关service资源的变动信息，这种是通过
+k8s中固有的一种请求方法watch（监视）来实现的，一旦有service资源的内容发生变动（如创建、删除），kube-proxy都会把我们请求
+调度到后端特定的pod资源之上的规则，这个规则可能是iptables，也可能是ipvs，取决于service的实现方式。
+</code></pre>
+<h3 id="service工作原理">service工作原理</h3>
+<pre><code class="language-bash">k8s在创建service时，会根据标签选择器selector（label selector）来查找pod，并且创建与service同名的endpoint对象；
+pod地址发生变化时，endpoint也会随之发生变化，service接收前端client请求的时候，就会通过endpoint，找到转发到哪个
+pod进行访问（至于转发到哪个节点的pod，由负载均衡kube-proxy决定）。
+</code></pre>
+<h3 id="k8s集群中有三类ip地址">k8s集群中有三类IP地址</h3>
+<pre><code class="language-bash">1）node network：节点网络，如ens33接口上的网络地址
+[root@master1 ~]# ip a
+2: ens33: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc pfifo_fast state UP group default qlen 1000
+    link/ether 00:0c:29:91:52:c6 brd ff:ff:ff:ff:ff:ff
+    inet 192.168.40.180/24 brd 192.168.40.255 scope global noprefixroute ens33
+    
+2）pod network：pod网络，创建的pod具有的ip地址
+[root@master1 ~]# kubectl get pods -o wide
+NAME                        READY   STATUS    RESTARTS   AGE   IP                
+myapp-v1-67fd9fc9c8-96rwt   1/1     Running   0          15m   10.244.104.1   
+myapp-v1-67fd9fc9c8-bkfpf   1/1     Running   0          15m   10.244.166.184 
+node network和pod network这两种网络地址是我们实实在在配置的，其中节点网络地址是配置在节点接口之上的，而pod网络地址
+是配置在pod资源之上的，因此这些地址都是配置在某些设备之上的，这些设备可能是硬件，也可能是软件模拟的。
+
+3）cluster network：集群地址，也称为service网络，这个地址是虚拟的地址（virtual ip），没有配置在某个接口上，只是出
+现在service的规则当中。
+[root@master1 ~]# kubectl get svc        
+NAME         TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)          AGE
+kubernetes   ClusterIP   10.96.0.1     &lt;none&gt;        443/TCP          8d
+</code></pre>
+<h2 id="创建service资源">创建service资源</h2>
 
           </div>
         </div>
