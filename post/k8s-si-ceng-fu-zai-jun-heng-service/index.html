@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
 
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
-<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1658716273420">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1658719383217">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
 <link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
 
@@ -30,7 +30,7 @@
   <div class="site-header">
     <div class="left">
       <a href="https://ajie825.github.io">
-        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1658716273420" alt="" width="32px" height="32px">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1658719383217" alt="" width="32px" height="32px">
       </a>
       <a href="https://ajie825.github.io">
         <h1 class="site-title">Ajie的博客</h1>
@@ -227,7 +227,7 @@ FIELDS:
    targetPort是pod上的端口，从port和nodePort上来的流量，经过kube-proxy流入到后端pod的targetPort上，
    最后进入容器，与制作容器时暴露的端口一致（使用DockerFile中的EXPOSE），例如官方的nginx暴露80端口。
 </code></pre>
-<h3 id="创建类型是clusterip的service">创建类型是ClusterIP的service</h3>
+<h2 id="创建类型是clusterip的service">创建类型是ClusterIP的service</h2>
 <pre><code class="language-bash">1）创建pod
 #把nginx.tar.gz上传到node1和node2，手动解压
 [root@node1 ~]# docker load -i nginx.tar.gz 
@@ -357,7 +357,7 @@ root@my-nginx-d4d698656-kgw4c:/# curl my-nginx.default.svc.cluster.local
 &lt;/body&gt;
 &lt;/html&gt;
 </code></pre>
-<h3 id="创建类型是nodeport的service">创建类型是NodePort的service</h3>
+<h2 id="创建类型是nodeport的service">创建类型是NodePort的service</h2>
 <pre><code class="language-bash">1）创建pod资源
 #编写资源清单文件
 [root@master1 ~]# cat deploy-nodeport.yaml 
@@ -443,7 +443,134 @@ my-nginx-nodeport   NodePort   10.97.235.55   &lt;none&gt;        80:30380/TCP  
 Client---&gt;node的ip:30380---&gt;service的ip:80---&gt;pod的ip:container的port
 Client---&gt;192.168.40.180:30380---&gt;10.97.235.55:80---&gt;pod的ip:80
 </code></pre>
-<h3 id="创建类型是externalname的service">创建类型是ExternalName的service</h3>
+<h2 id="创建类型是externalname的service">创建类型是ExternalName的service</h2>
+<pre><code class="language-bash">应用场景：跨名称空间访问
+需求：default名称空间下的client服务想要访问nginx-ns名称空间下的nginx-svc服务
+</code></pre>
+<pre><code class="language-bash">1）创建pod
+[root@master1 ~]# cat client.yaml 
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
+  name: client
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: busybox
+  template:
+      metadata:
+        labels:
+          app: busybox
+      spec:
+        containers:
+        - name: busybox
+          image: busybox
+          imagePullPolicy: IfNotPresent
+          command: [&quot;/bin/sh&quot;,&quot;-c&quot;,&quot;sleep 36000&quot;]
+[root@master1 ~]# kubectl apply -f client.yaml 
+deployment.apps/client created
+[root@master1 ~]# kubectl get pods
+NAME                      READY   STATUS    RESTARTS   AGE
+client-7d8bfb6fcf-8lhwp   1/1     Running   0          96s
+</code></pre>
+<pre><code class="language-bash">2）创建service
+[root@master1 ~]# cat client-svc.yaml 
+apiVersion: v1
+kind: Service
+metadata:
+  name: client-svc
+  namespace: default
+spec:
+  type: ExternalName
+  externalName: nginx-svc.nginx-ns.svc.cluster.local
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 80
+#该文件指定了到外部nginx-svc的软链接，让使用者感觉好像调用自己名称空间的服务一样。
+[root@master1 ~]# kubectl apply -f client-svc.yaml 
+service/client-svc created
+[root@master1 ~]# kubectl get svc
+NAME         TYPE           CLUSTER-IP   EXTERNAL-IP                            PORT(S)   AGE
+client-svc   ExternalName   &lt;none&gt;       nginx-svc.nginx-ns.svc.cluster.local   80/TCP    22s
+</code></pre>
+<pre><code class="language-bash">3）创建nginx-ns名称空间
+[root@master1 ~]# kubectl create ns nginx-ns
+namespace/nginx-ns created
+</code></pre>
+<pre><code class="language-bash">4）创建nginx-ns名称空间下的资源
+#创建pod
+[root@master1 ~]# cat server_nginx.yaml 
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
+  name: nginx
+  namespace: nginx-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+      metadata:
+        labels:
+          app: nginx
+      spec:
+        containers:
+        - name: nginx
+          image: nginx:v1
+          imagePullPolicy: IfNotPresent
+          ports:
+          - containerPort: 80
+[root@master1 ~]# kubectl apply -f server_nginx.yaml 
+deployment.apps/nginx created
+#查看pod是否创建成功
+[root@master1 ~]# kubectl get pods -n nginx-ns
+NAME                     READY   STATUS    RESTARTS   AGE
+nginx-598688df7d-8rnld   1/1     Running   0          38s
+2）创建service
+[root@master1 ~]# cat nginx_svc.yaml 
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-svc
+  namespace: nginx-ns
+spec:
+  selector:
+    app: nginx
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 80
+[root@master1 ~]# kubectl apply -f nginx_svc.yaml 
+service/nginx-svc created
+[root@master1 ~]# kubectl get svc -n nginx-ns
+NAME        TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)   AGE
+nginx-svc   ClusterIP   10.104.84.87   &lt;none&gt;        80/TCP    55s
+</code></pre>
+<pre><code class="language-bash">#验证，登录到client pod
+[root@master1 ~]# kubectl exec -it client-7d8bfb6fcf-8lhwp -- /bin/sh
+/ # wget -q -O - client-svc.default.svc.cluster.local
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+&lt;title&gt;Welcome to nginx!&lt;/title&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+/ # wget -q -O - nginx-svc.nginx-ns.svc.cluster.local
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+&lt;title&gt;Welcome to nginx!&lt;/title&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<h2 id="k8s最佳实践映射外部服务案例分享">k8s最佳实践：映射外部服务案例分享</h2>
 
           </div>
         </div>
