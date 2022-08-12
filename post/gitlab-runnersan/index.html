@@ -1,0 +1,483 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>gitlab-runner（三） | Gridea</title>
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1660297788946">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="gitlab-runner（三） | Gridea - Atom Feed" href="https://ajie825.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+
+    <meta name="description" content="查看项目详情
+
+点击启用Auto DevOps可以查看流水线的介绍
+点击CI/CD→流水线，发现流水线任务的状态是 &quot;卡住(stuck)&quot;&quot;等待中&quot;，说明我们的流水线配置还不正确，没能正确的运行
+
+点..." />
+    <meta name="keywords" content="gitlab" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://ajie825.github.io">
+  <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1660297788946" alt="">
+  </a>
+  <h1 class="site-title">
+    Gridea
+  </h1>
+  <p class="site-description">
+    温故而知新
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              gitlab-runner（三）
+            </h2>
+            <div class="post-info">
+              <span>
+                2022-05-11
+              </span>
+              <span>
+                13 min read
+              </span>
+              
+                <a href="https://ajie825.github.io/tag/zf41YWElAa/" class="post-tag">
+                  # gitlab
+                </a>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <h2 id="查看项目详情">查看项目详情</h2>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1652498903931.png" alt="" loading="lazy"></figure>
+<p>点击启用Auto DevOps可以查看流水线的介绍</p>
+<p>点击CI/CD→流水线，发现流水线任务的状态是 &quot;卡住(stuck)&quot;<code></code>&quot;等待中&quot;，说明我们的流水线配置还不正确，没能正确的运行<br>
+<img src="https://ajie825.github.io/post-images/1652499280468.png" alt="" loading="lazy"></p>
+<p>点击等待中，查看具体哪个job卡住了<br>
+<img src="https://ajie825.github.io/post-images/1652499494024.png" alt="" loading="lazy"></p>
+<p>查看build这个作业的详情页面<br>
+<img src="https://ajie825.github.io/post-images/1652499607127.png" alt="" loading="lazy"></p>
+<p>可以看到提示 由于您没有任何可以运行此作业的活跃运行器，因此作业卡住了。转到 Runner页面 ，说明我们没有配置运行器，我们点击”Runner页面”跳转到运行器配置页面<br>
+<img src="https://ajie825.github.io/post-images/1652499893244.png" alt="" loading="lazy"></p>
+<p>终于到了GitLab Runner界面了！</p>
+<h2 id="什么是gitlab-runner">什么是GitLab Runner</h2>
+<p>Runner是一个执行任务的进程。您可以根据需要配置任意数量的Runner。</p>
+<p>Runner可以放在不同的用户、服务器，甚至本地机器上。</p>
+<p>每个Runner可以处于以下状态中的其中一种：</p>
+<p>active：Runner已启用，随时可以处理新作业</p>
+<p>paused：Runner已暂停，暂时不会接受新的作业</p>
+<p>要开始使用作业，您可以向项目添加特定的运行器或使用共享的运行器。</p>
+<p>手动设置专用Runner的步骤：</p>
+<p>1）安装GitLab Runner</p>
+<p>2）在Runner设置时指定URL</p>
+<p>3）在Runner设置时使用注册令牌</p>
+<p>4）启动Runner</p>
+<p>GitLab Runner就是运行器，类似于Jenkins，可以为我们执行一些CI持续集成、构建的脚本任务，运行器具有执行脚本、调度、协调的工作能力。</p>
+<p>接下来我们为dzp项目设置一个专用运行器dzp。</p>
+<h2 id="安装gitlab-runner运行器">安装GitLab Runner运行器</h2>
+<p><a href="https://docs.gitlab.com/runner/install/">Install GitLab Runner</a> 官方文档指出：</p>
+<p>GitLab Runner can be installed and used on GNU/Linux, macOS, FreeBSD, and Windows. There are three ways to install it. Use Docker, download a binary manually, or use a repository for rpm/deb packages. Below you can find information on the different installation methods.</p>
+<p>即GitLab Runner可以通过二进制文件安装、docker镜像安装、包仓库安装。</p>
+<p>我们使用通过第三种方式包仓库安装，即添加yum源来进行安装。</p>
+<p><strong>我们就在GitLab服务器上面安装GitLab Runner。</strong></p>
+<p>添加官方YUM源：</p>
+<pre><code class="language-shell">[root@gitlab ~]# curl -L https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.rpm.sh | sudo bash
+
+Generating yum cache for runner_gitlab-runner...
+Importing GPG key 0x51312F3F:
+ Userid     : &quot;GitLab B.V. (package repository signing key) &lt;packages@gitlab.com&gt;&quot;
+ Fingerprint: f640 3f65 44a3 8863 daa0 b6e0 3f01 618a 5131 2f3f
+ From       : https://packages.gitlab.com/runner/gitlab-runner/gpgkey
+Generating yum cache for runner_gitlab-runner-source...
+
+The repository is setup! You can now install packages.
+</code></pre>
+<p>查看yum源中有哪些版本：</p>
+<pre><code class="language-shell">[root@gitlab ~]# yum search --showduplicates gitlab-runner
+
+Loaded plugins: fastestmirror
+Loading mirror speeds from cached hostfile
+
+ * base: mirror.xtom.com.hk
+ * extras: mirror.xtom.com.hk
+ * updates: mirror.xtom.com.hk
+   ====================================================================== N/S matched: gitlab-runner ======================================================================
+   gitlab-runner-10.0.0-1.x86_64 : GitLab Runner
+   gitlab-runner-10.0.1-1.x86_64 : GitLab Runner
+   gitlab-runner-10.0.2-1.x86_64 : GitLab Runner
+   gitlab-runner-10.1.0-1.x86_64 : GitLab Runner
+   gitlab-runner-10.1.1-1.x86_64 : GitLab Runner
+   gitlab-runner-11.3.2-1.x86_64 : GitLab Runner
+   gitlab-runner-12.0.0-1.x86_64 : GitLab Runner
+   gitlab-runner-12.0.1-1.x86_64 : GitLab Runner
+   gitlab-runner-12.0.2-1.x86_64 : GitLab Runner
+   gitlab-runner-12.1.0-1.x86_64 : GitLab Runner
+                    ......
+  Name and summary matches only, use &quot;search all&quot; for everything.
+</code></pre>
+<p>我们安装与GitLab大版本相同的GitLab Runner：</p>
+<pre><code class="language-shell">[root@gitlab ~]# cat /opt/gitlab/embedded/service/gitlab-rails/VERSION
+12.3.5
+[root@gitlab ~]# yum search --showduplicates gitlab-runner|grep 12.3
+gitlab-runner-12.3.0-1.x86_64 : GitLab Runner
+[root@gitlab ~]# yum install gitlab-runner-12.3.0 -y
+                ......
+Transaction test succeeded
+Running transaction
+  Installing : gitlab-runner-12.3.0-1.x86_64                                                                                                                        1/1 
+GitLab Runner: creating gitlab-runner...
+Runtime platform                                    arch=amd64 os=linux pid=26078 revision=a8a019e0 version=12.3.0
+gitlab-runner: Service is not running.
+Runtime platform                                    arch=amd64 os=linux pid=26085 revision=a8a019e0 version=12.3.0
+gitlab-ci-multi-runner: Service is not running.
+Runtime platform                                    arch=amd64 os=linux pid=26104 revision=a8a019e0 version=12.3.0
+Runtime platform                                    arch=amd64 os=linux pid=26138 revision=a8a019e0 version=12.3.0
+  Verifying  : gitlab-runner-12.3.0-1.x86_64                                                                                                                       
+Installed:
+  gitlab-runner.x86_64 0:12.3.0-1           
+</code></pre>
+<p>查看gitlab-runner版本信息及帮助信息：</p>
+<pre><code class="language-shell">[root@gitlab ~]# gitlab-runner --version
+Version:      12.3.0
+Git revision: a8a019e0
+Git branch:   12-3-stable
+GO version:   go1.8.7
+Built:        2019-09-20T08:09:48+0000
+OS/Arch:      linux/amd64
+
+[root@gitlab ~]# gitlab-runner --help
+NAME:
+   gitlab-runner - a GitLab Runner
+USAGE:
+   gitlab-runner [global options] command [command options] [arguments...]
+VERSION:
+   12.3.0 (a8a019e0)
+AUTHOR:
+   GitLab Inc. &lt;support@gitlab.com&gt;
+COMMANDS:
+     exec                  execute a build locally
+     list                  List all configured runners
+     run                   run multi runner service
+     register              register a new runner
+     install               install service
+     uninstall             uninstall service
+     start                 start service
+     stop                  stop service
+     restart               restart service
+     status                get status of a service
+     run-single            start single runner
+     unregister            unregister specific runner
+     verify                verify all registered runners
+     artifacts-downloader  download and extract build artifacts (internal)
+     artifacts-uploader    create and upload build artifacts (internal)
+     cache-archiver        create and upload cache artifacts (internal)
+     cache-extractor       download and extract cache artifacts (internal)
+     cache-init            changed permissions for cache paths (internal)
+     health-check          check health for a specific address
+     help, h               Shows a list of commands or help for one command
+
+GLOBAL OPTIONS:
+   --cpuprofile value           write cpu profile to file [$CPU_PROFILE]
+   --debug                      debug mode [$DEBUG]
+   --log-format value           Choose log format (options: runner, text, json) [$LOG_FORMAT]
+   --log-level value, -l value  Log level (options: debug, info, warn, error, fatal, panic) [$LOG_LEVEL]
+   --help, -h                   show help
+   --version, -v                print the version
+</code></pre>
+<h2 id="注册gitlab-runner">注册GitLab Runner</h2>
+<p>可以采用交互式注册和非交互式注册。</p>
+<p>交互式注册、非交互式注册选择一种执行即可，不用重复执行！！！</p>
+<p>交互式注册GitLab Runner：</p>
+<pre><code class="language-shell">[root@gitlab ~]# gitlab-runner register
+Runtime platform                                    arch=amd64 os=linux pid=29647 revision=a8a019e0 version=12.3.0
+Running in system-mode.                            
+                                                   
+Please enter the gitlab-ci coordinator URL (e.g. https://gitlab.com/):
+http://10.0.0.53
+Please enter the gitlab-ci token for this runner:
+9XWrm1zMx_-brGuJQ_9T
+Please enter the gitlab-ci description for this runner:
+
+[gitlab]: dzp
+
+Please enter the gitlab-ci tags for this runner (comma separated):
+dzp
+Registering runner... succeeded                     runner=9XWrm1zM
+Please enter the executor: kubernetes, docker, docker-ssh, parallels, shell, virtualbox, custom, ssh, docker+machine, docker-ssh+machine:
+shell
+Runner registered successfully. Feel free to start it, but if it's running already the config should be automatically reloaded! 
+</code></pre>
+<pre><code class="language-shell">[root@gitlab ~]# gitlab-runner list
+Runtime platform                                    arch=amd64 os=linux pid=29774 revision=a8a019e0 version=12.3.0
+Listing configured runners                          ConfigFile=/etc/gitlab-runner/config.toml
+dzp                                                 Executor=shell Token=fuVayiLTzAd1Djp4R3cf URL=http://10.0.0.53
+</code></pre>
+<p>注册成功后，查看WEB界面中已经激活的运行器：<br>
+<img src="https://ajie825.github.io/post-images/1652511901743.png" alt="" loading="lazy"></p>
+<p>点击 fuVayiLT，查看运行器的详情：<br>
+<img src="https://ajie825.github.io/post-images/1652512255481.png" alt="" loading="lazy"></p>
+<h2 id="启动运行器">启动运行器</h2>
+<pre><code class="language-shell">[root@gitlab ~]# gitlab-runner run --help
+Runtime platform                                    arch=amd64 os=linux pid=31135 revision=a8a019e0 version=12.3.0
+NAME:
+   gitlab-runner run - run multi runner service
+
+USAGE:
+   gitlab-runner run [command options] [arguments...]
+
+OPTIONS:
+   -c value, --config value             Config file (default: &quot;/etc/gitlab-runner/config.toml&quot;) [$CONFIG_FILE]
+   --listen-address value               Metrics / pprof server listening address [$LISTEN_ADDRESS]
+   -n value, --service value            Use different names for different services (default: &quot;gitlab-runner&quot;)
+   -d value, --working-directory value  Specify custom working directory
+   -u value, --user value               Use specific user to execute shell scripts
+   --syslog                             Log to system service logger [$LOG_SYSLOG]
+</code></pre>
+<p>如果不使用GitLab Runner执行一些软件安装、环境依赖等的操作，不建议使用root用户使用GitLab Runner运行器的执行用户名，我们使用gitlab-runner执行用户。</p>
+<p>我们直接使用默认的用户名、工作目录，但将日志写入到  /opt/gitlab-runner/runner.log 文件中，不直接显示在标准输出里。</p>
+<p>启动运行器，并放置在后台运行：</p>
+<pre><code class="language-shell">[root@gitlab ~]# systemctl disable gitlab-runner
+Removed symlink /etc/systemd/system/multi-user.target.wants/gitlab-runner.service.
+[root@gitlab ~]# systemctl stop gitlab-runner
+[root@gitlab ~]# mkdir /opt/gitlab-runner
+[root@gitlab ~]# chown -R gitlab-runner:gitlab-runner /opt/gitlab-runner
+[root@gitlab ~]# gitlab-runner run --config /etc/gitlab-runner/config.toml --working-directory /opt/gitlab-runner --user gitlab-runner &gt; /opt/gitlab-runner/runner.log 2&gt;&amp;1 &amp;  
+[1] 31452
+[root@gitlab ~]# ps -ef|grep gitlab-runner
+root       2760   1521  0 01:20 pts/0    00:00:00 gitlab-runner run --config /etc/gitlab-runner/config.toml --working-directory /opt/gitlab-runner --user gitlab-runner
+root       2889   1521  0 01:21 pts/0    00:00:00 grep --color=auto gitlab-runner
+[root@gitlab ~]# tail -f /opt/gitlab-runner/runner.log 
+Runtime platform                                    arch=amd64 os=linux pid=2760 revision=a8a019e0 version=12.3.0
+Starting multi-runner from /etc/gitlab-runner/config.toml ...  builds=0
+Running in system-mode.                            
+                                                   
+Configuration loaded                                builds=0
+Locking configuration file                          builds=0 file=/etc/gitlab-runner/config.toml pid=2760
+listen_address not defined, metrics &amp; debug endpoints disabled  builds=0
+[session_server].listen_address not defined, session endpoints disabled  builds=0
+[root@gitlab opt]# ls -lah /opt/gitlab-runner/runner.log                  
+-rw-r--r-- 1 gitlab-runner gitlab-runner 712 May 16 01:20 /opt/gitlab-runner/runner.log
+</code></pre>
+<h2 id="触发gitlab-runner执行流水线任务">触发GitLab Runner执行流水线任务</h2>
+<p>更新本地dzp项目的文件，添加文件  .gitlab-ci.yml，并提交到代码仓库</p>
+<pre><code class="language-shell">[root@gitlab dzp]# pwd
+/root/project/dzp
+
+[root@gitlab dzp]# cat .gitlab-ci.yml 
+[root@gitlab dzp]# cat .gitlab-ci.yml 
+# This file is a template, and might need editing before it works on your project.
+# see https://docs.gitlab.com/ce/ci/yaml/README.html for all available options
+
+before_script:
+  - echo &quot;Before script section&quot;
+  - echo &quot;For example you might run an update here or install a build dependency&quot;
+  - echo &quot;Or perhaps you might print out some debugging details&quot;
+
+after_script:
+  - echo &quot;After script section&quot;
+  - echo &quot;For example you might do some cleanup here&quot;
+
+build:
+  stage: build
+  script:
+    - echo &quot;Do your build here&quot;
+  tags:   # 此行是新增的
+    - dzp   # 此行是新增的
+
+test:
+  stage: test
+  script:
+    - echo &quot;Do a test here&quot;
+    - echo &quot;For example run a test suite&quot;
+  tags:   # 此行是新增的
+    - dzp   # 此行是新增的
+
+deploy:
+  stage: deploy
+  script:
+    - echo &quot;Do your deploy here&quot;
+  tags:   # 此行是新增的
+    - dzp  # 此行是新增的
+</code></pre>
+<pre><code class="language-shell">[root@gitlab dzp]# git add .
+[root@gitlab dzp]# git commit -m &quot;add .gitlab-ci.yml&quot;
+[master 54baef1] add .gitlab-ci.yml
+ 1 file changed, 9 insertions(+), 2 deletions(-)
+[root@gitlab dzp]# git push origin master
+Enumerating objects: 5, done.
+Counting objects: 100% (5/5), done.
+Compressing objects: 100% (3/3), done.
+Writing objects: 100% (3/3), 348 bytes | 348.00 KiB/s, done.
+Total 3 (delta 2), reused 0 (delta 0), pack-reused 0
+To 10.0.0.53:oldboy/dzp.git
+   ef80acc..54baef1  master -&gt; master
+</code></pre>
+<p>提交后，查看 dzp 项目的流水线，发现状态是”已通过”：<br>
+<img src="https://ajie825.github.io/post-images/1652518714560.png" alt="" loading="lazy"></p>
+<p>查看5#流水线的详情：<br>
+<img src="https://ajie825.github.io/post-images/1652518836169.png" alt="" loading="lazy"></p>
+<p>可以发现其 build 、Test、Deploy三个阶段的任务都执行成功！</p>
+<p>查看作业详情，可以看到控制台输出的内容，就是我们在 .gitlab-ci.yml 中定义的一些过程的输出:<br>
+<img src="https://ajie825.github.io/post-images/1652519041767.png" alt="" loading="lazy"></p>
+<p>后台控制台输出以及工作目录中的内容如下：</p>
+<pre><code class="language-shell">[root@gitlab gitlab-runner]# pwd
+/opt/gitlab-runner
+[root@gitlab gitlab-runner]# ls
+builds  runner.log
+[root@gitlab gitlab-runner]# cd builds/
+[root@gitlab builds]# ls
+fuVayiLT
+[root@gitlab builds]# cd fuVayiLT/
+[root@gitlab fuVayiLT]# ls
+0
+[root@gitlab fuVayiLT]# cd 0
+[root@gitlab 0]# ls
+oldboy
+[root@gitlab 0]# cd oldboy/
+[root@gitlab oldboy]# ls
+dzp  dzp.tmp
+[root@gitlab oldboy]# cd dzp
+[root@gitlab dzp]# ls
+css  html2canvas.min.js  images  index.html  js  README.md  水果机
+[root@gitlab dzp]# git remote -v
+origin  http://gitlab-ci-token:6ppYaseTyyNQSevYUBy4@10.0.0.53/oldboy/dzp.git (fetch)
+origin  http://gitlab-ci-token:6ppYaseTyyNQSevYUBy4@10.0.0.53/oldboy/dzp.git (push)
+[root@gitlab dzp]# git branch 
+
+* (HEAD detached at 54baef1)
+</code></pre>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#%E6%9F%A5%E7%9C%8B%E9%A1%B9%E7%9B%AE%E8%AF%A6%E6%83%85">查看项目详情</a></li>
+<li><a href="#%E4%BB%80%E4%B9%88%E6%98%AFgitlab-runner">什么是GitLab Runner</a></li>
+<li><a href="#%E5%AE%89%E8%A3%85gitlab-runner%E8%BF%90%E8%A1%8C%E5%99%A8">安装GitLab Runner运行器</a></li>
+<li><a href="#%E6%B3%A8%E5%86%8Cgitlab-runner">注册GitLab Runner</a></li>
+<li><a href="#%E5%90%AF%E5%8A%A8%E8%BF%90%E8%A1%8C%E5%99%A8">启动运行器</a></li>
+<li><a href="#%E8%A7%A6%E5%8F%91gitlab-runner%E6%89%A7%E8%A1%8C%E6%B5%81%E6%B0%B4%E7%BA%BF%E4%BB%BB%E5%8A%A1">触发GitLab Runner执行流水线任务</a></li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://ajie825.github.io/post/gitlab-de-shi-yong-er/">
+              <h3 class="post-title">
+                gitlab的使用（二）
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

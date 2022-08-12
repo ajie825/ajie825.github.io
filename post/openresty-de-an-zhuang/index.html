@@ -1,0 +1,245 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>openresty的安装 | Gridea</title>
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1660297788946">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="openresty的安装 | Gridea - Atom Feed" href="https://ajie825.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+
+    <meta name="description" content="1）添加依赖并下载对应模块
+yum groupinstall -y &quot;Development tools&quot;
+yum install -y sysstat wget make gcc gcc-c++ readline-de..." />
+    <meta name="keywords" content="openresty" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://ajie825.github.io">
+  <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1660297788946" alt="">
+  </a>
+  <h1 class="site-title">
+    Gridea
+  </h1>
+  <p class="site-description">
+    温故而知新
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              openresty的安装
+            </h2>
+            <div class="post-info">
+              <span>
+                2022-05-05
+              </span>
+              <span>
+                4 min read
+              </span>
+              
+                <a href="https://ajie825.github.io/tag/7AWoqvhrTx/" class="post-tag">
+                  # openresty
+                </a>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <p>1）添加依赖并下载对应模块</p>
+<pre><code class="language-shell">yum groupinstall -y &quot;Development tools&quot;
+yum install -y sysstat wget make gcc gcc-c++ readline-devel perl pcre-devel openssl-devel git unzip zip libmaxminddb-devel libuuid-devel zlib-devel
+yum -y install perl-Digest-MD5
+mkdir /data &amp;&amp; cd /data
+
+wget https://openresty.org/download/openresty-1.19.9.1.tar.gz
+tar xf openresty-1.19.9.1.tar.gz
+#ngx_cache_purge模块主要对nginx产生的缓存进行清理
+wget http://labs.frickle.com/files/ngx_cache_purge-2.3.tar.gz
+tar xf ngx_cache_purge-2.3.tar.gz
+#使用geoip模块需要jemalloc动态识别库
+wget https://github.com/jemalloc/jemalloc/releases/download/5.2.1/jemalloc-5.2.1.tar.bz2
+tar xf jemalloc-5.2.1.tar.bz2 
+cd jemalloc-5.2.1
+./configure &amp;&amp; make &amp;&amp; make install
+#geoip2限制网站可访问的国家或区域
+git clone --depth=1 https://github.com/leev/ngx_http_geoip2_module.git
+#luajit获取nginx的变量
+git clone --depth=1 https://github.com/api7/lua-var-nginx-module.git
+#nginx虚拟主机流量状态模块
+git clone --depth=1 https://github.com/vozlt/nginx-module-vts.git
+#nginx-ct，nginx证书透明模块
+wget https://github.com/grahamedgecombe/nginx-ct/archive/refs/tags/v1.3.2.tar.gz
+tar xf v1.3.2.tar.gz
+#ngx_brotli，压缩模块
+git clone https://github.com/google/ngx_brotli.git
+cd ngx_brotli &amp;&amp; git submodule update --init
+#pcre
+wget https://github.com/PhilipHazel/pcre2/releases/download/pcre2-10.39/pcre2-10.39.tar.gz
+tar xf pcre2-10.39.tar.gz
+</code></pre>
+<p>2）添加jemalloc动态链接库路径：</p>
+<pre><code class="language-shell">echo /usr/local/lib &gt;&gt; /etc/ld.so.conf.d/geoip.conf
+sudo /sbin/ldconfig
+</code></pre>
+<p>3）编译openresty</p>
+<pre><code class="language-shell">mkdir /usr/local/openresty
+cd openresty-1.19.9.1
+./configure --prefix=/usr/local/openresty  --add-module=/data/ngx_http_geoip2_module   --add-module=/data/nginx-module-vts   --add-module=/data/ngx_cache_purge-2.3    --with-http_stub_status_module   --with-http_realip_module   --with-http_v2_module  --with-ld-opt='-ljemalloc' --add-module=/data/ngx_brotli --add-module=/data/nginx-ct-1.3.2
+gmake &amp;&amp; gmake install
+
+cd /usr/local/openresty/
+[root@openresty openresty]# ls
+bin  COPYRIGHT  luajit  lualib  nginx  pod  resty.index  site
+</code></pre>
+<p>4）添加nginx用户</p>
+<pre><code class="language-shell">groupadd nginx
+useradd -g nginx -s /sbin/nologin -M nginx
+</code></pre>
+<p>5）安装luarocks，luarocks是一个lua包管理器，管理lua包依赖、安装第三方lua包等</p>
+<pre><code class="language-shell">wget https://luarocks.github.io/luarocks/releases/luarocks-3.8.0.tar.gz
+tar xf luarocks-3.8.0.tar.gz
+cd luarocks-3.8.0
+./configure --prefix=/usr/local/openresty/luarocks \
+                    --with-lua=/usr/local/openresty/luajit/ \
+                    --with-lua-include=/usr/local/openresty/luajit/include/luajit-2.1 \
+                    --lua-suffix='jit' || (echo &quot;configure luarocks Error&quot; &amp;&amp; exit 1)
+make &amp;&amp; make install
+</code></pre>
+<p>6）为openresty添加环境变量</p>
+<pre><code class="language-shell">vim ~/.bashrc
+```
+export PATH=$PATH:/usr/local/openresty/bin
+export PATH=$PATH:/usr/local/openresty/nginx/sbin
+export PATH=$PATH:/usr/local/openresty/luarocks/bin
+```
+source ~/.bashrc
+</code></pre>
+<p>7）启动openresty</p>
+<pre><code class="language-shell">[root@openresty conf]# openresty -t
+[root@openresty conf]# openresty 
+[root@openresty conf]# openresty -s reload
+</code></pre>
+<p>可参考：https://www.xuliangwei.com/oldxu/972.html</p>
+
+              </div>
+              <div class="toc-container">
+                
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://ajie825.github.io/post/an-zhuang-bao-ta-jiao-ben/">
+              <h3 class="post-title">
+                安装宝塔脚本
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

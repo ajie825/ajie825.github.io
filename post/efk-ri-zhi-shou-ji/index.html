@@ -1,0 +1,493 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>EFK日志收集 | Gridea</title>
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1660297788946">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="EFK日志收集 | Gridea - Atom Feed" href="https://ajie825.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+
+    <meta name="description" content="安装配置 java
+[root@efk ~]# yum -y install gcc gcc-c++
+[root@efk ~]# yum install java-1.8.0-openjdk.x86_64 -y
+[root@efk ~]# ..." />
+    <meta name="keywords" content="EFK" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://ajie825.github.io">
+  <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1660297788946" alt="">
+  </a>
+  <h1 class="site-title">
+    Gridea
+  </h1>
+  <p class="site-description">
+    温故而知新
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              EFK日志收集
+            </h2>
+            <div class="post-info">
+              <span>
+                2022-04-22
+              </span>
+              <span>
+                9 min read
+              </span>
+              
+                <a href="https://ajie825.github.io/tag/CBdUGkq7ZB/" class="post-tag">
+                  # EFK
+                </a>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <h2 id="安装配置-java">安装配置 java</h2>
+<pre><code class="language-shell">[root@efk ~]# yum -y install gcc gcc-c++
+[root@efk ~]# yum install java-1.8.0-openjdk.x86_64 -y
+[root@efk ~]# java -version
+openjdk version &quot;1.8.0_312&quot;
+OpenJDK Runtime Environment (build 1.8.0_312-b07)
+OpenJDK 64-Bit Server VM (build 25.312-b07, mixed mode)
+</code></pre>
+<h2 id="安装配置-elasticsearch">安装配置 elasticsearch</h2>
+<pre><code class="language-shell">[root@efk ~]# mkdir /data/soft/ -p
+[root@efk ~]# cd /data/soft/
+[root@efk soft]# wget https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-7.7.0-x86_64.rpm
+[root@efk soft]# rpm -ivh elasticsearch-7.7.0-x86_64.rpm 
+warning: elasticsearch-7.7.0-x86_64.rpm: Header V4 RSA/SHA512 Signature, key ID d88e42b4: NOKEY
+Preparing...                          ################################# [100%]
+Creating elasticsearch group... OK
+Creating elasticsearch user... OK
+Updating / installing...
+   1:elasticsearch-0:7.7.0-1          ################################# [100%]
+### NOT starting on installation, please execute the following statements to configure elasticsearch service to start automatically using systemd
+ sudo systemctl daemon-reload
+ sudo systemctl enable elasticsearch.service
+### You can start elasticsearch service by executing
+ sudo systemctl start elasticsearch.service
+Created elasticsearch keystore in /etc/elasticsearch/elasticsearch.keystore
+</code></pre>
+<h2 id="相关配置目录及配置文件">相关配置目录及配置文件</h2>
+<pre><code class="language-shell">[root@efk soft]# rpm -qc elasticsearch
+/etc/elasticsearch/elasticsearch.yml
+/etc/elasticsearch/jvm.options
+/etc/elasticsearch/log4j2.properties
+/etc/elasticsearch/role_mapping.yml
+/etc/elasticsearch/roles.yml
+/etc/elasticsearch/users
+/etc/elasticsearch/users_roles
+/etc/init.d/elasticsearch
+/etc/sysconfig/elasticsearch
+/usr/lib/sysctl.d/elasticsearch.conf
+/usr/lib/systemd/system/elasticsearch.service
+</code></pre>
+<h2 id="elasticsearch-配置文件修改">elasticsearch 配置文件修改</h2>
+<pre><code class="language-shell">[root@efk soft]# grep ^[a-z] /etc/elasticsearch/elasticsearch.yml
+node.name: node1
+path.data: /data/efk_data
+path.logs: /var/log/elasticsearch
+bootstrap.memory_lock: false
+network.host: 0.0.0.0
+http.port: 9200
+cluster.initial_master_nodes: [&quot;node1&quot;]
+</code></pre>
+<h2 id="创建数据存放路径并授权">创建数据存放路径并授权</h2>
+<pre><code class="language-shell">[root@efk soft]# mkdir -p /data/efk_data
+[root@efk soft]# chown elasticsearch:elasticsearch /data/efk_data/
+</code></pre>
+<h2 id="启动-elasticsearch">启动 elasticsearch</h2>
+<pre><code class="language-shell">[root@elk soft]# systemctl daemon-reload
+[root@efk soft]# systemctl enable elasticsearch
+[root@efk soft]# systemctl start elasticsearch
+</code></pre>
+<h2 id="检查启动是否成功">检查启动是否成功</h2>
+<pre><code class="language-shell">[root@efk soft]# ss -lnpt|grep 9200
+LISTEN     0      128       [::]:9200                  [::]:*                   users:((&quot;java&quot;,pid=2060,fd=257))
+[root@efk soft]# curl localhost:9200
+{
+  &quot;name&quot; : &quot;node1&quot;,
+  &quot;cluster_name&quot; : &quot;elasticsearch&quot;,
+  &quot;cluster_uuid&quot; : &quot;QpOlCPyVSaSNMYnsRdJlzQ&quot;,
+  &quot;version&quot; : {
+    &quot;number&quot; : &quot;7.7.0&quot;,
+    &quot;build_flavor&quot; : &quot;default&quot;,
+    &quot;build_type&quot; : &quot;rpm&quot;,
+    &quot;build_hash&quot; : &quot;81a1e9eda8e6183f5237786246f6dced26a10eaf&quot;,
+    &quot;build_date&quot; : &quot;2020-05-12T02:01:37.602180Z&quot;,
+    &quot;build_snapshot&quot; : false,
+    &quot;lucene_version&quot; : &quot;8.5.1&quot;,
+    &quot;minimum_wire_compatibility_version&quot; : &quot;6.8.0&quot;,
+    &quot;minimum_index_compatibility_version&quot; : &quot;6.0.0-beta1&quot;
+  },
+  &quot;tagline&quot; : &quot;You Know, for Search&quot;
+}
+</code></pre>
+<h2 id="修改es配置文件支持跨域">修改ES配置文件支持跨域</h2>
+<pre><code class="language-shell">[root@efk ~]# vim /etc/elasticsearch/elasticsearch.yml 
+配置参数：
+http.cors.enabled: true 
+http.cors.allow-origin: &quot;*&quot;
+[root@efk ~]# systemctl restart elasticsearch
+</code></pre>
+<h2 id="elasticsearch770安全性之设置密码">elasticsearch7.7.0安全性之设置密码</h2>
+<p><strong>修改配置文件并重启elasticsearch</strong></p>
+<pre><code class="language-shell">[root@efk ~]# vim /etc/elasticsearch/elasticsearch.yml
+xpack.security.enabled: true
+xpack.license.self_generated.type: basic
+xpack.security.transport.ssl.enabled: true
+[root@efk ~]# systemctl restart elasticsearch
+</code></pre>
+<p><strong>设置用户名和密码</strong></p>
+<pre><code class="language-shell">[root@efk ~]# cd /usr/share/elasticsearch/bin/
+[root@efk bin]# ./elasticsearch-setup-passwords interactive
+Initiating the setup of passwords for reserved users elastic,apm_system,kibana,logstash_system,beats_system,remote_monitoring_user.
+You will be prompted to enter passwords as the process progresses.
+Please confirm that you would like to continue [y/N]y
+Enter password for [elastic]: 
+Reenter password for [elastic]: 
+Enter password for [apm_system]: 
+Reenter password for [apm_system]: 
+Enter password for [kibana]: 
+Reenter password for [kibana]: 
+Enter password for [logstash_system]: 
+Reenter password for [logstash_system]: 
+Enter password for [beats_system]: 
+Reenter password for [beats_system]: 
+Enter password for [remote_monitoring_user]: 
+Reenter password for [remote_monitoring_user]: 
+Changed password for user [apm_system]
+Changed password for user [kibana]
+Changed password for user [logstash_system]
+Changed password for user [beats_system]
+Changed password for user [remote_monitoring_user]
+Changed password for user [elastic]
+</code></pre>
+<h2 id="安装配置kibana">安装配置kibana</h2>
+<pre><code class="language-shell">[root@efk soft]# wget https://artifacts.elastic.co/downloads/kibana/kibana-7.7.0-x86_64.rpm
+[root@efk soft]# rpm -ivh kibana-7.7.0-x86_64.rpm
+[root@efk soft]# grep &quot;^[a-z]&quot; /etc/kibana/kibana.yml
+server.port: 5601
+server.host: &quot;0.0.0.0&quot;
+elasticsearch.hosts: [&quot;http://10.0.0.7:9200&quot;]
+kibana.index: &quot;.kibana&quot;
+xpack.security.enabled: true
+elasticsearch.username: &quot;elastic&quot;
+elasticsearch.password: &quot;123456&quot;
+[root@efk soft]# systemctl start kibana
+[root@efk soft]# systemctl enable kibana
+Created symlink from /etc/systemd/system/multi-user.target.wants/kibana.service to /etc/systemd/system/kibana.service.
+[root@efk soft]# ss -lnpt|grep 5601
+LISTEN     0      128    *:5601                     *:*                   users:((&quot;node&quot;,pid=12234,fd=18))
+</code></pre>
+<p><strong>在浏览器访问 10.0.0.7:5601</strong></p>
+<pre><code class="language-shell">用户名：elastic
+密码：123456
+</code></pre>
+<h2 id="安装filebeat">安装filebeat</h2>
+<pre><code class="language-shell">[root@efk soft]# wget https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-7.7.0-x86_64.rpm
+[root@efk soft]# rpm -ivh filebeat-7.7.0-x86_64.rpm
+[root@efk soft]# systemctl enable filebeat
+[root@efk soft]# systemctl start filebeat
+</code></pre>
+<h2 id="使用filebeat收集系统日志"><strong>使用filebeat收集系统日志</strong></h2>
+<p><strong>修改filebeat.yml配置文件</strong></p>
+<pre><code class="language-shell">[root@efk ~]# cat /etc/filebeat/filebeat.yml 
+filebeat.inputs:
+- type: log
+  enabled: true
+  paths:
+    - /var/log/messages
+      fields:
+        index: messages
+
+setup.kibana:
+  host: &quot;10.0.0.7:5601&quot;
+
+output.elasticsearch:
+  hosts: [&quot;10.0.0.7:9200&quot;]
+  username: &quot;elastic&quot;
+  password: &quot;123456&quot;
+  indices:
+    - index: &quot;efk-messages-%{+yyyy.MM.dd}&quot;
+      when.equals:
+        fields:
+          index: &quot;messages&quot;
+</code></pre>
+<p><strong>重启filebeat服务</strong></p>
+<pre><code class="language-shell">[root@efk ~]# systemctl restart filebeat
+</code></pre>
+<p><strong>在kibana配置web展示</strong></p>
+<pre><code class="language-shell">management--&gt;index patterns--&gt;efk-messages-*--&gt;@timestamp
+</code></pre>
+<p>点击discorver可以查看</p>
+<p>可以进行 fields 区域筛选，点击 &quot;Available Fields&quot;中的 &quot;message&quot;，然后点击添加 &quot;add&quot;，可以看到按照 &quot;message&quot; 筛选后的结果</p>
+<h2 id="filebeat语法介绍">filebeat语法介绍</h2>
+<pre><code class="language-shell">filebeat.inputs:
+- type: log
+  enabled: true
+  paths:
+    - /var/log/nginx/access.log
+      fields:
+        index: nginx
+      json.keys_under_root: true
+      json.overwrite_keys: true
+
+- type: log
+  enabled: true
+  paths:
+    - /var/log/messages
+      fields:
+        index: messages
+
+output.elasticsearch:
+  hosts: [&quot;10.0.0.51:9200&quot;]
+  indices:
+    - index: &quot;efk-nginx-%{+yyyy.MM.dd}&quot;
+      when.equals:
+        fields:
+          index: &quot;nginx&quot;
+    - index: &quot;efk-messages-%{+yyyy.MM.dd}&quot;
+      when.equals:
+        fields:
+          index: &quot;messages&quot;
+</code></pre>
+<pre><code class="language-shell">filebeat.inputs:					//收集什么日志
+- type: log						    //采集类型，如果有多个应用系统则配置多个
+  enabled: true						//是否启用，true为启用，false为不起用，启用后就会在es上创建索引库
+  paths:						   //日志所在路径
+    - /var/log/nginx/access.log	
+    - /var/log/nginx/error.log
+      fields:						   //在es库里额外增加一个字段，也类似于标签
+        index: nginx				   //字段名:值
+      json.keys_under_root: true		//解析json格式的日志
+      json.overwrite_keys: true
+
+output.elasticsearch:			   //日志存放在哪个es集群
+  hosts: [&quot;192.168.81.210:9200&quot;]	//集群地址
+  indices:						  //索引信息
+    - index: &quot;elk-nginx-%{+yyyy.MM.dd}&quot;	  //索引名称
+      when.equals:						//匹配哪个标签
+        fields:							//配置标签类型为字段
+          index: &quot;nginx&quot;				 //配置指定的字段，当index字段的值为nginx则存储到elk-nginx索引中
+</code></pre>
+<p><strong>不同主机配置filebeat</strong></p>
+<pre><code class="language-shell">filebeat.inputs:
+- type: log
+  enabled: true
+  paths:
+    - /var/log/messages
+ fields:
+   index: 52-message
+   ip: 10.0.0.52
+   
+output.elasticsearch:
+  hosts: [&quot;10.0.0.51:9200&quot;]
+  indices:
+  - index: &quot;efk-52-message-%{+yyyy.MM.dd}&quot;
+    when.equals:
+      fields:
+        index: &quot;52-message&quot;
+</code></pre>
+<p>补充：</p>
+<pre><code class="language-shell">wget https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-7.1.1-x86_64.rpm
+rpm -ivh filebeat-7.1.1-x86_64.rpm
+systemctl start filebeat
+</code></pre>
+<pre><code class="language-shell">##### Input Config
+filebeat.inputs:
+- type: log
+  enabled: true
+  paths:
+    - /data/logs/*.log
+  fields:
+    log_type: shop-seo
+  tail_files: true
+  exclude_files: ['.gz$']
+
+fields_under_root: true
+
+filebeat.config.modules:
+  path: ${path.config}/modules.d/*.yml
+  reload.enabled: false
+
+##### Template Config #####
+setup.template.settings:
+  index.number_of_shards: 1
+setup.template.enabled: false
+setup.template.overwrite: true
+#可以使用变量或者自行定义
+setup.template.name: &quot;vk&quot;
+setup.template.pattern: &quot;vk-*&quot;
+
+setup.kibana:
+  host: &quot;1.1.1.1:5601&quot;
+  #host: &quot;8.210.63.232:5601&quot;
+
+##### Index Lifycycle Management #####
+# Disable ilm when you define index
+setup.ilm.enabled: false
+
+##### Output Config #####
+output.elasticsearch.hosts: [&quot;1.1.1.1:9200&quot;]
+output.elasticsearch.username: &quot;elastic&quot;
+output.elasticsearch.password: &quot;123456&quot;
+output.elasticsearch.index: &quot;vk-%{[fields.log_type]}-%{+yyyy.MM.dd}&quot;
+
+#processors:
+#  - add_host_metadata: ~
+#  - add_cloud_metadata: ~
+
+#xpack.monitoring.elasticsearch: true
+
+##### HTTP Endpoint #####
+http.enabled: true
+http.host: localhost
+http.port: 5066
+</code></pre>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE-java">安装配置 java</a></li>
+<li><a href="#%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE-elasticsearch">安装配置 elasticsearch</a></li>
+<li><a href="#%E7%9B%B8%E5%85%B3%E9%85%8D%E7%BD%AE%E7%9B%AE%E5%BD%95%E5%8F%8A%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6">相关配置目录及配置文件</a></li>
+<li><a href="#elasticsearch-%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%E4%BF%AE%E6%94%B9">elasticsearch 配置文件修改</a></li>
+<li><a href="#%E5%88%9B%E5%BB%BA%E6%95%B0%E6%8D%AE%E5%AD%98%E6%94%BE%E8%B7%AF%E5%BE%84%E5%B9%B6%E6%8E%88%E6%9D%83">创建数据存放路径并授权</a></li>
+<li><a href="#%E5%90%AF%E5%8A%A8-elasticsearch">启动 elasticsearch</a></li>
+<li><a href="#%E6%A3%80%E6%9F%A5%E5%90%AF%E5%8A%A8%E6%98%AF%E5%90%A6%E6%88%90%E5%8A%9F">检查启动是否成功</a></li>
+<li><a href="#%E4%BF%AE%E6%94%B9es%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%E6%94%AF%E6%8C%81%E8%B7%A8%E5%9F%9F">修改ES配置文件支持跨域</a></li>
+<li><a href="#elasticsearch770%E5%AE%89%E5%85%A8%E6%80%A7%E4%B9%8B%E8%AE%BE%E7%BD%AE%E5%AF%86%E7%A0%81">elasticsearch7.7.0安全性之设置密码</a></li>
+<li><a href="#%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AEkibana">安装配置kibana</a></li>
+<li><a href="#%E5%AE%89%E8%A3%85filebeat">安装filebeat</a></li>
+<li><a href="#%E4%BD%BF%E7%94%A8filebeat%E6%94%B6%E9%9B%86%E7%B3%BB%E7%BB%9F%E6%97%A5%E5%BF%97"><strong>使用filebeat收集系统日志</strong></a></li>
+<li><a href="#filebeat%E8%AF%AD%E6%B3%95%E4%BB%8B%E7%BB%8D">filebeat语法介绍</a></li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://ajie825.github.io/post/mysql-innobackup-zeng-bei-jiao-ben/">
+              <h3 class="post-title">
+                mysql innobackup增备脚本
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

@@ -1,0 +1,300 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>gitlab的使用（二） | Gridea</title>
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1660297788946">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="gitlab的使用（二） | Gridea - Atom Feed" href="https://ajie825.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+
+    <meta name="description" content="注册限制
+选择管理中心→设置→注册限制→取消勾选启动注册→保存即可
+
+外观配置
+选择管理中心→外观
+
+创建组→项目→用户
+创建组
+
+
+创建用户
+
+
+选择编辑→为用户设置密码
+
+
+把用户添加到组里面
+管理区域-选择创建的oldboy组进行添加..." />
+    <meta name="keywords" content="gitlab" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://ajie825.github.io">
+  <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1660297788946" alt="">
+  </a>
+  <h1 class="site-title">
+    Gridea
+  </h1>
+  <p class="site-description">
+    温故而知新
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              gitlab的使用（二）
+            </h2>
+            <div class="post-info">
+              <span>
+                2022-05-11
+              </span>
+              <span>
+                5 min read
+              </span>
+              
+                <a href="https://ajie825.github.io/tag/zf41YWElAa/" class="post-tag">
+                  # gitlab
+                </a>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <h2 id="注册限制">注册限制</h2>
+<p>选择管理中心→设置→注册限制→取消勾选启动注册→保存即可<br>
+<img src="https://ajie825.github.io/post-images/1652252743949.png" alt="" loading="lazy"></p>
+<h2 id="外观配置">外观配置</h2>
+<p>选择管理中心→外观<br>
+<img src="https://ajie825.github.io/post-images/1652256007053.png" alt="" loading="lazy"></p>
+<h2 id="创建组项目用户">创建组→项目→用户</h2>
+<h3 id="创建组">创建组</h3>
+<p><img src="https://ajie825.github.io/post-images/1652256331747.png" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1652256433913.png" alt="" loading="lazy"></p>
+<h3 id="创建用户">创建用户</h3>
+<p><img src="https://ajie825.github.io/post-images/1652256683937.png" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1652256691406.png" alt="" loading="lazy"></p>
+<p>选择编辑→为用户设置密码<br>
+<img src="https://ajie825.github.io/post-images/1652256788795.png" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1652256906153.png" alt="" loading="lazy"></p>
+<p>把用户添加到组里面</p>
+<p>管理区域-选择创建的oldboy组进行添加用户、权限给开发人员-增加用户到群组<br>
+<img src="https://ajie825.github.io/post-images/1652257082156.png" alt="" loading="lazy"></p>
+<h3 id="创建项目">创建项目</h3>
+<p>管理区域-创建项目</p>
+<p>#这里码云导入一个大转盘项目到gitlab仓库，将其代码路径进行复制，在gitlab上面新创建一个项目仓库，将源代码导入进去 https://gitee.com/xianzi/html5.git<br>
+<img src="https://ajie825.github.io/post-images/1652257394792.png" alt="" loading="lazy"></p>
+<h3 id="添加gitlab的远程仓库进行代码上传">添加gitlab的远程仓库，进行代码上传</h3>
+<p>生成公钥，然后将公钥上传到gitlab</p>
+<pre><code class="language-shell">[root@gitlab ~]# ssh-keygen -t rsa
+Generating public/private rsa key pair.
+Enter file in which to save the key (/root/.ssh/id_rsa): 
+Created directory '/root/.ssh'.
+Enter passphrase (empty for no passphrase): 
+Enter same passphrase again: 
+Your identification has been saved in /root/.ssh/id_rsa.
+Your public key has been saved in /root/.ssh/id_rsa.pub.
+The key fingerprint is:
+SHA256:X3TjoecPQnh33/bD3CmUp2dztTA9MJFR60vaQZzTNkQ root@gitlab
+The key's randomart image is:
++---[RSA 2048]----+
+|             .=E |
+|             oo +|
+|            . =Bo|
+|           o *o+o|
+|        S . = O+.|
+|         . + O+=*|
+|          . o.XoX|
+|             + &amp;+|
+|              + *|
++----[SHA256]-----+
+[root@gitlab ~]# cat .ssh/id_rsa.pub 
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDWNmNap5kkXcwl8asPrvzqbLg7wVkCwAFTxbPSRQ/zwXlI22rbFaEXWFopM3q0W2TaESs3aosguMoQ/TuiUd1GGkZP4aPeuJ0hIH43XZtDdSMBQpyha+XWDDxKeTbzaFXVCMejZi6icyTC/8LEZa1ZRIFX7kHu+ZH2r/CVqcQamltL0RQmb0S+sa/P3F0oOy4Vn8yE2HZzEQ7Hi6YFlF5xeelzoBGnFovv/wRT7HHPa0QwdyawqKAE+FzYPr++Ig7sVElGrRpmu9Pwvh5kLrkU8Qw+kWOydvNJkM06wXivf064ArJVsxMilIlE9kw58SVgTRiBmXiyANMvkLVDsN4n root@gitlab
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1652257705015.png" alt="" loading="lazy"></figure>
+<pre><code class="language-shell">[root@gitlab ~]# cd project/
+[root@gitlab project]# git remote remove origin
+[root@gitlab project]# git remote add origin git@10.0.0.53:oldboy/dzp.git
+[root@gitlab project]# git clone git@10.0.0.53:oldboy/dzp.git
+Cloning into 'dzp'...
+The authenticity of host '10.0.0.53 (10.0.0.53)' can't be established.
+ECDSA key fingerprint is SHA256:YZtWFZbGSrtWSP3i8YpXxGG88jx3jsoPVRtY5sjDYrg.
+ECDSA key fingerprint is MD5:53:06:38:bb:ca:e0:37:97:f6:25:d9:51:89:39:b8:2b.
+Are you sure you want to continue connecting (yes/no)? yes
+Warning: Permanently added '10.0.0.53' (ECDSA) to the list of known hosts.
+remote: Enumerating objects: 40, done.
+remote: Counting objects: 100% (40/40), done.
+remote: Compressing objects: 100% (35/35), done.
+remote: Total 40 (delta 7), reused 0 (delta 0)
+Receiving objects: 100% (40/40), 163.70 KiB | 14.88 MiB/s, done.
+Resolving deltas: 100% (7/7), done.
+</code></pre>
+<pre><code class="language-shell">[root@gitlab project]# cd dzp/
+[root@gitlab dzp]# ls
+html2canvas.min.js  README.md  幸运大转盘  水果机
+[root@gitlab dzp]# mv 幸运大转盘/* .
+[root@gitlab dzp]# ls
+css  html2canvas.min.js  images  index.html  js  README.md  幸运大转盘  水果机
+[root@gitlab dzp]# rm -rf 幸运大转盘/
+[root@gitlab dzp]# ls
+css  html2canvas.min.js  images  index.html  js  README.md  水果机
+[root@gitlab dzp]# git add .
+[root@gitlab dzp]# git commit -m &quot;modify 幸运大转盘&quot;
+[master 8c42135] modify 幸运大转盘
+ 8 files changed, 0 insertions(+), 0 deletions(-)
+ rename &quot;\345\271\270\350\277\220\345\244\247\350\275\254\347\233\230/css/style.css&quot; =&gt; css/style.css (100%)
+ rename &quot;\345\271\270\350\277\220\345\244\247\350\275\254\347\233\230/images/1.png&quot; =&gt; images/1.png (100%)
+ rename &quot;\345\271\270\350\277\220\345\244\247\350\275\254\347\233\230/images/2.png&quot; =&gt; images/2.png (100%)
+ rename &quot;\345\271\270\350\277\220\345\244\247\350\275\254\347\233\230/images/turnplate-bg.png&quot; =&gt; images/turnplate-bg.png (100%)
+ rename &quot;\345\271\270\350\277\220\345\244\247\350\275\254\347\233\230/images/turnplate-pointer.png&quot; =&gt; images/turnplate-pointer.png (100%)
+ rename &quot;\345\271\270\350\277\220\345\244\247\350\275\254\347\233\230/index.html&quot; =&gt; index.html (100%)
+ rename &quot;\345\271\270\350\277\220\345\244\247\350\275\254\347\233\230/js/awardRotate.js&quot; =&gt; js/awardRotate.js (100%)
+ rename &quot;\345\271\270\350\277\220\345\244\247\350\275\254\347\233\230/js/jquery-1.8.3.min.js&quot; =&gt; js/jquery-1.8.3.min.js (100%)
+[root@gitlab dzp]# git push -u origin master             
+Enumerating objects: 14, done.
+Counting objects: 100% (14/14), done.
+Compressing objects: 100% (12/12), done.
+Writing objects: 100% (13/13), 48.39 KiB | 48.39 MiB/s, done.
+Total 13 (delta 0), reused 11 (delta 0), pack-reused 0
+To 10.0.0.53:oldboy/dzp.git
+   bac093d..8c42135  master -&gt; master
+Branch 'master' set up to track remote branch 'master' from 'origin'.
+</code></pre>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#%E6%B3%A8%E5%86%8C%E9%99%90%E5%88%B6">注册限制</a></li>
+<li><a href="#%E5%A4%96%E8%A7%82%E9%85%8D%E7%BD%AE">外观配置</a></li>
+<li><a href="#%E5%88%9B%E5%BB%BA%E7%BB%84%E9%A1%B9%E7%9B%AE%E7%94%A8%E6%88%B7">创建组→项目→用户</a>
+<ul>
+<li><a href="#%E5%88%9B%E5%BB%BA%E7%BB%84">创建组</a></li>
+<li><a href="#%E5%88%9B%E5%BB%BA%E7%94%A8%E6%88%B7">创建用户</a></li>
+<li><a href="#%E5%88%9B%E5%BB%BA%E9%A1%B9%E7%9B%AE">创建项目</a></li>
+<li><a href="#%E6%B7%BB%E5%8A%A0gitlab%E7%9A%84%E8%BF%9C%E7%A8%8B%E4%BB%93%E5%BA%93%E8%BF%9B%E8%A1%8C%E4%BB%A3%E7%A0%81%E4%B8%8A%E4%BC%A0">添加gitlab的远程仓库，进行代码上传</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://ajie825.github.io/post/git-ban-ben-geng-xin-yu-gitlab-de-an-zhuang-shi-yong/">
+              <h3 class="post-title">
+                git版本更新与gitlab的安装使用（一）
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

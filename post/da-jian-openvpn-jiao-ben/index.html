@@ -1,0 +1,231 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>搭建openVPN脚本 | Gridea</title>
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1660297788946">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="搭建openVPN脚本 | Gridea - Atom Feed" href="https://ajie825.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+
+    <meta name="description" content="#安装epel源 
+wget http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm 
+rpm -ivh epel-release-latest-7.noa..." />
+    <meta name="keywords" content="脚本" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://ajie825.github.io">
+  <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1660297788946" alt="">
+  </a>
+  <h1 class="site-title">
+    Gridea
+  </h1>
+  <p class="site-description">
+    温故而知新
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              搭建openVPN脚本
+            </h2>
+            <div class="post-info">
+              <span>
+                2022-04-27
+              </span>
+              <span>
+                3 min read
+              </span>
+              
+                <a href="https://ajie825.github.io/tag/y7W7IDYc9l/" class="post-tag">
+                  # 脚本
+                </a>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <pre><code class="language-shell">#安装epel源 
+wget http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm 
+rpm -ivh epel-release-latest-7.noarch.rpm
+</code></pre>
+<pre><code class="language-shell">#!/bin/bash
+echo &quot;   1) 安装/管理/卸载&quot;
+echo &quot;   2) 创建用户&quot;
+echo &quot;   3) 查看用户&quot;
+echo &quot;   4) 删除所有用户&quot;
+echo &quot;   5) 退出&quot;
+read -p &quot;请选择：&quot; choose
+case $choose in
+    1|&quot;&quot;)
+        echo &quot;   1) 安装步骤一&quot;
+        echo &quot;   2) 安装步骤二&quot;
+        echo &quot;   3) 管理/卸载&quot;
+        read -p &quot;请选择：&quot; choose1
+        case $choose1 in
+            1)
+                rm -rf openvpn-install.sh
+                wget https://raw.githubusercontent.com/OrochW/Openvpn/main/openvpn-install.sh &amp;&amp; bash openvpn-install.sh
+            ;;
+            2)
+                wget -P /etc/openvpn/server https://raw.githubusercontent.com/OrochW/openvpn/main/checkpsw.sh
+                chmod 755 /etc/openvpn/server/checkpsw.sh
+                echo 'test test' &gt;&gt; /etc/openvpn/psw-file
+                echo &quot;script-security 3&quot;  &gt;&gt; /etc/openvpn/server/server.conf
+                echo &quot;auth-user-pass-verify /etc/openvpn/server/checkpsw.sh via-env&quot;  &gt;&gt; /etc/openvpn/server/server.conf
+                echo &quot;username-as-common-name&quot;  &gt;&gt; /etc/openvpn/server/server.conf
+                echo &quot;verify-client-cert none&quot;  &gt;&gt; /etc/openvpn/server/server.conf
+                systemctl restart openvpn-server@server
+                echo &quot;auth-user-pass&quot; &gt;&gt; *.ovpn
+            ;;
+            3 )
+                echo &quot;此项仅适用于卸载/管理&quot;
+                bash openvpn-install.sh
+            ;;
+            *)
+                echo &quot;没有符合&quot;$choose1&quot;的服务被执行!&quot;
+            esac
+    ;;
+    2 )
+        read -p &quot;请输入要创建的用户(小写)：&quot; user
+        rand_passwd=`openssl rand -base64 9`
+        echo &quot;你的用户名密码分别是&quot;
+        echo $user $rand_passwd &gt;&gt; /etc/openvpn/psw-file
+        echo &quot;$user $rand_passwd&quot;
+    ;;
+    3 )
+        cat /etc/openvpn/psw-file
+    ;;
+    4 )
+        echo &quot;test test&quot; &gt; /etc/openvpn/psw-file
+        echo &quot;已删除所有用户仅剩test test&quot;
+    ;;
+    5 )
+        exit 1
+    ;;
+esac
+
+</code></pre>
+
+              </div>
+              <div class="toc-container">
+                
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://ajie825.github.io/post/prometheus-jian-kong-mysqlwu/">
+              <h3 class="post-title">
+                prometheus监控mysql（五）
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

@@ -1,0 +1,410 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>nginx动静分离 | Gridea</title>
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1660297788946">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="nginx动静分离 | Gridea - Atom Feed" href="https://ajie825.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+
+    <meta name="description" content="nginx动静分离基本概述
+动静分离，通过中间件将动态请求和静态请求进行分离。
+为什么要通过中间件将动态请求和静态请求进行分离？减少不必要的请求消耗，同时能减少请求的延时。
+动静分离好处：动静分离后，即使动态服务不可用，但静态资源不会受到影..." />
+    <meta name="keywords" content="nginx" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://ajie825.github.io">
+  <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1660297788946" alt="">
+  </a>
+  <h1 class="site-title">
+    Gridea
+  </h1>
+  <p class="site-description">
+    温故而知新
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              nginx动静分离
+            </h2>
+            <div class="post-info">
+              <span>
+                2022-08-06
+              </span>
+              <span>
+                7 min read
+              </span>
+              
+                <a href="https://ajie825.github.io/tag/JmbVLnHII/" class="post-tag">
+                  # nginx
+                </a>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <h2 id="nginx动静分离基本概述">nginx动静分离基本概述</h2>
+<pre><code class="language-bash">动静分离，通过中间件将动态请求和静态请求进行分离。
+为什么要通过中间件将动态请求和静态请求进行分离？减少不必要的请求消耗，同时能减少请求的延时。
+动静分离好处：动静分离后，即使动态服务不可用，但静态资源不会受到影响。
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1659767066290.jpg" alt="" loading="lazy"></figure>
+<h2 id="nginx动静分离场景实践">nginx动静分离场景实践</h2>
+<pre><code class="language-bash">demo不代表生产操作，负载均衡不需要配置
+</code></pre>
+<figure data-type="image" tabindex="2"><img src="https://ajie825.github.io/post-images/1659767547924.jpg" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">1）环境准备
+系统	      服务	        服务	              地址
+CentOS7    负载均衡	     Nginx Proxy	       10.0.0.5
+CentOS7    静态资源	     Nginx Static	       10.0.0.7
+CentOS7    动态资源	     Tomcat Server	       10.0.0.8
+</code></pre>
+<pre><code class="language-bash">2）在10.0.0.7服务器配置静态资源
+[root@web01 ~]# cd /etc/nginx/conf.d/
+[root@web01 conf.d]# cat ds_oldboy.conf 
+server{
+        listen 80;
+        server_name ds.oldboy.com;
+        root /soft/code;
+        index index.html;
+        location ~* .*\.(png|jpg|gif)$ {
+                root /soft/code/images;
+        }
+}
+#准备目录，以及相关静态图片
+[root@web01 conf.d]# mkdir /soft/code/images -p
+[root@web01 conf.d]# wget -O /soft/code/images/nginx.png http://nginx.org/nginx.png
+[root@web01 conf.d]# nginx -t
+[root@web01 conf.d]# systemctl reload nginx
+</code></pre>
+<pre><code class="language-bash">3）在10.0.0.8服务器配置动态资源
+[root@web02 ~]# yum install -y tomcat
+[root@web02 ~]# mkdir /usr/share/tomcat/webapps/ROOT
+[root@web02 ~]# vim /usr/share/tomcat/webapps/ROOT/java_test.jsp
+&lt;%@ page language=&quot;java&quot; import=&quot;java.util.*&quot; pageEncoding=&quot;utf-8&quot;%&gt;
+&lt;HTML&gt;
+    &lt;HEAD&gt;
+        &lt;TITLE&gt;JSP Test Page&lt;/TITLE&gt;
+    &lt;/HEAD&gt;
+    &lt;BODY&gt;
+      &lt;%
+        Random rand = new Random();
+        out.println(&quot;&lt;h1&gt;Random number:&lt;/h1&gt;&quot;);
+        out.println(rand.nextInt(99)+100);
+      %&gt;
+      %    &lt;/BODY&gt;
+      %    &lt;/HTML&gt;
+#重启tomcat
+[root@web02 ~]# systemctl start tomcat
+[root@web02 ~]# systemctl enable tomcat
+</code></pre>
+<pre><code class="language-bash">4）在负载均衡10.0.0.5配置调度，实现访问jsp和png
+[root@lb01 conf.d]# cat proxy_ds.conf 
+upstream static {
+        server 10.0.0.7:80;
+}
+upstream java {
+        server 10.0.0.8:8080;
+}
+server {
+        listen 80;
+        server_name ds.oldboy.com;
+        location / {
+                root /soft/code;
+                index index.html;
+        }
+        location ~ .*\.(png|jpg|gif)$ {
+                proxy_pass http://static;
+                include proxy_params;
+        }
+        location  ~ .*\.jsp$ {
+                proxy_pass http://java;
+                include proxy_params;
+        }
+}
+[root@lb01 conf.d]# systemctl restart nginx
+</code></pre>
+<pre><code class="language-bash">5）配置域名解析，通过负载测试访问静态资源ds.oldboy.com/java_test.jsp/nginx.png
+10.0.0.5 web.oldboy.com node.oldboy.com php.oldboy.com ds.oldboy.com
+</code></pre>
+<figure data-type="image" tabindex="3"><img src="https://ajie825.github.io/post-images/1659772644058.jpg" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">6）通过负载测试访问动态资源ds.oldboy.com/java_test.jsp
+</code></pre>
+<figure data-type="image" tabindex="4"><img src="https://ajie825.github.io/post-images/1659772891973.jpg" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">7）在负载均衡10.0.0.5上整合动态和静态资源的html文件
+[root@lb01 conf.d]# mkdir /soft/code -p
+[root@lb01 conf.d]# cat /soft/code/index.html
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+        &lt;meta charset=&quot;UTF-8&quot; /&gt;
+        &lt;title&gt;测试ajax和跨域访问&lt;/title&gt;
+        &lt;script src=&quot;http://libs.baidu.com/jquery/2.1.4/jquery.min.js&quot;&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;script type=&quot;text/javascript&quot;&gt;
+$(document).ready(function(){
+        $.ajax({
+        type: &quot;GET&quot;,
+        url: &quot;http://ds.oldboy.com/java_test.jsp&quot;,
+        success: function(data) {
+                $(&quot;#get_data&quot;).html(data)
+        },
+        error: function() {
+                alert(&quot;fail!!,请刷新再试!&quot;);
+        }
+        });
+});
+&lt;/script&gt;
+        &lt;body&gt;
+                &lt;h1&gt;测试动静分离&lt;/h1&gt;
+                &lt;img src=&quot;http://ds.oldboy.com/nginx.png&quot;&gt;
+                &lt;div id=&quot;get_data&quot;&gt;&lt;/div&gt;
+        &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<figure data-type="image" tabindex="5"><img src="https://ajie825.github.io/post-images/1659773642365.jpg" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">8）当停止静态资源的Nginx后，会发现静态内容无法访问，动态内容依旧运行正常
+[root@web01 conf.d]# systemctl stop nginx
+</code></pre>
+<figure data-type="image" tabindex="6"><img src="https://ajie825.github.io/post-images/1659775119611.jpg" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">9） 当停止动态资源的Tomcat后，静态内容依旧能正常访问，动态内容将不会被请求到
+[root@web02 ~]# systemctl stop tomcat
+</code></pre>
+<figure data-type="image" tabindex="7"><img src="https://ajie825.github.io/post-images/1659776845822.jpg" alt="" loading="lazy"></figure>
+<h2 id="nginx资源分离场景实践">nginx资源分离场景实践</h2>
+<h3 id="nginx通过负载均衡实现手机与pc调度至不同的后端节点应用案例">nginx通过负载均衡实现手机与PC调度至不同的后端节点应用案例</h3>
+<pre><code class="language-bash">1）根据iphone、安卓、pc跳转不同的页面环境规划
+系统版本         主机角色	               外网IP          内网IP	      提供端口
+CentOS7.5       负载均衡	                  10.0.0.5      172.16.1.5          80
+CentOS7.5       提供Android页面           	            172.16.1.7         9090
+CentOS7.5       提供Iphone页面	     	                172.16.1.7         9091
+CentOS7.5       提供pc页面		                        172.16.1.7         9092
+</code></pre>
+<pre><code class="language-bash">2）后端web节点的nginx配置
+[root@web01 conf.d]# cat sj.conf 
+server {
+    listen 9090;
+    location / {
+        root /code/android;
+        index index.html;
+    }
+}
+server {
+    listen 9091;
+    location / {
+        root /code/iphone;
+        index index.html;
+    }
+}
+server {
+    listen 9092;
+    location / {
+        root /code/pc;
+        index index.html;
+    }
+}
+</code></pre>
+<pre><code class="language-bash">3）为后端web节点配置对应的网站目录以及代码
+[root@web01 conf.d]# mkdir -p /code/{android,iphone,pc}
+[root@web01 conf.d]# echo &quot;PC&quot; &gt; /code/pc/index.html 
+[root@web01 conf.d]# echo &quot;Iphone&quot; &gt; /code/iphone/index.html
+[root@web01 conf.d]# echo &quot;Android&quot; &gt; /code/android/index.html
+[root@web01 conf.d]# nginx -t
+[root@web01 conf.d]# systemctl reload nginx
+</code></pre>
+<pre><code class="language-bash">4）配置负载均衡服务，根据不同的浏览器调度到不同的资源池
+[root@lb01 conf.d]# cat sj_proxy.conf 
+upstream iphone {
+    server 172.16.1.7:9091;
+}
+upstream android {
+    server 172.16.1.7:9090;
+}
+upstream pc {
+    server 172.16.1.7:9092;
+}
+server {
+    listen 80;
+    server_name sj.oldboy.com;
+    location / {
+    
+    #默认跳转至pc站点
+    proxy_pass http://pc;
+    include proxy_params;
+    
+        #如果客户端是Iphone则跳转到iphone的资源池
+        if ($http_user_agent ~* &quot;Iphone&quot;) {
+            proxy_pass http://iphone;
+        }
+    
+        #如果客户端是Android则跳转到android的资源池
+        if ($http_user_agent ~* &quot;Android&quot;){
+            proxy_pass http://android;
+        }
+    
+        #如果客户端是IE浏览器，则返回403错误。
+        if ($http_user_agent ~* &quot;msie&quot;){
+            return 403;
+        }
+    }
+}
+[root@lb01 conf.d]# nginx -t
+root@lb01 conf.d]# systemctl reload nginx
+</code></pre>
+<pre><code class="language-bash">5）配置域名解析，直接使用浏览器访问，返回默认的结果
+10.0.0.5 web.oldboy.com ds.oldboy.com sj.oldboy.com
+</code></pre>
+<figure data-type="image" tabindex="8"><img src="https://ajie825.github.io/post-images/1659779257835.jpg" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">6）如果通过android设备访问，效果如下
+</code></pre>
+<figure data-type="image" tabindex="9"><img src="https://ajie825.github.io/post-images/1659779447149.jpg" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">7）如果通过Iphone设备访问，效果如下
+</code></pre>
+<figure data-type="image" tabindex="10"><img src="https://ajie825.github.io/post-images/1659779528227.jpg" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">#实际生产中的配置
+server {
+        listen 80;
+        server_name   www.oldboy.com;
+        if ($http_user_agent ~* &quot;Android|Iphone&quot;) {
+                rewrite ^/$ https://sj.oldboy.com redirect;
+        }       
+}
+</code></pre>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#nginx%E5%8A%A8%E9%9D%99%E5%88%86%E7%A6%BB%E5%9F%BA%E6%9C%AC%E6%A6%82%E8%BF%B0">nginx动静分离基本概述</a></li>
+<li><a href="#nginx%E5%8A%A8%E9%9D%99%E5%88%86%E7%A6%BB%E5%9C%BA%E6%99%AF%E5%AE%9E%E8%B7%B5">nginx动静分离场景实践</a></li>
+<li><a href="#nginx%E8%B5%84%E6%BA%90%E5%88%86%E7%A6%BB%E5%9C%BA%E6%99%AF%E5%AE%9E%E8%B7%B5">nginx资源分离场景实践</a>
+<ul>
+<li><a href="#nginx%E9%80%9A%E8%BF%87%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1%E5%AE%9E%E7%8E%B0%E6%89%8B%E6%9C%BA%E4%B8%8Epc%E8%B0%83%E5%BA%A6%E8%87%B3%E4%B8%8D%E5%90%8C%E7%9A%84%E5%90%8E%E7%AB%AF%E8%8A%82%E7%82%B9%E5%BA%94%E7%94%A8%E6%A1%88%E4%BE%8B">nginx通过负载均衡实现手机与PC调度至不同的后端节点应用案例</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://ajie825.github.io/post/nginx-si-ceng-fu-zai-jun-heng/">
+              <h3 class="post-title">
+                nginx四层负载均衡
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

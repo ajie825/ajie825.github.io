@@ -1,0 +1,1385 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Redis-5.x | Gridea</title>
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1660297788946">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="Redis-5.x | Gridea - Atom Feed" href="https://ajie825.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+
+    <meta name="description" content="关系型与非关系型
+关系型： mysql、oracle
+非关系型： redis、mongo、ES
+
+Redis重要特性 AK47
+1）速度快
+C语言编写的、代码优雅、单线程架构
+2）支持多种数据结构
+字符串、哈希、列表、集合、有序集合、地理位..." />
+    <meta name="keywords" content="redis" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://ajie825.github.io">
+  <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1660297788946" alt="">
+  </a>
+  <h1 class="site-title">
+    Gridea
+  </h1>
+  <p class="site-description">
+    温故而知新
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              Redis-5.x
+            </h2>
+            <div class="post-info">
+              <span>
+                2022-06-22
+              </span>
+              <span>
+                43 min read
+              </span>
+              
+                <a href="https://ajie825.github.io/tag/emZ-7ptKoM/" class="post-tag">
+                  # redis
+                </a>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <h3 id="关系型与非关系型">关系型与非关系型</h3>
+<pre><code class="language-shell">关系型： mysql、oracle
+非关系型： redis、mongo、ES
+</code></pre>
+<h3 id="redis重要特性-ak47">Redis重要特性 AK47</h3>
+<pre><code class="language-shell">1）速度快
+C语言编写的、代码优雅、单线程架构
+2）支持多种数据结构
+字符串、哈希、列表、集合、有序集合、地理位置
+3）丰富的功能
+天然计数器、键过期功能、消息队列
+4）支持多种客户端语言
+php、java、python
+5）数据持久化
+所有的数据都运行在内存中
+支持2种格式持久化数据 RDB&amp;ADF
+6）自带多种高可用架构
+主从
+哨兵
+集群
+</code></pre>
+<h3 id="redis应用场景">redis应用场景</h3>
+<pre><code class="language-shell">1）缓存---键过期时间
+把session会话存在redis，过期删除
+缓存用户信息，缓存MySQL部分数据，用户先访问redis，redis没有再访问MySQL，然后回写给redis
+商城优惠卷过期时间
+2）排行榜---列表&amp;有序集合
+热度/点击数排行榜
+直播间礼物积分排行
+3）计数器---天然支持计数器
+帖子浏览数
+视频播放数
+评论数
+点赞/踩
+4）社交网络---集合
+粉丝
+共同好友
+兴趣爱好
+标签
+5）消息队列---发布订阅
+配置ELK缓存收集来的日志
+</code></pre>
+<h3 id="redis安装部署">Redis安装部署</h3>
+<p>1、redis官网</p>
+<pre><code class="language-shell">https://redis.io/
+</code></pre>
+<p>2、版本选择</p>
+<pre><code class="language-shell">2.x     very old
+3.x     redis-cluster 
+4.x     混合持久化
+5.x     新增加了流处理类型 最新稳定版 
+</code></pre>
+<p>3、目录规划</p>
+<pre><code class="language-shell">1）/data/soft   下载目录
+2）/opt/redis_6379/{conf,logs,pid}   安装目录、配置目录、日志目录、pid目录
+3）/data/redis_6379/   数据目录
+</code></pre>
+<p>4、安装命令</p>
+<pre><code class="language-shell">mkdir /data/soft -p
+cd /data/soft 
+wget http://download.redis.io/releases/redis-5.0.7.tar.gz
+tar xf redis-5.0.7.tar.gz -C /opt/
+ln -s /opt/redis-5.0.7 /opt/redis
+cd /opt/redis
+make 
+make install 
+</code></pre>
+<p>5、配置文件</p>
+<pre><code class="language-shell">mkdir -p /opt/redis_6379/{conf,pid,logs}
+mkdir -p /data/redis_6379
+cat &gt;/opt/redis_6379/conf/redis_6379.conf&lt;&lt; EOF
+#守护进程运行
+daemonize yes 
+#绑定IP监听地址
+bind 127.0.0.1 10.0.0.51
+port 6379
+pidfile /opt/redis_6379/pid/redis_6379.pid
+logfile /opt/redis_6379/logs/redis_6379.log
+EOF
+</code></pre>
+<p>6、启动命令</p>
+<pre><code class="language-shell">redis-server /opt/redis_6379/conf/redis_6379.conf
+</code></pre>
+<p>7、检查</p>
+<pre><code class="language-shell">ps -ef|grep redis
+netstat -lntup|grep 6379
+</code></pre>
+<p>8、连接redis终端</p>
+<pre><code class="language-shell">redis-cli
+127.0.0.1:6379&gt; set k1 v1
+OK
+127.0.0.1:6379&gt; get k1
+&quot;v1&quot;
+127.0.0.1:6379&gt; 
+</code></pre>
+<p>9、关闭命令</p>
+<pre><code class="language-shell">kill 
+pkill 
+redis-cli
+&gt;SHUTDOWN
+redis-cli shutdown
+</code></pre>
+<p>10、system启动配置</p>
+<pre><code class="language-shell">groupadd -g 1000 redis
+useradd -u 1000 -g 1000 -M -s /sbin/nologin
+chown -R redis:redis /data/redis*
+chown -R redis:redis /opt/redis*
+cat &gt;/usr/lib/systemd/system/redis.service&lt;&lt;EOF
+[Unit]
+Description=Redis persistent key-value database
+After=network.target
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/redis-server /opt/redis_6379/conf/redis_6379.conf --supervised systemd
+ExecStop=/usr/local/bin/redis-cli -h $(ifconfig ens33|awk 'NR==2{print $2}') -p 6379 shutdown
+Type=notify
+User=redis
+Group=redis
+RuntimeDirectory=redis
+RuntimeDirectoryMode=0755
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl daemon-reload 
+systemctl start redis
+</code></pre>
+<h3 id="redis全局命令">Redis全局命令</h3>
+<p>全局命令是指对所有数据类型都通用的命令</p>
+<p>1、redis数据格式</p>
+<pre><code class="language-shell">key:value
+键:值
+</code></pre>
+<p>2、写入测试key</p>
+<pre><code class="language-shell">set k1 v1
+set k2 v2 
+set k3 v3
+</code></pre>
+<p>3、查看有多少个key</p>
+<pre><code class="language-shell">DBSIZE
+</code></pre>
+<p>4、查看某个key是否存在</p>
+<pre><code class="language-shell">EXISTS k1
+(integer) 1
+状态码：
+0 表示这个key不存在
+1 表示这个key存在
+N 表示存在N个key
+</code></pre>
+<p>5、删除key</p>
+<pre><code class="language-shell">DEL k1
+DEL k1 k2
+(integer) 1
+状态码：
+0 表示这个key不存在
+1 表示这个key存在，并且删除成功了
+N 表示N个key存在，并且删除成功了N个key
+</code></pre>
+<p>6、键过期</p>
+<pre><code class="language-shell">1）设置过期时间
+EXPIRE k1 10
+(integer) 1
+状态码：
+0 这个key不存在
+1 这个key存在，并且设置过期时间成功
+
+2）查看keys是否过期
+TTL k1
+状态码：
+-1 这个key存在，并且没有设定存活周期，永不过期
+-2 这个key不存在
+N  这个key存在，并且N秒后过期
+
+3）取消过期时间
+PERSIST k1
+结论：
+过期后的key会被直接删除
+</code></pre>
+<h3 id="字符串操作">字符串操作</h3>
+<pre><code class="language-shell">1）设置一个key
+set k1 v1
+
+2）查看一个key
+get k1
+
+3）设置多个key
+MSET k1 v1 k2 v2 k3 v3 k4 v4
+
+4）查看多个key
+MGET k1 k2 k3 k4
+
+5）天然计数器
+加1：
+SET k1 1
+INCR k1
+GET k1
+加N：
+INCRBY k1 100
+GET k1
+
+减1：
+INCRBY k1 -1
+减N:
+INCRBY k1 -100
+</code></pre>
+<h3 id="列表操作">列表操作</h3>
+<pre><code class="language-shell">1）插入列表
+LPUSH：从列表左侧插入数据
+RPUSH：从列表右侧插入数据
+127.0.0.1:6379&gt; LPUSH list1 A
+(integer) 1
+127.0.0.1:6379&gt; LPUSH list1 B
+(integer) 2
+127.0.0.1:6379&gt; LPUSH list1 C
+(integer) 3
+127.0.0.1:6379&gt; RPUSH list1 D
+(integer) 4
+
+2）查看列表长度
+127.0.0.1:6379&gt; LLEN list1
+(integer) 4
+
+3）查看列表内容
+127.0.0.1:6379&gt; LRANGE list1 0 -1
+1) &quot;C&quot;
+2) &quot;B&quot;
+3) &quot;A&quot;
+4) &quot;D&quot;
+
+4）删除列表元素
+LPOP：从列表左侧删除
+RPOP：从列表右侧删除
+127.0.0.1:6379&gt; LPOP list1
+&quot;C&quot;
+127.0.0.1:6379&gt; RPOP list1
+&quot;D&quot;
+127.0.0.1:6379&gt; LRANGE list1 0 -1
+1) &quot;B&quot;
+2) &quot;A&quot;
+
+5）删除整个列表
+DEL list1
+(integer) 1
+</code></pre>
+<h3 id="hash操作">hash操作</h3>
+<pre><code class="language-shell">1）mysql数据如何缓存到redis
+mysql存储格式：
+user
+id name   job  age
+1  bobo   IT   28
+2  json   py   25
+3  hao    bug  26
+hash类型存储格式：
+key     field  value field  value field  value     
+user:1   name  bobo   job    IT     age  28
+user:2   name  json   job    py     age  25
+user:3   name  hao    job    bug    age  26
+
+2）创建一个hash数据
+HMSET user:1 name bobo job IT age 28
+HMSET user:2 name json job py age 29
+HMSET user:3 name hao job bug age 19 
+
+3）查看hash里指定的值
+mysql：select name from user where id =1;
+HMGET user:1 name  
+HMGET user:1 name job age
+
+4）查看hash里的所有值
+mysql：select * from user where id =1;
+HGETALL user:1
+</code></pre>
+<h3 id="集合操作-set">集合操作---set</h3>
+<pre><code class="language-shell">1）创建集合
+SADD set1 1 2 3
+SADD set2 1 3 5 7
+
+2）查看集合成员
+SMEMBERS set1
+SMEMBERS set2
+
+3）查看集合的交集
+127.0.0.1:6379&gt; SINTER set1 set2
+1) &quot;1&quot;
+2) &quot;3&quot;
+
+4）查看集合的并集
+127.0.0.1:6379&gt; SUNION set1 set2
+1) &quot;1&quot;
+2) &quot;2&quot;
+3) &quot;3&quot;
+4) &quot;5&quot;
+5) &quot;7&quot;
+
+5）查看集合的差集，以前面一个集合为基准对比后面的
+127.0.0.1:6379&gt; SDIFF set1 set2
+1) &quot;2&quot;
+127.0.0.1:6379&gt; SDIFF set2 set1
+1) &quot;5&quot;
+2) &quot;7&quot;
+
+6）删除一个成员
+127.0.0.1:6379&gt; SREM set1 1
+(integer) 1
+注意：
+集合不允许出现重复的值，自动去重
+</code></pre>
+<h3 id="有序集合操作">有序集合操作</h3>
+<pre><code class="language-shell">1）添加成员
+ZADD SZ3 100 json
+ZADD SZ3 90 bobo
+ZADD SZ3 99 xiaocancan
+ZADD SZ3 98 bughao
+
+2）计算成员个数
+ZCARD SZ3
+
+3）计算某个成员分数
+ZSCORE SZ3 json
+
+4）按照降序查看成员名次
+ZRANK SZ3 json
+ZRANK SZ3 bobo
+
+5）按照升序查看成员名次
+ZREVRANK SZ3 json
+ZREVRANK SZ3 bobo
+
+6）删除成员
+ZREM SZ3 json
+
+7）增加成员分数
+ZINCRBY SZ3 2 xiaocancan
+ZSCORE SZ3 xiaocancan
+
+8）返回指定排名范围的成员
+ZRANGE SZ3 0 3 
+ZRANGE SZ3 0 3 WITHSCORES
+
+9）返回指定分数范围的成员
+ZRANGEBYSCORE SZ3 95 100
+ZRANGEBYSCORE SZ3 95 100  WITHSCORES
+
+10）返回指定分数范围的成员的个数
+ZCOUNT SZ3 90 110
+</code></pre>
+<h3 id="redis持久化">Redis持久化</h3>
+<p><img src="https://ajie825.github.io/post-images/1655972624435.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1655972635907.webp" alt="" loading="lazy"></p>
+<p>1、RDB和AOF介绍</p>
+<pre><code class="language-shell">RDB：类似于快照的形式，将当前内存里的状态持久化到硬盘里
+优点：压缩格式/恢复速度快
+缺点：可能会丢失数据
+
+AOF：类似于mysql的binlog，可以设置为每秒/每次操作以追加的形式持久化
+优点：安全，最多损失1秒的数据，可读
+缺点：文件比较大，恢复速度慢
+</code></pre>
+<p>2、配置RDB（默认是开启的）</p>
+<pre><code class="language-shell">#900秒(15分钟)后有1次更新
+save 900 1
+#300秒(5分钟)后有10次更新
+save 300 10
+#60秒(1分钟)后有10000次更新
+save 60 10000
+dbfilename redis.rdb
+dir /data/redis_6379/
+</code></pre>
+<p>3、RDB结论</p>
+<pre><code class="language-shell">1）没有配置save参数时，shutdown不会持久化保存，可以手动执行bgsave命令触发持久化
+2）在配置save参数后，执行shutdown命令或者pkill、kill、killall都会自动触发bgsave命令
+3）恢复的时候，rdb文件名要和配置文件里写的一样
+</code></pre>
+<p>4、AOF配置（默认没有开启）</p>
+<pre><code class="language-shell">appendonly yes
+appendfilename &quot;redis.aof&quot;
+appendfsync everysec
+</code></pre>
+<p>5、AOF重写机制</p>
+<pre><code class="language-shell">执行的命令      aof记录    redis的数据       
+set k1  v1     set k1       k1                 
+set k2  v2     set k2      k1 k2          
+set k3  v3     set k3     k1 k2 k3       
+del k1         del k1      k2 k3
+del k2         del k2        k3 
+实际有意义的只有一条记录：
+set k3
+</code></pre>
+<p>6、aof和rdb实验</p>
+<pre><code class="language-shell">1）实验背景：如果aof和rdb文件同时存在，redis重启会如何读取？
+2）实验步骤：
+插入一条数据
+set k1 v1
+set k2 v2 
+bgsave 
+RDB和AOF都有k1、k2
+mv redis.rdb /opt/  
+    
+flushall---&gt;删除数据库中的所有key，AOF中的数据k1、k2也会清除
+set k3 v3
+set k4 v4
+AOF中有k3、k4，RDB中没有数据
+mv redis.aof /opt/
+  
+pkill redis
+rm -rf /data/redis_6379/*
+mv /opt/redis.rdb .
+mv /opt/redis.aof .
+  
+systemctl start redis
+redis-cli 
+keys * 
+结论：当RDB和AOF同时存在时，重启redis会优先读取AOF的内容
+</code></pre>
+<p>7、如果选择时rdb还是aof</p>
+<pre><code class="language-shell">https://redis.io/topics/persistence
+1）开启混合模式
+2）开启aof
+3）不开启rdb
+4）rdb采用定时任务的方式定时备份
+</code></pre>
+<h3 id="redis用户认证">Redis用户认证</h3>
+<pre><code class="language-shell">1）密码配置写入配置文件
+requirepass 123456
+
+2）使用密码登录
+第一种方法：
+[root@redis ~]# redis-cli
+127.0.0.1:6379&gt; KEYS *
+(error) NOAUTH Authentication required. ---&gt; 如果不进行授权验证，无法进行任何操作
+127.0.0.1:6379&gt; AUTH 123456
+OK
+127.0.0.1:6379&gt; KEYS *
+1) &quot;k4&quot;
+2) &quot;k3&quot;
+[root@redis ~]# redis-cli -a 123456
+127.0.0.1:6379&gt; KEYS *
+1) &quot;k4&quot;
+2) &quot;k3&quot;
+
+3）为什么redis密码认证这么简单？
+redis一般都部署在内网环境，默认是比较安全的环境
+有些同学担心密码写在配置文件里，开发不允许登录到Linux服务器，但是可以连接到redis，设个密码安全些
+</code></pre>
+<h3 id="redis主从复制">Redis主从复制</h3>
+<p>1、主从复制介绍</p>
+<pre><code class="language-bash">在分布式系统中，为了解决单点问题，通常会把数据复制多个副本到其他机器，满足故障恢复和负载均衡等要求
+redis也是如此，提供了复制功能
+复制功能是高可用redis的基础，后面的哨兵和集群都是在复制的基础上实现高可用的
+</code></pre>
+<p>2、快速部署第二台服务器</p>
+<pre><code class="language-shell">rsync -avz 10.0.0.51:/opt/* /opt/
+mkdir /data/redis_6379/ -p
+cd /opt/redis
+make install
+sed -i 's#51#52#g' /opt/redis_6379/conf/redis_6379.conf
+redis-server /opt/redis_6379/conf/redis_6379.conf
+</code></pre>
+<p>3、db01插入测试命令</p>
+<pre><code class="language-shell">for i in {1..1000};do redis-cli -h 10.0.0.51 -a 123456 set ${i} ${i};done
+</code></pre>
+<p>4、配置主从复制</p>
+<pre><code class="language-shell">masterauth 123456 #主服务器有密码需开启此项配置
+方法一：临时生效
+redis-cli -h 10.0.0.52 slaveof 10.0.0.51 6379 
+方法二：写进配置文件
+daemonize yes
+bind 127.0.0.1 10.0.0.52
+port 6379
+pidfile /opt/redis_6379/pid/redis_6379.pid
+logfile /opt/redis_6379/logs/redis_6379.log
+#900秒(15分钟)后有1次更新
+save 900 1
+#300秒(5分钟)后有10次更新
+save 300 10
+#60秒(15分钟)后有10000次更新
+save 60 10000
+dbfilename redis.rdb
+dir /data/redis_6379/
+appendonly yes
+appendfilename &quot;redis.aof&quot;
+appendfsync everysec
+requirepass 123456
+masterauth 123456
+slaveof 10.0.0.51 6379
+</code></pre>
+<p>5、主从复制流程</p>
+<pre><code class="language-shell">1）从节点发送同步到主节点
+2）主节点接收到从节点的请求之后，做了如下操作：
+---立即执行bgsave将当前内存里的数据持久化到磁盘上
+---持久化完成后，将rdb文件发送给从节点
+3）从节点接收到rdb文件之后，做了如下操作
+---清空自己的数据
+---载入从主节点接收的rdb文件到自己的内存中
+4）后面的操作就是和主节点实时同步了
+</code></pre>
+<p>6、取消复制</p>
+<pre><code class="language-shell">SLAVEOF no one
+从节点断开复制后不会抛弃原有数据，只是无法再获取主节点上的数据变化
+</code></pre>
+<p>7、主从复制注意</p>
+<pre><code class="language-shell">1）从节点只读不可写
+2）从节点不会自动故障转移，它会一直同步主节点
+127.0.0.1:6379&gt; set k1 v1
+(error) READONLY You can't write against a read only replica.
+3）主从复制故障转移需要人工介入
+---修改代码指向redis的IP地址
+---从节点需要执行SLAVEOF no one
+4）从节点会清空自己原有的数据，如果同步的对象写错了，就会导致数据丢失
+5）从库和主库后续的同步依靠的是redis的SYNC协议，而不是RDB文件，RDB文件只是第一次建立同步时使用
+6）从库可以正常地持久化文件
+</code></pre>
+<p>8、安全的操作</p>
+<pre><code class="language-shell">无论是同步，无论是主节点还是从节点，请先备份一下数据
+</code></pre>
+<h3 id="redis哨兵">Redis哨兵</h3>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1656053373866.webp" alt="" loading="lazy"></figure>
+<p>1、哨兵（sentinel）介绍</p>
+<pre><code class="language-shell">redis的主从模式下，主节点一旦发生故障不能提供服务，需要人工干预，将从节点晋升为主节点，同时还需要修改客户端配置，对于很多应用场景这种方式无法接受
+sentinel（哨兵）架构解决了redis主从人工干预的问题
+redis sentinel是redis的高可用实现方案，实际生产环境中，对提高整个系统的可用性非常有帮助的
+</code></pre>
+<p>2、哨兵主要功能</p>
+<pre><code class="language-shell">redis sentinel是一个分布式系统，redis sentinel为redis提供高可用性。可以在没有人为干预的情况下阻止某种类型的故障
+redis的sentinel系统用于管理多个redis服务器（instance），该系统执行以下三个任务：
+1）监控（monitoring）：
+sentinel会不断地定期检查你的主服务器和从服务器是否运作正常
+2）提醒（notification）：
+当被监控到某个redis服务器出现问题时，sentinel可以通过API向管理员或者其他应用程序发送通知
+3）自动故障迁移（automatic failover）：
+当主服务器不能正常工作时，sentinel会开始自动故障迁移操作，它会将一个从服务器升级为新的主服务器，并让其他从服务器改为复制新的主服务器，当客户端试图连接失效的主服务器时，集群也会向客户端返回新主服务器的地址，使得集群可以使用新主服务器代替失效服务器
+</code></pre>
+<p>3、目录和端口规划</p>
+<pre><code class="language-shell">角色        IP        端口
+master  10.0.0.51     6379
+Sentinel-01           26379
+slave   10.0.0.52     6379
+Sentinel-02           26379
+slave   10.0.0.53     6379
+Sentinel-03           26379
+</code></pre>
+<p>4、部署3台redis单节点</p>
+<p>db01操作：</p>
+<pre><code class="language-shell">pkill redis
+cat &gt;/opt/redis_6379/conf/redis_6379.conf &lt;&lt;EOF   
+daemonize yes
+bind 127.0.0.1 10.0.0.51
+port 6379
+pidfile &quot;/opt/redis_6379/pid/redis_6379.pid&quot;
+logfile &quot;/opt/redis_6379/logs/redis_6379.log&quot;
+dbfilename &quot;redis.rdb&quot;
+dir &quot;/data/redis_6379&quot;
+appendonly yes
+appendfilename &quot;redis.aof&quot;
+appendfsync everysec
+EOF
+systemctl start redis
+redis-cli
+</code></pre>
+<p>db02和db03的操作：</p>
+<pre><code class="language-shell">pkill redis 
+rm -rf /opt/redis*
+rsync -avz 10.0.0.51:/usr/local/bin/redis-*  /usr/local/bin
+rsync -avz 10.0.0.51:/usr/lib/systemd/system/redis.service /usr/lib/systemd/system/
+mkdir /opt/redis_6379/{conf,logs,pid} -p
+mkdir /data/redis_6379 -p
+cat &gt;/opt/redis_6379/conf/redis_6379.conf &lt;&lt;EOF   
+daemonize yes
+bind 127.0.0.1 $(ifconfig ens33|awk 'NR==2{print $2}')
+port 6379
+pidfile &quot;/opt/redis_6379/pid/redis_6379.pid&quot;
+logfile &quot;/opt/redis_6379/logs/redis_6379.log&quot;
+dbfilename &quot;redis.rdb&quot;
+dir &quot;/data/redis_6379&quot;
+appendonly yes
+appendfilename &quot;redis.aof&quot;
+appendfsync everysec
+EOF
+useradd redis -M -s /sbin/nologin
+chown -R redis:redis /opt/redis*
+chown -R redis:redis /data/redis*
+systemctl daemon-reload 
+systemctl start redis 
+redis-cli
+</code></pre>
+<p>5、配置主从复制</p>
+<pre><code class="language-bash">redis-cli -h 10.0.0.52 slaveof 10.0.0.51 6379
+redis-cli -h 10.0.0.53 slaveof 10.0.0.51 6379
+redis-cli -h 10.0.0.51 info Replication
+</code></pre>
+<p>6、部署哨兵节点---3台机器都操作</p>
+<pre><code class="language-bash">mkdir -p /data/redis_26379
+mkdir -p /opt/redis_26379/{conf,pid,logs}
+cat &gt;/opt/redis_26379/conf/redis_26379.conf &lt;&lt; EOF
+bind $(ifconfig ens33|awk 'NR==2{print $2}')
+port 26379
+daemonize yes
+logfile /opt/redis_26379/logs/redis_26379.log
+dir /data/redis_26379
+sentinel monitor myredis 10.0.0.51 6379 2
+sentinel down-after-milliseconds myredis 3000
+sentinel parallel-syncs myredis 1
+sentinel failover-timeout myredis 18000
+EOF
+chown -R redis:redis  /data/redis*
+chown -R redis:redis  /opt/redis*
+</code></pre>
+<p>参数解释：</p>
+<pre><code class="language-bash">sentinel monitor myredis 10.0.0.51 6379 2
+#myredis 主节点别名 主节点 ip和端口 判断主节点失败，两个 sentinel 节点同意
+sentinel down-after-milliseconds myredis 3000
+#选项指定了 sentinel 认为服务器已经断线所需的毫秒数
+sentinel parallel-syncs myredis 1
+#向新的主节点发起复制操作的从节点格式，1表示轮询发起复制
+sentinel failover-timeout myredis 18000
+#故障转移超时时间
+</code></pre>
+<p>7、编写哨兵system---3台机器都操作</p>
+<pre><code class="language-bash">cat &gt;/usr/lib/systemd/system/redis-sentinel.service&lt;&lt;EOF
+[Unit]
+Description=Redis persistent key-value database
+After=network.target
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/redis-sentinel /opt/redis_26379/conf/redis_26379.conf --supervised systemd
+ExecStop=/usr/local/bin/redis-cli -h $(ifconfig ens33|awk 'NR==2{print $2}') -p 26379 shutdown
+Type=notify
+User=redis
+Group=redis
+RuntimeDirectory=redis
+RuntimeDirectoryMode=0755
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl daemon-reload 
+</code></pre>
+<p>8、启动哨兵并检查</p>
+<pre><code class="language-bash">systemctl start redis-sentinel 
+</code></pre>
+<p>9、验证主节点</p>
+<pre><code class="language-bash">redis-cli -h 10.0.0.51 -p 26379 Sentinel get-master-addr-by-name myredis
+redis-cli -h 10.0.0.52 -p 26379 Sentinel get-master-addr-by-name myredis
+redis-cli -h 10.0.0.53 -p 26379 Sentinel get-master-addr-by-name myredis
+</code></pre>
+<p>10、配置文件的变化</p>
+<p>当所有节点启动后，配置文件的内容发生了变化，体现在三个方面：</p>
+<pre><code class="language-shell">1）sentinel节点自动发现了从节点，其余sentinel节点
+2）去掉了默认配置，例如parallel-syncs参数
+3）添加了配置纪元相关参数
+</code></pre>
+<p>查看配置文件命令</p>
+<pre><code class="language-shell">[root@db01 ~]# tail -7 /opt/redis_26379/conf/redis_26379.conf    
+sentinel config-epoch myredis 0
+sentinel leader-epoch myredis 0
+sentinel known-replica myredis 10.0.0.52 6379
+sentinel known-replica myredis 10.0.0.53 6379
+sentinel known-sentinel myredis 10.0.0.51 26379 d851868581df6654cf5b56c8c9dfbe47d363a08c
+sentinel known-sentinel myredis 10.0.0.52 26379 2be38f752429aa91580f10e04962947bbeea4ebb
+sentinel current-epoch 0
+</code></pre>
+<p>11、哨兵常用操作API</p>
+<pre><code class="language-shell">sentinel节点是一个特殊的Redis节点，他们有自己的API
+[root@db01 ~]# redis-cli -h 10.0.0.51 -p 26379 
+10.0.0.51:26379&gt; INFO SENTINEL
+# Sentinel
+sentinel_masters:1
+sentinel_tilt:0
+sentinel_running_scripts:0
+sentinel_scripts_queue_length:0
+sentinel_simulate_failure_flags:0
+master0:name=myredis,status=ok,address=10.0.0.51:6379,slaves=2,sentinels=3
+</code></pre>
+<p>10、模拟故障转移</p>
+<pre><code class="language-bash">1）关闭主节点服务上的所有redis进程
+2）观察其他2个节点会不会发生选举
+redis-cli -h 10.0.0.53 -p 26379 Sentinel get-master-addr-by-name myredis
+3）查看配置文件里会不会自动更新
+4）查看新的主节点能不能写入
+5）查看从节点能否正常同步
+</code></pre>
+<p>11、模拟故障修复上线</p>
+<pre><code class="language-bash">1）启动故障节点
+2）启动哨兵
+3）查看复制及哨兵都已经恢复正常
+</code></pre>
+<p>12、补充</p>
+<pre><code class="language-shell">redis sentinel存在多个从节点时，如果想将指定的从节点晋升为主节点，可以将其他从节点的slavepriority配置为0,但是需要注意failover后,将slave-priority调回原值
+1）查询命令:CONFIG GET slave-priority
+2）设置命令:CONFIG SET slave-priority 0
+3）主动切换:sentinel failover mymaster
+操作过程：
+db02/db03操作
+redis-cli -h db02 -p 6379 CONFIG SET slave-priority 0
+redis-cli -h db03 -p 6379 CONFIG SET slave-priority 0
+db01操作
+redis-cli -h db01 -p 26379 Sentinel failover mymaster
+</code></pre>
+<h3 id="redis集群">Redis集群</h3>
+<figure data-type="image" tabindex="2"><img src="https://ajie825.github.io/post-images/1656124481026.webp" alt="" loading="lazy"></figure>
+<p>1、哨兵模式的不足</p>
+<pre><code class="language-shell">1）资源利用率不高
+2）主库压力大
+3）连接过程繁琐
+</code></pre>
+<p>2、集群重要概念</p>
+<pre><code class="language-bash">1）redis集群，无论有多少个节点，一共只有16384个槽位(0-16383)
+2）所有的槽位都必须分配，哪怕有1个槽位不正常，整个集群都不能使用
+3）每个节点槽的顺序不重要，重要的是数量
+4）hash分片算法足够随机，足够平均
+5）每个槽被分配到的数据概率是相当的
+6）集群的高可用依赖于主从复制
+7）集群拥有自己的配置文件，动态更新，不需要手动修改
+8）集群通讯会使用基础端口号+10000的端口，这个是自动创建的，不需要配置文件配置
+9）集群槽位分配比例允许误差在%2之间
+</code></pre>
+<p>3、目录规划</p>
+<pre><code class="language-bash">主节点：6380   从节点：6381
+# redis安装目录
+/opt/redis_{PORT}/{conf,logs,pid}
+# redis数据目录
+/data/redis_{PORT}/redis_{PORT}.rdb
+</code></pre>
+<p>4、db01的操作</p>
+<pre><code class="language-bash">ssh-keygen
+ssh-copy-id 10.0.0.52
+ssh-copy-id 10.0.0.53
+pkill redis
+mkdir -p /opt/redis_{6380,6381}/{conf,logs,pid}
+mkdir -p /data/redis_{6380,6381}
+cat &gt;/opt/redis_6380/conf/redis_6380.conf&lt;&lt;EOF
+bind 10.0.0.51
+port 6380
+daemonize yes
+pidfile &quot;/opt/redis_6380/pid/redis_6380.pid&quot;
+logfile &quot;/opt/redis_6380/logs/redis_6380.log&quot;
+dbfilename &quot;redis_6380.rdb&quot;
+dir &quot;/data/redis_6380/&quot;
+appendonly yes
+appendfilename &quot;redis.aof&quot;
+appendfsync everysec
+cluster-enabled yes
+cluster-config-file nodes_6380.conf
+cluster-node-timeout 15000
+EOF
+cd /opt/
+cp redis_6380/conf/redis_6380.conf redis_6381/conf/redis_6381.conf
+sed -i 's#6380#6381#g' redis_6381/conf/redis_6381.conf 
+chown -R redis:redis /opt/redis_*
+chown -R redis:redis /data/redis_*
+cat &gt;/usr/lib/systemd/system/redis-master.service&lt;&lt;EOF
+[Unit]
+Description=Redis persistent key-value database
+After=network.target
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/redis-server /opt/redis_6380/conf/redis_6380.conf --supervised systemd
+ExecStop=/usr/local/bin/redis-cli -h $(ifconfig ens33|awk 'NR==2{print $2}') -p 6380 shutdown
+Type=notify
+User=redis
+Group=redis
+RuntimeDirectory=redis
+RuntimeDirectoryMode=0755
+
+[Install]
+WantedBy=multi-user.target
+EOF
+cd /usr/lib/systemd/system/
+cp redis-master.service redis-slave.service
+sed -i 's#6380#6381#g' redis-slave.service
+systemctl daemon-reload 
+systemctl start redis-master
+systemctl start redis-slave
+ps -ef|grep redis
+rsync -avz /opt/redis_638* 10.0.0.52:/opt/
+rsync -avz /opt/redis_638* 10.0.0.53:/opt/
+rsync -avz /usr/lib/systemd/system/redis-*.service 10.0.0.52:/usr/lib/systemd/system/
+rsync -avz /usr/lib/systemd/system/redis-*.service 10.0.0.53:/usr/lib/systemd/system/
+</code></pre>
+<p>5、db02的操作</p>
+<pre><code class="language-bash">pkill redis
+find /opt/redis_638* -type f -name &quot;*.conf&quot;|xargs sed -i &quot;/bind/s#51#52#g&quot;
+cd /usr/lib/systemd/system/
+sed -i 's#51#52#g' redis-*.service 
+mkdir –p /data/redis_{6380,6381}
+chown -R redis:redis /opt/redis_*
+chown -R redis:redis /data/redis_*
+systemctl daemon-reload 
+systemctl start redis-master
+systemctl start redis-slave
+ps -ef|grep redis
+</code></pre>
+<p>6、db03的操作</p>
+<pre><code class="language-bash">pkill redis
+find /opt/redis_638* -type f -name &quot;*.conf&quot;|xargs sed -i &quot;/bind/s#51#53#g&quot;
+cd /usr/lib/systemd/system/
+sed -i 's#51#53#g' redis-*.service 
+mkdir –p /data/redis_{6380,6381}
+chown -R redis:redis /opt/redis_*
+chown -R redis:redis /data/redis_*
+systemctl daemon-reload 
+systemctl start redis-master
+systemctl start redis-slave
+ps -ef|grep redis
+</code></pre>
+<p>7、集群手动发现节点</p>
+<pre><code class="language-bash">redis-cli -h db01 -p 6380 CLUSTER MEET 10.0.0.52 6380
+redis-cli -h db01 -p 6380 CLUSTER MEET 10.0.0.53 6380
+redis-cli -h db01 -p 6380 CLUSTER MEET 10.0.0.51 6381
+redis-cli -h db01 -p 6380 CLUSTER MEET 10.0.0.52 6381
+redis-cli -h db01 -p 6380 CLUSTER MEET 10.0.0.53 6381
+redis-cli -h db01 -p 6380 CLUSTER NODES  
+</code></pre>
+<p>8、集群手动分配槽位</p>
+<pre><code class="language-shell">1）槽位规划
+db01:6380   5461    0-5460
+db02:6380   5461    5461-10921
+db03:6380   5462    10922-16383
+
+2）分配槽位
+redis-cli -h 10.0.0.51 -p 6380 CLUSTER ADDSLOTS {0..5460}
+redis-cli -h 10.0.0.52 -p 6380 CLUSTER ADDSLOTS {5461..10921}
+redis-cli -h 10.0.0.53 -p 6380 CLUSTER ADDSLOTS {10922..16383}
+
+3）查看集群状态
+[root@db01 ~]# redis-cli -h db01 -p 6380 CLUSTER NODES
+428b4eb78eb976be5a3d31577d88271c7e41dbd2 10.0.0.51:6381@16381 master - 0 1656082782000 3 connected
+89c8513699c138ced4f70c8e7245f49dfc29d55c 10.0.0.53:6381@16381 master - 0 1656082785000 5 connected
+855f47c113d9657cbd53a2ec09fa7abad397447c 10.0.0.52:6380@16380 master - 0 1656082782000 1 connected 5461-10921
+fb44a16b4c4fda3b48e075a28d2e4ad9e3d68a69 10.0.0.52:6381@16381 master - 0 1656082782699 0 connected
+d90af9087d020f2a916f9a5f57794a002e369fb7 10.0.0.51:6380@16380 myself,master - 0 1656082784000 4 connected 0-5460
+9d484738438b6f7ecac407e62c9b7b71fc758101 10.0.0.53:6380@16380 master - 0 1656082784788 2 connected 10922-16383
+[root@db01 ~]# redis-cli -h db01 -p 6380 CLUSTER INFO
+cluster_state:ok
+cluster_slots_assigned:16384
+cluster_slots_ok:16384
+cluster_slots_pfail:0
+cluster_slots_fail:0
+cluster_known_nodes:6
+</code></pre>
+<p>9、手动部署复制关系</p>
+<pre><code class="language-bash">1）获取集群节点信息
+redis-cli -h db01 -p 6380 CLUSTER NODES
+
+2）确定复制关系
+redis-cli -h 10.0.0.51 -p 6381 CLUSTER REPLICATE 9d484738438b6f7ecac407e62c9b7b71fc758101（53的6380ID）
+redis-cli -h 10.0.0.52 -p 6381 CLUSTER REPLICATE d90af9087d020f2a916f9a5f57794a002e369fb7（51的6381ID）
+redis-cli -h 10.0.0.53 -p 6381 CLUSTER REPLICATE 855f47c113d9657cbd53a2ec09fa7abad397447c（52的6381ID）
+
+3）检查复制关系
+redis-cli -h db01 -p 6380 CLUSTER NODE
+</code></pre>
+<h3 id="集群插入数据">集群插入数据</h3>
+<p>1、尝试插入一条数据发现报错</p>
+<pre><code class="language-bash">redis-cli -h 10.0.0.51 -p 6380
+10.0.0.51:6380&gt; set k1 v1
+(error) MOVED 12706 10.0.0.53:6380
+</code></pre>
+<p>2、目前的现象</p>
+<pre><code class="language-bash">在db01的6380节点插入数据提示报错
+报错内容提示应该移动到db03的6380
+在db03的6380上执行相同的插入命令可以插入成功
+在db01的6380节点插入数据有时候可以，有时候不行
+使用-c参数后，可以正常插入命令，并且节点切换到了提示的对应节点上
+</code></pre>
+<p>3、问题原因</p>
+<pre><code class="language-bash">因为集群模式有ASK路由规则，加入-c参数后，会自动跳转到目标节点处理
+并且最后由目标节点返回信息
+</code></pre>
+<figure data-type="image" tabindex="3"><img src="https://ajie825.github.io/post-images/1656138733117.webp" alt="" loading="lazy"></figure>
+<h3 id="验证集群是否足够平均">验证集群是否足够平均</h3>
+<pre><code class="language-shell">1）写入测试数据
+for i in {1..10000};do redis-cli -c -h db01 -p 6380 set k_${i} v_${i};echo ${i};done
+
+2）验证足够平均
+DBSIZE
+
+3）验证足够随机
+redis-cli -c -h db03 -p 6380 keys \* &gt; keys_all.txt
+cat keys_all.txt |awk -F &quot;_&quot; '{print $2}'|sort -rn 
+
+4）允许节点的key在2%误差的依据来源
+[root@db01 ~]# redis-cli --cluster rebalance 10.0.0.51 6380
+&gt;&gt;&gt; Performing Cluster Check (using node 10.0.0.51:6380)
+[OK] All nodes agree about slots configuration.
+&gt;&gt;&gt; Check for open slots...
+&gt;&gt;&gt; Check slots coverage...
+[OK] All 16384 slots covered.
+*** No rebalancing needed! All nodes are within the 2.00% threshold.
+
+5）检查集群健康状态
+redis-cli --cluster info 10.0.0.51 6380
+10.0.0.51:6380 (d90af908...) -&gt; 3343 keys | 5461 slots | 1 slaves.
+10.0.0.52:6380 (855f47c1...) -&gt; 3343 keys | 5461 slots | 1 slaves.
+10.0.0.53:6380 (9d484738...) -&gt; 3314 keys | 5462 slots | 1 slaves.
+[OK] 10000 keys in 3 masters.
+0.12 keys per slot on average.
+</code></pre>
+<h3 id="实战-槽位分配错误如何调整">实战---槽位分配错误如何调整</h3>
+<p>1、故障背景</p>
+<pre><code class="language-shell">某日某豪接到任务，需要部署redis集群，结果不小心无脑复制粘贴，把所有的槽都分配给了1个节点，
+还没有发现，然后就交付使用了，过了1天才发现问题
+而此时，已经有不少数据写入了，如何在不丢失数据的情况下解决这个问题？
+</code></pre>
+<p>2、前提</p>
+<pre><code class="language-shell">数据不能丢，最好不中断业务
+</code></pre>
+<p>3、实验现象</p>
+<pre><code class="language-bash">[root@db01 ~]# redis-cli --cluster info 10.0.0.51 6380
+10.0.0.51:6380 (ccaa5dcb...) -&gt; 1000 keys | 16384 slots | 3 slaves.
+10.0.0.53:6380 (a69e46ea...) -&gt; 0 keys | 0 slots | 0 slaves.
+10.0.0.52:6380 (b2719c41...) -&gt; 0 keys | 0 slots | 0 slaves.
+[OK] 1000 keys in 3 masters.
+0.06 keys per slot on average.
+</code></pre>
+<p>4、解决思路</p>
+<pre><code class="language-shell">思路一：备份数据，重做集群，导入数据
+redis-cli -c -h db01 -p 6380
+db01:6380&gt; BGREWRITEAOF
+cp redis.aof redis.aof-1000.bak
+
+重做集群：
+redis-cli -h db01 -p 6380 FLUSHALL
+redis-cli -h db02 -p 6380 FLUSHALL
+redis-cli -h db03 -p 6380 FLUSHALL
+
+redis-cli -h db01 -p 6380 CLUSTER RESET
+redis-cli -h db02 -p 6380 CLUSTER RESET
+redis-cli -h db03 -p 6380 CLUSTER RESET
+
+redis-cli -h db01 -p 6380 CLUSTER MEET 10.0.0.52 6380
+redis-cli -h db01 -p 6380 CLUSTER MEET 10.0.0.53 6380
+redis-cli -h db01 -p 6380 CLUSTER NODES  
+
+redis-cli -h db01 -p 6380 CLUSTER ADDSLOTS {0..5460}
+redis-cli -h db02 -p 6380 CLUSTER ADDSLOTS {5461..10921}
+redis-cli -h db03 -p 6380 CLUSTER ADDSLOTS {10922..16383}
+
+redis-cli --cluster info 10.0.0.51 6380
+
+实验结论：
+重启后所有的数据还是在db01上
+db01重启后数据虽然可以写入，但是访问的时候还是按照正常的hash规则去分配的，所以db01的数据实际上是没用的
+所以这样的方法是不可行的
+
+相关日志：
+16790:M 12 Mar 2020 10:08:08.875 # I have keys for slot 5812, but the slot is assigned to another node. Setting it to importing state
+16790:M 12 Mar 2020 10:08:08.875 # I have keys for slot 5821, but the slot is assigned to another node. Setting it to importing state
+16790:M 12 Mar 2020 10:08:08.875 # I have keys for slot 5842, but the slot is assigned to another node. Setting it to importing state
+</code></pre>
+<pre><code class="language-shell">思路二：获得所有key的名称，导出再导入
+1）重新制作一个测试集群，槽位分布和线上出错的一样
+2）将线上环境里的aof导出来
+3）恢复到测试的集群里
+4）收集所有的key
+redis-cli -c -h db01 -p 6380 keys \* &gt; keys_all.txt
+5）编写脚本遍历所有的key获取值
+cat &gt;get_key.sh&lt;&lt;EOF 
+#!/bin/bash
+for key in $(cat keys_all.txt)
+do
+  value=$(redis-cli -c -h 10.0.0.51 -p 6380 get ${key})
+  echo redis-cli -c -h 10.0.0.51 -p 6380 set ${key} ${value} &gt;&gt; backup_all_key.txt
+done
+EOF
+6）按照正常槽位分配去重新初始化集群
+redis-cli -h db01 -p 6380 FLUSHALL
+redis-cli -h db02 -p 6380 FLUSHALL
+redis-cli -h db03 -p 6380 FLUSHALL
+redis-cli -h db01 -p 6380 CLUSTER RESET
+redis-cli -h db02 -p 6380 CLUSTER RESET
+redis-cli -h db03 -p 6380 CLUSTER RESET
+redis-cli -h db01 -p 6380 CLUSTER MEET 10.0.0.52 6380
+redis-cli -h db01 -p 6380 CLUSTER MEET 10.0.0.53 6380
+redis-cli -h db01 -p 6380 CLUSTER NODES  
+redis-cli -h db01 -p 6380 CLUSTER ADDSLOTS {0..5460}
+redis-cli -h db02 -p 6380 CLUSTER ADDSLOTS {5461..10921}
+redis-cli -h db03 -p 6380 CLUSTER ADDSLOTS {10922..16383}
+redis-cli --cluster info 10.0.0.51 6380
+7）执行导入脚本
+bash backup_all_key.txt
+8）检查是否导入成功
+redis-cli --cluster info 10.0.0.51 6380
+9）测试环境没问题之后再去生产环境操作
+</code></pre>
+<pre><code class="language-shell">思路三：流水线pipeline
+前提条件：
+1）了解aof格式
+2）了解新版本redis默认是开启混合模式的
+3）需要修改为普通的aof格式并重启
+4）恢复时使用-c参数无效，需要在每一个节点都执行
+命令：
+redis-cli -c -h 10.0.0.51 -p 6380 --pipe &lt; redis.aof
+redis-cli -c -h 10.0.0.52 -p 6380 --pipe &lt; redis.aof
+redis-cli -c -h 10.0.0.53 -p 6380 --pipe &lt; redis.aof
+</code></pre>
+<pre><code class="language-bash">思路四：使用redis-cli工具重新分配槽位      *****
+重新分配槽位
+redis-cli --cluster reshard 10.0.0.51:6380
+第一次交互：输入迁出的槽的数量
+How many slots do you want to move (from 1 to 16384)? 5461
+第二次交互：输入接受的ID
+What is the receiving node ID? db02的6380的ID
+第三次交互：输入发送者的ID
+Please enter all the source node IDs.
+  Type 'all' to use all the nodes as source nodes for the hash slots.
+  Type 'done' once you entered all the source nodes IDs.
+Source node #1: db01的6380的ID
+Source node #2: done
+第四次交互：YES!
+重复上面的操作，知道所有的节点槽位都分配正确
+</code></pre>
+<pre><code class="language-shell">思路五：直接使用工具在线导入
+redis-cli --cluster import 10.0.0.51:6380 --cluster-copy --cluster-replace --cluster-from  10.0.0.51:6379 
+</code></pre>
+<h3 id="使用工具自动部署redis集群">使用工具自动部署redis集群</h3>
+<p>1、恢复集群初始化</p>
+<pre><code class="language-bash">redis-cli -h 10.0.0.51 -p 6380 FLUSHALL
+redis-cli -h 10.0.0.52 -p 6380 FLUSHALL
+redis-cli -h 10.0.0.53 -p 6380 FLUSHALL
+#下面三条命令回报：(error) READONLY You can't write against a read only replica.
+redis-cli -h 10.0.0.51 -p 6381 FLUSHALL
+redis-cli -h 10.0.0.52 -p 6381 FLUSHALL
+redis-cli -h 10.0.0.53 -p 6381 FLUSHALL
+redis-cli -h 10.0.0.51 -p 6380 CLUSTER RESET
+redis-cli -h 10.0.0.52 -p 6380 CLUSTER RESET
+redis-cli -h 10.0.0.53 -p 6380 CLUSTER RESET
+redis-cli -h 10.0.0.51 -p 6381 CLUSTER RESET
+redis-cli -h 10.0.0.52 -p 6381 CLUSTER RESET
+redis-cli -h 10.0.0.53 -p 6381 CLUSTER RESET
+redis-cli -h db01 -p 6380 CLUSTER NODES  
+</code></pre>
+<p>2）使用工具初始化</p>
+<pre><code class="language-bash">redis-cli --cluster create 10.0.0.51:6380 10.0.0.52:6380 10.0.0.53:6380 10.0.0.51:6381 10.0.0.52:6381 10.0.0.53:6381 --cluster-replicas 1
+</code></pre>
+<p>3）检查集群</p>
+<pre><code class="language-bash">1）检查集群状态信息
+redis-cli --cluster info 10.0.0.51 6380
+10.0.0.51:6380 (d90af908...) -&gt; 0 keys | 5461 slots | 1 slaves.
+10.0.0.52:6380 (855f47c1...) -&gt; 0 keys | 5462 slots | 1 slaves.
+10.0.0.53:6380 (9d484738...) -&gt; 0 keys | 5461 slots | 1 slaves.
+[OK] 0 keys in 3 masters.
+0.00 keys per slot on average.
+
+2）检查集群节点信息
+redis-cli -h db01 -p 6380 CLUSTER NODES
+855f47c113d9657cbd53a2ec09fa7abad397447c 10.0.0.52:6380@16380 master - 0 1656382682554 1 connected 5461-10922
+428b4eb78eb976be5a3d31577d88271c7e41dbd2 10.0.0.51:6381@16381 slave 9d484738438b6f7ecac407e62c9b7b71fc758101 0 1656382681000 6 connected
+89c8513699c138ced4f70c8e7245f49dfc29d55c 10.0.0.53:6381@16381 slave 855f47c113d9657cbd53a2ec09fa7abad397447c 0 1656382681547 5 connected
+9d484738438b6f7ecac407e62c9b7b71fc758101 10.0.0.53:6380@16380 master - 0 1656382680000 2 connected 10923-16383
+fb44a16b4c4fda3b48e075a28d2e4ad9e3d68a69 10.0.0.52:6381@16381 slave d90af9087d020f2a916f9a5f57794a002e369fb7 0 1656382679531 5 connected
+d90af9087d020f2a916f9a5f57794a002e369fb7 10.0.0.51:6380@16380 myself,master - 0 1656382677000 4 connected 0-5460
+
+3）检查集群复制和槽位信息
+redis-cli --cluster check 10.0.0.51 6380
+10.0.0.51:6380 (d90af908...) -&gt; 0 keys | 5461 slots | 1 slaves.
+10.0.0.52:6380 (855f47c1...) -&gt; 0 keys | 5462 slots | 1 slaves.
+10.0.0.53:6380 (9d484738...) -&gt; 0 keys | 5461 slots | 1 slaves.
+[OK] 0 keys in 3 masters.
+0.00 keys per slot on average.
+&gt;&gt;&gt; Performing Cluster Check (using node 10.0.0.51:6380)
+&gt;&gt;&gt; M: d90af9087d020f2a916f9a5f57794a002e369fb7 10.0.0.51:6380
+&gt;&gt;&gt; slots:[0-5460] (5461 slots) master
+&gt;&gt;&gt; 1 additional replica(s)
+&gt;&gt;&gt; M: 855f47c113d9657cbd53a2ec09fa7abad397447c 10.0.0.52:6380
+&gt;&gt;&gt; slots:[5461-10922] (5462 slots) master
+&gt;&gt;&gt; 1 additional replica(s)
+&gt;&gt;&gt; S: 428b4eb78eb976be5a3d31577d88271c7e41dbd2 10.0.0.51:6381
+&gt;&gt;&gt; slots: (0 slots) slave
+&gt;&gt;&gt; replicates 9d484738438b6f7ecac407e62c9b7b71fc758101
+&gt;&gt;&gt; S: 89c8513699c138ced4f70c8e7245f49dfc29d55c 10.0.0.53:6381
+&gt;&gt;&gt; slots: (0 slots) slave
+&gt;&gt;&gt; replicates 855f47c113d9657cbd53a2ec09fa7abad397447c
+&gt;&gt;&gt; M: 9d484738438b6f7ecac407e62c9b7b71fc758101 10.0.0.53:6380
+&gt;&gt;&gt; slots:[10923-16383] (5461 slots) master
+&gt;&gt;&gt; 1 additional replica(s)
+&gt;&gt;&gt; S: fb44a16b4c4fda3b48e075a28d2e4ad9e3d68a69 10.0.0.52:6381
+&gt;&gt;&gt; slots: (0 slots) slave
+&gt;&gt;&gt; replicates d90af9087d020f2a916f9a5f57794a002e369fb7
+&gt;&gt;&gt; [OK] All nodes agree about slots configuration.
+&gt;&gt;&gt; Check for open slots...
+&gt;&gt;&gt; Check slots coverage...
+&gt;&gt;&gt; [OK] All 16384 slots covered.
+</code></pre>
+<h3 id="工具扩容节点">工具扩容节点</h3>
+<figure data-type="image" tabindex="4"><img src="https://ajie825.github.io/post-images/1656383296213.webp" alt="" loading="lazy"></figure>
+<p>1、来自json的灵魂发问</p>
+<pre><code class="language-bash">1）迁移时候槽的数据怎么办？
+2）需要停库吗？
+3）访问是否受影响？
+4）从库呢？
+</code></pre>
+<p>2、如何验证数据是否受影响？</p>
+<pre><code class="language-bash">迁移的过程中，一个窗口不断的写数据，一个窗口不断的读数据，观察是否会中断
+</code></pre>
+<p>3、创建新节点</p>
+<pre><code class="language-bash">mkdir -p /opt/redis_{6390,6391}/{conf,logs,pid}
+mkdir -p /data/redis_{6390,6391}
+cd /opt/
+cp redis_6380/conf/redis_6380.conf redis_6390/conf/redis_6390.conf
+cp redis_6380/conf/redis_6380.conf redis_6391/conf/redis_6391.conf
+sed -i 's#6380#6390#g' redis_6390/conf/redis_6390.conf
+sed -i 's#6380#6391#g' redis_6391/conf/redis_6391.conf
+redis-server /opt/redis_6390/conf/redis_6390.conf
+redis-server /opt/redis_6391/conf/redis_6391.conf
+ps -ef|grep redis
+redis-cli -c -h db01 -p 6380 cluster meet 10.0.0.51 6390
+redis-cli -c -h db01 -p 6380 cluster meet 10.0.0.51 6391
+redis-cli -c -h db01 -p 6380 cluster nodes
+</code></pre>
+<p>4、使用工具扩容步骤</p>
+<pre><code class="language-bash">重新分配槽位
+第一次交互：每个节点分配多少个槽位
+How many slots do you want to move (from 1 to 16384)? 4096
+
+第二次交互：接受节点的ID是什么
+What is the receiving node ID? 6390的ID
+
+第三次交互：哪些节点需要导出
+Source node #1: all
+
+第四次交互：确认是否执行
+Do you want to proceed with the proposed reshard plan (yes/no)? yes
+</code></pre>
+<h3 id="工具缩容节点">工具缩容节点</h3>
+<figure data-type="image" tabindex="5"><img src="https://ajie825.github.io/post-images/1656386657820.webp" alt="" loading="lazy"></figure>
+<p>1、操作命令</p>
+<pre><code class="language-bash">重新分配槽位
+redis-cli --cluster reshard 10.0.0.51:6380
+
+第一次交互：需要迁移多少个槽位
+How many slots do you want to move (from 1 to 16384)? 1365
+
+第二次交互：接受节点的ID是什么
+What is the receiving node ID? db01的6380的ID 
+
+第三次交互：哪些节点需要导出
+Source node #1: db01的6390的ID 
+Source node #2: done
+
+第四次交互：确认
+Do you want to proceed with the proposed reshard plan (yes/no)? yes
+
+重复上面的操作，直到6390所有的槽位都被分配出去了
+
+检查集群状态，确认6390没有槽位了
+redis-cli --cluster info 10.0.0.51:6380
+
+使用工具删除节点了
+redis-cli --cluster del-node 10.0.0.51:6390 6390的ID
+redis-cli --cluster del-node 10.0.0.51:6391 6391的ID
+</code></pre>
+<p>2.提问：公司先用的是哨兵然后再改集群，如何迁移数据</p>
+<pre><code class="language-bash">用槽位分配解决方法：
+1）搭建好redis集群并互相发现
+2）把所有的key都分配到db01上
+3）把哨兵里的数据AOF持久化
+4）拷贝到db01上，启动集群节点
+5）重新分配槽位迁移到其他2个节点
+</code></pre>
+<h3 id="验证集群高可用">验证集群高可用</h3>
+<pre><code class="language-bash">1）提问：
+故障的主库修复后启动会变成备胎吗？
+
+2）实验结论：
+主库挂了，从库会自动接替主库的角色，集群恢复正常会受超时时间控制
+老的主库修复上线后，会自动变成从库，同步新的主库
+
+3）主动发起集群角色切换
+CLUSTER FAILOVER
+</code></pre>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li>
+<ul>
+<li><a href="#%E5%85%B3%E7%B3%BB%E5%9E%8B%E4%B8%8E%E9%9D%9E%E5%85%B3%E7%B3%BB%E5%9E%8B">关系型与非关系型</a></li>
+<li><a href="#redis%E9%87%8D%E8%A6%81%E7%89%B9%E6%80%A7-ak47">Redis重要特性 AK47</a></li>
+<li><a href="#redis%E5%BA%94%E7%94%A8%E5%9C%BA%E6%99%AF">redis应用场景</a></li>
+<li><a href="#redis%E5%AE%89%E8%A3%85%E9%83%A8%E7%BD%B2">Redis安装部署</a></li>
+<li><a href="#redis%E5%85%A8%E5%B1%80%E5%91%BD%E4%BB%A4">Redis全局命令</a></li>
+<li><a href="#%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%93%8D%E4%BD%9C">字符串操作</a></li>
+<li><a href="#%E5%88%97%E8%A1%A8%E6%93%8D%E4%BD%9C">列表操作</a></li>
+<li><a href="#hash%E6%93%8D%E4%BD%9C">hash操作</a></li>
+<li><a href="#%E9%9B%86%E5%90%88%E6%93%8D%E4%BD%9C-set">集合操作---set</a></li>
+<li><a href="#%E6%9C%89%E5%BA%8F%E9%9B%86%E5%90%88%E6%93%8D%E4%BD%9C">有序集合操作</a></li>
+<li><a href="#redis%E6%8C%81%E4%B9%85%E5%8C%96">Redis持久化</a></li>
+<li><a href="#redis%E7%94%A8%E6%88%B7%E8%AE%A4%E8%AF%81">Redis用户认证</a></li>
+<li><a href="#redis%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6">Redis主从复制</a></li>
+<li><a href="#redis%E5%93%A8%E5%85%B5">Redis哨兵</a></li>
+<li><a href="#redis%E9%9B%86%E7%BE%A4">Redis集群</a></li>
+<li><a href="#%E9%9B%86%E7%BE%A4%E6%8F%92%E5%85%A5%E6%95%B0%E6%8D%AE">集群插入数据</a></li>
+<li><a href="#%E9%AA%8C%E8%AF%81%E9%9B%86%E7%BE%A4%E6%98%AF%E5%90%A6%E8%B6%B3%E5%A4%9F%E5%B9%B3%E5%9D%87">验证集群是否足够平均</a></li>
+<li><a href="#%E5%AE%9E%E6%88%98-%E6%A7%BD%E4%BD%8D%E5%88%86%E9%85%8D%E9%94%99%E8%AF%AF%E5%A6%82%E4%BD%95%E8%B0%83%E6%95%B4">实战---槽位分配错误如何调整</a></li>
+<li><a href="#%E4%BD%BF%E7%94%A8%E5%B7%A5%E5%85%B7%E8%87%AA%E5%8A%A8%E9%83%A8%E7%BD%B2redis%E9%9B%86%E7%BE%A4">使用工具自动部署redis集群</a></li>
+<li><a href="#%E5%B7%A5%E5%85%B7%E6%89%A9%E5%AE%B9%E8%8A%82%E7%82%B9">工具扩容节点</a></li>
+<li><a href="#%E5%B7%A5%E5%85%B7%E7%BC%A9%E5%AE%B9%E8%8A%82%E7%82%B9">工具缩容节点</a></li>
+<li><a href="#%E9%AA%8C%E8%AF%81%E9%9B%86%E7%BE%A4%E9%AB%98%E5%8F%AF%E7%94%A8">验证集群高可用</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://ajie825.github.io/post/du-xie-fen-chi-jia-gou-atlas/">
+              <h3 class="post-title">
+                读写分离架构-Atlas
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

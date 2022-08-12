@@ -1,0 +1,275 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>存储引擎（一） | Gridea</title>
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1660297788946">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="存储引擎（一） | Gridea - Atom Feed" href="https://ajie825.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+
+    <meta name="description" content="简介
+属于MySQL三层结构的第三层，以插件的形式存在，类似于U盘
+存储引擎是作用在表上的，不同的表可以有不同的存储引擎类型
+相当于Linux的文件系统，只不过比文件系统功能强大
+
+功能
+数据读写
+数据安全和一致性
+提高性能（缓存、缓冲）
+..." />
+    <meta name="keywords" content="mysql" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://ajie825.github.io">
+  <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1660297788946" alt="">
+  </a>
+  <h1 class="site-title">
+    Gridea
+  </h1>
+  <p class="site-description">
+    温故而知新
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              存储引擎（一）
+            </h2>
+            <div class="post-info">
+              <span>
+                2022-06-08
+              </span>
+              <span>
+                3 min read
+              </span>
+              
+                <a href="https://ajie825.github.io/tag/QZsgrmg-1Q/" class="post-tag">
+                  # mysql
+                </a>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <h2 id="简介">简介</h2>
+<pre><code class="language-mysql">属于MySQL三层结构的第三层，以插件的形式存在，类似于U盘
+存储引擎是作用在表上的，不同的表可以有不同的存储引擎类型
+相当于Linux的文件系统，只不过比文件系统功能强大
+</code></pre>
+<h2 id="功能">功能</h2>
+<pre><code class="language-mysql">数据读写
+数据安全和一致性
+提高性能（缓存、缓冲）
+热备份
+自动故障恢复
+高可用方面支持等
+</code></pre>
+<h2 id="存储引擎种类">存储引擎种类</h2>
+<pre><code class="language-mysql">mysql&gt; show engine;
+CSV               
+MRG_MYISAM        
+MyISAM            
+BLACKHOLE         
+PERFORMANCE_SCHEMA
+MEMORY            
+ARCHIVE           
+InnoDB            
+FEDERATED 
+</code></pre>
+<p>在MySQL5.5版本后，默认的存储引擎是InnoDB ，提供高可靠性和高性能</p>
+<pre><code class="language-mysql">PerconaDB:默认是XtraDB
+MariaDB:默认是InnoDB
+其他的存储引擎支持:
+TokuDB    
+RocksDB
+MyRocks
+以上三种存储引擎的共同点:压缩比较高,数据插入性能极高
+</code></pre>
+<h3 id="简历案例-zabbix监控系统架构整改">简历案例---zabbix监控系统架构整改</h3>
+<pre><code class="language-mysql">环境: zabbix 3.2    mariaDB 5.5  centos 7.3
+现象 : zabbix卡的要死 ,  每隔3-4个月,都要重新搭建一遍zabbix,存储空间经常爆满.
+问题 :
+1） zabbix 版本 
+2） 数据库版本
+3）zabbix数据库500G,存在一个文件里
+优化建议:
+1）数据库版本升级到5.7版本,zabbix升级更高版本
+2）存储引擎改为tokudb
+3）监控数据按月份进行切割(二次开发:zabbix 数据保留机制功能重写,数据库分表)
+4）关闭binlog和双1
+5）参数调整....
+优化结果:
+监控状态良好
+
+为什么?
+1）原生态支持TokuDB,另外经过测试环境,5.7要比5.5 版本性能 高  2-3倍
+2）TokuDB:insert数据比Innodb快的多，数据压缩比要Innodb高
+3）监控数据按月份进行切割,为了能够truncate每个分区表,立即释放空间
+4）关闭binlog -----&gt;减少无关日志的记录.
+5）参数调整...-----&gt;安全性参数关闭,提高性能.
+</code></pre>
+<h2 id="innodb-存储引擎核心特性说明">InnoDB 存储引擎核心特性说明</h2>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1654678146777.png" alt="" loading="lazy"></figure>
+<pre><code class="language-mysql">1）事务（transaction）
+2）MVCC（Multi-Version Concurrency Control多版本并发控制）
+3）行级锁（row-level lock）
+4）ACSR（Auto Crash Safey Recovery自动故障恢复）
+5）支持热备份（Hot Backup）
+6）Replication: Group Commit , GTID (Global Transaction ID) ,多线程(Multi-Threads-SQL )
+</code></pre>
+<h3 id="innodb替换myisam存储引擎案例">InnoDB替换MyISAM存储引擎案例</h3>
+<pre><code class="language-mysql">环境: centos 5.8 ,MySQL 5.0版本,MyISAM存储引擎,网站业务(LNMP),数据量50G左右
+现象问题: 业务压力大的时候,非常卡;经历过宕机,会有部分数据丢失.
+问题分析:
+1.MyISAM存储引擎表级锁,在高并发时,会有很高锁等待
+2.MyISAM存储引擎不支持事务,在断电时,会有可能丢失数据
+职责
+1.监控锁的情况:有很多的表锁等待
+2.存储引擎查看:所有表默认是MyISAM
+解决方案:
+1.升级MySQL 5.6.10版本
+2. 迁移所有表到新环境
+3. 开启双1安全参数
+</code></pre>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#%E7%AE%80%E4%BB%8B">简介</a></li>
+<li><a href="#%E5%8A%9F%E8%83%BD">功能</a></li>
+<li><a href="#%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E%E7%A7%8D%E7%B1%BB">存储引擎种类</a>
+<ul>
+<li><a href="#%E7%AE%80%E5%8E%86%E6%A1%88%E4%BE%8B-zabbix%E7%9B%91%E6%8E%A7%E7%B3%BB%E7%BB%9F%E6%9E%B6%E6%9E%84%E6%95%B4%E6%94%B9">简历案例---zabbix监控系统架构整改</a></li>
+</ul>
+</li>
+<li><a href="#innodb-%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E%E6%A0%B8%E5%BF%83%E7%89%B9%E6%80%A7%E8%AF%B4%E6%98%8E">InnoDB 存储引擎核心特性说明</a>
+<ul>
+<li><a href="#innodb%E6%9B%BF%E6%8D%A2myisam%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E%E6%A1%88%E4%BE%8B">InnoDB替换MyISAM存储引擎案例</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://ajie825.github.io/post/suo-yin-ji-zhi-xing-ji-hua-er/">
+              <h3 class="post-title">
+                索引及执行计划（二）
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

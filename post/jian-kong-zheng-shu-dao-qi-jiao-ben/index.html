@@ -1,0 +1,211 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>监控证书到期脚本 | Gridea</title>
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1660297788946">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="监控证书到期脚本 | Gridea - Atom Feed" href="https://ajie825.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+
+    <meta name="description" content="#!/bin/bash
+
+# 检测https证书有效期
+
+source /etc/profile
+
+while read line; do
+    echo &quot;===================================..." />
+    <meta name="keywords" content="脚本" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://ajie825.github.io">
+  <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1660297788946" alt="">
+  </a>
+  <h1 class="site-title">
+    Gridea
+  </h1>
+  <p class="site-description">
+    温故而知新
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              监控证书到期脚本
+            </h2>
+            <div class="post-info">
+              <span>
+                2022-04-22
+              </span>
+              <span>
+                2 min read
+              </span>
+              
+                <a href="https://ajie825.github.io/tag/y7W7IDYc9l/" class="post-tag">
+                  # 脚本
+                </a>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <pre><code class="language-shell">#!/bin/bash
+
+# 检测https证书有效期
+
+source /etc/profile
+
+while read line; do
+    echo &quot;=====================================================================================&quot;
+    
+    echo &quot;当前检测的域名：&quot; $line
+    end_time=$(echo | timeout 1 openssl s_client -servername $line -connect $line:443 2&gt;/dev/null | openssl x509 -noout -enddate 2&gt;/dev/null | awk -F '=' '{print $2}' )
+    ([ $? -ne 0 ] || [[ $end_time == '' ]]) &amp;&amp;  continue
+    
+    end_times=`date -d &quot;$end_time&quot; +%s `
+    current_times=`date -d &quot;$(date -u '+%b %d %T %Y GMT') &quot; +%s `
+    
+    let left_time=$end_times-$current_times
+    days=`expr $left_time / 86400`
+    echo &quot;剩余天数: &quot; $days
+    
+    [ $days -lt 200 ] &amp;&amp; curl -d &quot;chat_id=-758739552&amp;text=$line SSL证书将在$days天内过期&quot; &quot;https://api.telegram.org/bot5068922393:AAExoTzpvi3bb3NTokh3xIAC1KEb22SN4CM/sendMessage&quot; 
+
+done &lt; /server/scripts/https_list
+
+cat /server/scripts/https_list
+www.baidu.com 
+www.qq.com
+
+#chat_id为群ID，获取群组ID的方法：
+https://api.telegram.org/botToken/getUpdates
+#机器人的token
+5068922393:AAExoTzpvi3bb3NTokh3xIAC1KEb22SN4CM
+</code></pre>
+<pre><code class="language-shell">#将脚本写入定时任务，每周五早上8点执行
+0 8 * * 5 /bin/bash /server/scripts/ssl.sh  &gt;/dev/null 2&gt;&amp;1
+</code></pre>
+
+              </div>
+              <div class="toc-container">
+                
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://ajie825.github.io/post/jing-pin-shou-ji/">
+              <h3 class="post-title">
+                精品收集
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

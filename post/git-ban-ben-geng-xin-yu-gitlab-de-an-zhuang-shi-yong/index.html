@@ -1,0 +1,387 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>git版本更新与gitlab的安装使用（一） | Gridea</title>
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1660297788946">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="git版本更新与gitlab的安装使用（一） | Gridea - Atom Feed" href="https://ajie825.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+
+    <meta name="description" content="git版本更新
+#安装源
+yum install http://opensource.wandisco.com/centos/7/git/x86_64/wandisco-git-release-7-2.noarch.rpm
+#安装git
+y..." />
+    <meta name="keywords" content="gitlab" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://ajie825.github.io">
+  <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1660297788946" alt="">
+  </a>
+  <h1 class="site-title">
+    Gridea
+  </h1>
+  <p class="site-description">
+    温故而知新
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              git版本更新与gitlab的安装使用（一）
+            </h2>
+            <div class="post-info">
+              <span>
+                2022-05-11
+              </span>
+              <span>
+                9 min read
+              </span>
+              
+                <a href="https://ajie825.github.io/tag/zf41YWElAa/" class="post-tag">
+                  # gitlab
+                </a>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <h2 id="git版本更新">git版本更新</h2>
+<pre><code class="language-shell">#安装源
+yum install http://opensource.wandisco.com/centos/7/git/x86_64/wandisco-git-release-7-2.noarch.rpm
+#安装git
+yum install git
+git --version
+#更新git
+yum update git
+</code></pre>
+<h3 id="配置git及初始化工作目录">配置git及初始化工作目录</h3>
+<pre><code class="language-shell">[root@gitlab ~]# git config 
+用法：git config [选项] 
+配置文件位置   
+    --global              #使用全局配置文件   
+    --system              #使用系统级配置文件   
+    --local               #使用版本库级配置文件 
+[root@gitlab ~]# git config --global user.name  &quot;ajie&quot;  
+[root@gitlab ~]# git config --global user.email &quot;ajie@gmail.com&quot;
+[root@gitlab ~]# git config --global color.ui
+[root@gitlab ~]# git config --list 
+user.name=ajie 
+user.email=ajie@gmail.com
+</code></pre>
+<pre><code class="language-shell">[root@gitlab ~]# mkdir project
+[root@gitlab ~]# cd project/
+[root@gitlab project]# git init
+Initialized empty Git repository in /root/git_dada/.git/
+
+[root@git git_data]# git status 
+On branch master
+No commits yet
+nothing to commit (create/copy files and use &quot;git add&quot; to track)
+</code></pre>
+<h2 id="gitlab的安装">gitlab的安装</h2>
+<h3 id="gitlab简介与安装">gitlab简介与安装</h3>
+<p>gitlab是一个用于仓库管理系统的开源项目。使用git作为代码管理工具，并在此基础上搭建起来的web服务。可通过web界面进行访问公开的或私人的项目。它拥有与gitlab类似的功能，能够浏览源代码，管理权限和注释。可以管理团队对仓库的访问，它非常易于浏览提交过的代码并提供一个历史文件库。团队成员可以利用内置的简单聊天程序（wall）进行交流。它还提供了一个代码片段收集功能可以轻松实现代码复用。</p>
+<p>常用的网站：<br>
+官网：https://about.gitlab.com/<br>
+国内镜像：https://mirrors.tuna.tsinghua.edu.cn/gitlab-ce/yum/</p>
+<p>安装环境：<br>
+1）centos 6或者7<br>
+2）2G内存(实验) 生产(至少4G)<br>
+3）安装包：gitlab-ce-12.3.5-ce<br>
+4）禁用防火墙，关闭selinux<br>
+https://about.gitlab.com/installation/ #gitlab官网</p>
+<p>安装依赖</p>
+<pre><code class="language-shell">[root@gitlab ~]# yum install -y curl policycoreutils-python openssh-server
+</code></pre>
+<p>下载gitlab安装包</p>
+<pre><code class="language-shell">[root@gitlab ~]# wget https://mirrors.tuna.tsinghua.edu.cn/gitlab-ce/yum/el7/gitlab-ce-12.3.5-ce.0.el7.x86_64.rpm --no-check-certificate
+</code></pre>
+<p>rpm安装gitlab软件包</p>
+<pre><code class="language-shell">[root@gitlab ~]# rpm -ivh gitlab-ce-12.3.5-ce.0.el7.x86_64.rpm  
+
+warning: gitlab-ce-10.2.2-ce.0.el7.x86_64.rpm: Header V4 RSA/SHA1 Signature, key ID f27eab47: NOKEY 
+Preparing...                          ################################# [100%] 
+Updating / installing...   
+1:gitlab-ce-10.2.2-ce.0.el7           ################################# [100%]
+</code></pre>
+<p>修改gitlab的配置文件，更改url地址为本地IP地址</p>
+<pre><code class="language-shell">[root@gitlab ~]# vim /etc/gitlab/gitlab.rb 
+external_url 'http://10.0.0.53'
+</code></pre>
+<p>重新进行配置</p>
+<pre><code class="language-shell">[root@gitlab ~]# gitlab-ctl reconfigure 
+/opt/gitlab/              # gitlab的程序安装目录 
+/var/opt/gitlab           # gitlab目录数据目录
+/var/opt/gitlab/git-data  # 存放仓库数据
+</code></pre>
+<p>查看目前gitlab所有服务运行状态</p>
+<pre><code class="language-shell">[root@gitlab ~]# gitlab-ctl status
+run: gitaly: (pid 12632) 346s; run: log: (pid 12344) 382s
+run: gitlab-monitor: (pid 12649) 346s; run: log: (pid 12483) 370s
+run: gitlab-workhorse: (pid 12621) 347s; run: log: (pid 12298) 396s
+run: logrotate: (pid 12326) 388s; run: log: (pid 12325) 388s
+run: nginx: (pid 12309) 394s; run: log: (pid 12308) 394s
+run: node-exporter: (pid 12395) 376s; run: log: (pid 12394) 376s
+run: postgres-exporter: (pid 12676) 345s; run: log: (pid 12550) 361s
+run: postgresql: (pid 12078) 430s; run: log: (pid 12077) 430s
+run: prometheus: (pid 12663) 345s; run: log: (pid 12519) 363s
+run: redis: (pid 12017) 436s; run: log: (pid 12016) 436s
+run: redis-exporter: (pid 12505) 364s; run: log: (pid 12504) 364s
+run: sidekiq: (pid 12281) 402s; run: log: (pid 12280) 402s
+run: unicorn: (pid 12243) 403s; run: log: (pid 12242) 403s
+</code></pre>
+<p>nginx： #静态web服务器<br>
+gitlab-workhorse: #轻量级的反向代理服务器<br>
+logrotate： #日志文件管理工具<br>
+postgresql： #数据库<br>
+redis： #缓存数据库<br>
+sidekiq： #用于在后台执行队列任务（异步执行）。（Ruby）<br>
+unicorn： An HTTP server for Rack applications，GitLab Rails应用是托管在这个服务器上面的。（Ruby Web Server,主要使用Ruby编写）</p>
+<p>gitlab-ctl stop # 停止gitlab服务<br>
+gitlab-ctl stop nginx # 单独停止某个服务<br>
+gitlab-ctl tail # 查看所有服务的日志</p>
+<p>通过浏览器访问gitlab http://本机IP地址<br>
+修改gitlab的密码 最少8位<br>
+<img src="https://ajie825.github.io/post-images/1652248295962.png" alt="" loading="lazy"></p>
+<h3 id="gitlab汉化">gitlab汉化</h3>
+<p>查看gitlab版本：</p>
+<pre><code class="language-shell">[root@gitlab ~]# cat /opt/gitlab/embedded/service/gitlab-rails/VERSION
+12.3.5
+</code></pre>
+<p>查看GitLab中文社区官方仓库 https://gitlab.com/xhang/gitlab ， 检查对应的汉化包版本信息：<br>
+<img src="https://ajie825.github.io/post-images/1652248756345.png" alt="" loading="lazy"></p>
+<p>我们下载GitLab版本对应的汉化包，12-3-stable-zh这个版本:</p>
+<pre><code class="language-shell">[root@gitlab opt]# git clone https://gitlab.com/xhang/gitlab.git -b 12-3-stable-zh
+Cloning into 'gitlab'...
+remote: Enumerating objects: 1059432, done.
+remote: Counting objects: 100% (40998/40998), done.
+remote: Compressing objects: 100% (15116/15116), done.
+remote: Total 1059432 (delta 27453), reused 35303 (delta 25250), pack-reused 1018434
+Receiving objects: 100% (1059432/1059432), 458.99 MiB | 4.60 MiB/s, done.
+Resolving deltas: 100% (824554/824554), done.
+Updating files: 100% (17493/17493), done.
+</code></pre>
+<p>下载完后，查看汉化包信息：</p>
+<pre><code class="language-shell">[root@gitlab ~]#  ls -lad gitlab/
+drwxr-xr-x 30 root root 4096 May 10 22:52 gitlab/
+[root@gitlab ~]# cd gitlab
+[root@gitlab gitlab]# git remote -v
+origin  https://gitlab.com/xhang/gitlab.git (fetch)
+origin  https://gitlab.com/xhang/gitlab.git (push)
+[root@gitlab gitlab]# git branch
+* 12-3-stable-zh
+</code></pre>
+<p>停止GitLab相关服务：</p>
+<pre><code class="language-shell">[root@gitlab gitlab]# gitlab-ctl stop
+ok: down: alertmanager: 0s, normally up
+ok: down: gitaly: 0s, normally up
+ok: down: gitlab-exporter: 0s, normally up
+ok: down: gitlab-workhorse: 1s, normally up
+ok: down: grafana: 0s, normally up
+ok: down: logrotate: 1s, normally up
+ok: down: nginx: 0s, normally up
+ok: down: node-exporter: 0s, normally up
+ok: down: postgres-exporter: 1s, normally up
+ok: down: postgresql: 0s, normally up
+ok: down: prometheus: 1s, normally up
+ok: down: redis: 0s, normally up
+ok: down: redis-exporter: 1s, normally up
+ok: down: sidekiq: 0s, normally up
+ok: down: unicorn: 1s, normally up
+</code></pre>
+<p>备份  /opt/gitlab/embedded/service/gitlab-rails/ 文件夹，防止后续操作失败导致GitLab无法运行：</p>
+<pre><code class="language-shell">[root@gitlab ~]# cp -rf /opt/gitlab/embedded/service/gitlab-rails/ /opt/gitlab/embedded/service/gitlab-rails.bak
+#检查是否备份成功
+[root@gitlab ~]# ls -lad /opt/gitlab/embedded/service/gitlab-rails*
+drwxr-xr-x 25 root root 4096 May 11 02:21 /opt/gitlab/embedded/service/gitlab-rails
+drwxr-xr-x 25 root root 4096 May 11 02:31 /opt/gitlab/embedded/service/gitlab-rails.bak
+[root@gitlab ~]# du -sh /opt/gitlab/embedded/service/gitlab-rails*
+211M    /opt/gitlab/embedded/service/gitlab-rails
+211M    /opt/gitlab/embedded/service/gitlab-rails.bak
+</code></pre>
+<p>去除cp的别名，复制gitlab汉化包中的文件到  /opt/gitlab/embedded/service/gitlab-rails/ 目录下：</p>
+<pre><code class="language-shell">[root@gitlab ~]# alias cp
+alias cp='cp -i'
+[root@gitlab ~]# unalias cp
+[root@gitlab ~]# cp -rf gitlab/* /opt/gitlab/embedded/service/gitlab-rails/
+cp: cannot overwrite non-directory ‘/opt/gitlab/embedded/service/gitlab-rails/log’ with directory ‘gitlab/log’
+cp: cannot overwrite non-directory ‘/opt/gitlab/embedded/service/gitlab-rails/tmp’ with directory ‘gitlab/tmp’
+</code></pre>
+<p>使配置生效：</p>
+<pre><code class="language-shell">[root@gitlab ~]# gitlab-ctl reconfigure
+......执行剧本，忽略
+Running handlers:
+Running handlers complete
+Chef Client finished, 5/696 resources updated in 07 seconds
+gitlab Reconfigured!
+</code></pre>
+<p>启动gitlab：</p>
+<pre><code class="language-shell">[root@gitlab ~]# gitlab-ctl start
+ok: run: alertmanager: (pid 3982) 0s
+ok: run: gitaly: (pid 3990) 1s
+ok: run: gitlab-exporter: (pid 4011) 0s
+ok: run: gitlab-workhorse: (pid 4015) 1s
+ok: run: grafana: (pid 4022) 0s
+ok: run: logrotate: (pid 4035) 1s
+ok: run: nginx: (pid 4041) 0s
+ok: run: node-exporter: (pid 4046) 1s
+ok: run: postgres-exporter: (pid 4050) 0s
+ok: run: postgresql: (pid 4131) 0s
+ok: run: prometheus: (pid 4140) 1s
+ok: run: redis: (pid 4149) 0s
+ok: run: redis-exporter: (pid 4153) 1s
+ok: run: sidekiq: (pid 4158) 0s
+ok: run: unicorn: (pid 4164) 1s
+</code></pre>
+<p>访问GitLab服务 10.0.0.53，发现可以正常访问，并显示中文的页面：<br>
+<img src="https://ajie825.github.io/post-images/1652251172797.png" alt="" loading="lazy"></p>
+<p>点击右上角的个人图标，在弹出的下拉选项中点击  Settings 进入到  Settings 设置界面：<br>
+<img src="https://ajie825.github.io/post-images/1652251489355.png" alt="" loading="lazy"></p>
+<p>点击左侧的 preferences 标签页，进入到个人偏好设置界面，下拉到 Localization 本地化的位置：<br>
+<img src="https://ajie825.github.io/post-images/1652251685586.png" alt="" loading="lazy"></p>
+<p>点击 Language 语言下拉框选择 “简体中文”，并将周一设置为每周的第一天，并点击  Save changes 保存修改：<br>
+<img src="https://ajie825.github.io/post-images/1652251833222.png" alt="" loading="lazy"></p>
+<p>保存后，按F5刷新一下页面，可以看到页面显示已经变成中文了：<br>
+<img src="https://ajie825.github.io/post-images/1652251979014.png" alt="" loading="lazy"></p>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#git%E7%89%88%E6%9C%AC%E6%9B%B4%E6%96%B0">git版本更新</a>
+<ul>
+<li><a href="#%E9%85%8D%E7%BD%AEgit%E5%8F%8A%E5%88%9D%E5%A7%8B%E5%8C%96%E5%B7%A5%E4%BD%9C%E7%9B%AE%E5%BD%95">配置git及初始化工作目录</a></li>
+</ul>
+</li>
+<li><a href="#gitlab%E7%9A%84%E5%AE%89%E8%A3%85">gitlab的安装</a>
+<ul>
+<li><a href="#gitlab%E7%AE%80%E4%BB%8B%E4%B8%8E%E5%AE%89%E8%A3%85">gitlab简介与安装</a></li>
+<li><a href="#gitlab%E6%B1%89%E5%8C%96">gitlab汉化</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://ajie825.github.io/post/shi-yong-openresty-shi-xian-waf-fang-huo-qiang-gong-neng/">
+              <h3 class="post-title">
+                使用openresty实现WAF防火墙功能
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

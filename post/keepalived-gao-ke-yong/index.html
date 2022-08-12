@@ -1,0 +1,469 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>keepalived高可用 | Gridea</title>
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1660297788946">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="keepalived高可用 | Gridea - Atom Feed" href="https://ajie825.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+
+    <meta name="description" content="Keepalived高可用基本概述
+什么是高可用
+一般是指2台机器启动着相同的业务系统，当一台机器down了，另外一台服务器能快速的接管，对于访问的用户是无感知的。
+
+高可用通常使用什么软件
+通过服务高可用我们选择使用keepalived软..." />
+    <meta name="keywords" content="nginx" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://ajie825.github.io">
+  <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1660297788946" alt="">
+  </a>
+  <h1 class="site-title">
+    Gridea
+  </h1>
+  <p class="site-description">
+    温故而知新
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              keepalived高可用
+            </h2>
+            <div class="post-info">
+              <span>
+                2022-08-09
+              </span>
+              <span>
+                9 min read
+              </span>
+              
+                <a href="https://ajie825.github.io/tag/JmbVLnHII/" class="post-tag">
+                  # nginx
+                </a>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <h2 id="keepalived高可用基本概述">Keepalived高可用基本概述</h2>
+<h3 id="什么是高可用">什么是高可用</h3>
+<pre><code class="language-bash">一般是指2台机器启动着相同的业务系统，当一台机器down了，另外一台服务器能快速的接管，对于访问的用户是无感知的。
+</code></pre>
+<h3 id="高可用通常使用什么软件">高可用通常使用什么软件</h3>
+<pre><code class="language-bash">通过服务高可用我们选择使用keepalived软件实现。
+</code></pre>
+<h3 id="keepalived是如何实现高可用的">keepalived是如何实现高可用的</h3>
+<pre><code class="language-bash">keepalived软件是基于VRRP协议实现的，VRRP虚拟路由冗余协议，主要用于解决单点故障问题。
+</code></pre>
+<h3 id="vrrp是如何诞生的vrrp的原理">VRRP是如何诞生的，VRRP的原理</h3>
+<pre><code class="language-bash">比如公司的网络是通过网关转换NAT进行上网的，那如果该路由器故障了，网关无法转发报文了，此时所有人都将无法上网，这时
+候怎么办呢？
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1660025084750.jpg" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">通常做法是给路由器增加一台备节点，但问题来了？如果我们的主网关master故障了，用户是需要手动修改网关指向backup，如
+果用户过多修改起来会非常的麻烦。
+第一个问题：假设用户将指向都修改到backup路由器，那么master路由器如果修复好了又该怎么办？
+第二个问题：假设master网关故障，我们将backup网关配置为master网关IP行不行？其实上不行，因为PC第一次是通过ARP广播
+寻找到master网关的mac地址与ip地址，PC则会将master网关对应的ip与mac地址写入ARP缓存表中，那么PC第二次则会直接读取
+ARP缓存表中的mac地址与ip地址，然后进行数据包的转发。此时PC转发的数据包还是会交给master，（除非PC的ARP缓存表过期，
+再次发起ARP广播的时候才能正确获取backup的mac地址与对应的ip地址）。
+</code></pre>
+<figure data-type="image" tabindex="2"><img src="https://ajie825.github.io/post-images/1660025964485.jpg" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">如何才能做到出现故障自动转移，此时VRRP就应运而生了，我们的VRRP其实是通过软件或者硬件的形式在master和backup外面增
+加一个虚拟mac地址(简称VMAC)与虚拟IP地址(简称VIP)。那么在这种情况下，PC请求VIP的时候，无论是master处理还是backup
+处理，PC仅会在ARP缓存表中记录VMAC与VIP的对应关系。
+</code></pre>
+<figure data-type="image" tabindex="3"><img src="https://ajie825.github.io/post-images/1660026412427.jpg" alt="" loading="lazy"></figure>
+<h3 id="高可用keepalived使用场景">高可用keepalived使用场景</h3>
+<pre><code class="language-bash">通常业务系统需要保证7x24不down机。比如公司内部OA系统，每天公司人员都需要使用，则不允许down机，作为业务系统来说随时
+都可用
+</code></pre>
+<figure data-type="image" tabindex="4"><img src="https://ajie825.github.io/post-images/1660026635053.jpg" alt="" loading="lazy"></figure>
+<h3 id="高可用核心概念总结">高可用核心概念总结</h3>
+<pre><code class="language-bash">1）如何确定谁是主节点谁是备用节点（投票选举？优先级？）
+2）如果master故障，backup自动接管，那master恢复后会夺权吗（抢占式、非抢占式）
+3）如果两台服务器都认为自己是master会出现什么问题（脑裂）
+</code></pre>
+<h2 id="keepalived高可用安装配置">Keepalived高可用安装配置</h2>
+<pre><code class="language-bash">1）实践环境，配置实现虚拟IP转移
+状态	                 IP	                          角色
+节点1	               10.0.0.5                      Master
+节点2	               10.0.0.6                      Backup
+虚拟VIP	               10.0.0.3      
+</code></pre>
+<pre><code class="language-bash">2）在master与backup上分别安装keepalived
+[root@lb01 ~]# yum install keepalived -y
+[root@lb02 ~]# yum install keepalived -y
+</code></pre>
+<pre><code class="language-bash">3）配置master节点
+[root@lb01 ~]# cat /etc/keepalived/keepalived.conf
+global_defs {                  #全局配置
+    router_id lb01             #标识身份---&gt;名称
+}
+
+vrrp_instance VI_1 {
+    state MASTER               #标识角色状态
+    interface ens33            #网卡绑定接口
+    virtual_router_id 50       #虚拟路由id
+    priority 150               #优先级
+    advert_int 1               #监测间隔时间
+    authentication {           #认证
+        auth_type PASS         #明文密码
+        auth_pass 1111
+}
+    virtual_ipaddress {
+        10.0.0.3               #虚拟的VIP地址
+    }
+}
+</code></pre>
+<pre><code class="language-bash">4）配置backup节点
+[root@lb02 ~]# cat /etc/keepalived/keepalived.conf
+global_defs {
+    router_id lb02
+}
+
+vrrp_instance VI_1 {
+    state BACKUP
+    interface ens33
+    virtual_router_id 50
+    priority 100
+    advert_int 1
+    authentication {
+        auth_type PASS
+        auth_pass 1111
+    }
+    virtual_ipaddress {
+        10.0.0.3
+    }
+}
+</code></pre>
+<pre><code class="language-bash">5）对比keepalived的master与backup配置的区别
+Keepalived配置区别          Master配置	              Backup配置
+route_id(唯一标识)            lb01	                    lb02
+state(角色状态)	             MASTER	                    BACKUP
+priority(优先级)	             150	                     100
+</code></pre>
+<pre><code class="language-bash">6）启动Master与Backup节点的keepalived
+[root@lb01 ~]# systemctl enable keepalived
+[root@lb01 ~]# systemctl start keepalived 
+[root@lb02 ~]# systemctl enable keepalived
+[root@lb02 ~]# systemctl start keepalived
+</code></pre>
+<h3 id="检查keepalived的虚拟vip地址能否漂移">检查keepalived的虚拟VIP地址能否漂移</h3>
+<pre><code class="language-bash">1）在master上进行如下操作
+#master存在vip地址
+[root@lb01 ~]# ip addr|grep 10.0.0.3
+    inet 10.0.0.3/32 scope global ens33
+#停止master上的keepalived，检测vip已不存在
+[root@lb01 ~]# systemctl stop keepalived
+[root@lb01 ~]# ip addr|grep 10.0.0.3 
+</code></pre>
+<pre><code class="language-bash">2）在backup上进行如下操作
+#发现VIP地址已经漂移至backup端
+[root@lb02 ~]# ip addr|grep 10.0.0.3
+    inet 10.0.0.3/32 scope global ens33
+</code></pre>
+<pre><code class="language-bash">3）此时重新启动Master上的Keepalived,会发现VIP被强行抢占
+[root@lb01 ~]# systemctl start keepalived
+[root@lb01 ~]# ip addr|grep 10.0.0.3     
+    inet 10.0.0.3/32 scope global ens33
+</code></pre>
+<pre><code class="language-bash">4）通过windows的arp -a命令查看arp缓存表，验证地址漂移后是否会自动更新MAC地址。
+</code></pre>
+<h2 id="keepalived高可用非抢占式">Keepalived高可用非抢占式</h2>
+<pre><code class="language-bash">通常master服务故障后backup会变成master，但是当master服务又恢复的时候，master会抢占VIP，这样就会发生两次切换对
+业务繁忙的网站来说并不是太友好，此时我们可以配置keepalived为非抢占式。
+</code></pre>
+<h3 id="配置非抢占式要求">配置非抢占式要求</h3>
+<pre><code class="language-bash">1）两个节点的state都必须配置为BACKUP（官方建议）
+2）两个节点都在vrrp_instance中添加nopreempt参数
+3）其中一个节点的优先级必须要高于另外一个节点的优先级
+两台服务器启用nopreempt后，必须修改角色状态统一为BACKUP，唯一区分就是优先级。
+</code></pre>
+<pre><code class="language-bash">#master的配置如下：
+[root@lb01 ~]# cat /etc/keepalived/keepalived.conf     
+global_defs {
+    router_id lb01
+}
+
+vrrp_instance VI_1 {
+    state BACKUP
+    interface ens33
+    virtual_router_id 50
+    priority 150
+    nopreempt
+    advert_int 1
+    authentication {
+        auth_type PASS
+        auth_pass 1111
+}
+    virtual_ipaddress {
+        10.0.0.3
+    }
+[root@lb01 ~]# systemctl restart keepalived
+</code></pre>
+<pre><code class="language-bash">#Backup的配置如下：
+[root@lb02 ~]# cat /etc/keepalived/keepalived.conf     
+global_defs {
+    router_id lb02
+}
+
+vrrp_instance VI_1 {
+    state BACKUP
+    interface ens33
+    virtual_router_id 50
+    priority 100
+    nopreempt
+    advert_int 1
+    authentication {
+        auth_type PASS
+        auth_pass 1111
+}
+    virtual_ipaddress {
+        10.0.0.3
+    }
+}
+[root@lb02 ~]# systemctl restart keepalived
+</code></pre>
+<h2 id="keepalived高可用故障脑裂">keepalived高可用故障脑裂</h2>
+<pre><code class="language-bash">脑裂：指在一个高可用（HA）系统中，当联系着的两个节点断开联系时，本来为一个整体的系统，分裂为两个独立节点，这时两个节点开始争抢共享资源，结果会导致系统混乱，数据损坏。
+由于某些原因，当两台keepalived高可用服务器在指定时间内，无法互相检测到对方心跳消息而各自启动故障转移功能，取得资
+源及服务的所有权，而此时的两台高可用服务器都还活着并且正常工作。这样就会导致同一个服务在两端同时启动而发生冲突的严
+重问题。
+</code></pre>
+<h3 id="产生故障脑裂的原因">产生故障脑裂的原因</h3>
+<pre><code class="language-bash">1）服务器网线松动等网络故障
+2）服务器硬件故障发生损坏现象而崩溃
+3）主备都开启firewalld防火墙
+</code></pre>
+<h3 id="处理故障脑裂的方法">处理故障脑裂的方法</h3>
+<pre><code class="language-bash">在备上编写检测脚本，测试如果能ping通主并且备节点还有VIP的话则认为产生了脑裂
+[root@lb02 ~]# cat check_split_brain.sh 
+#!/bin/sh
+vip=10.0.0.3
+master_ip=10.0.0.5
+while true;do
+    ping -c 2 -W 3 $master_ip &amp;&gt;/dev/null
+    if [ $? -eq 0 -a `ip add|grep &quot;$vip&quot;|wc -l` -eq 1 ];then
+        echo &quot;ha is split brain.warning.&quot;
+    else
+        echo &quot;ha is ok&quot;
+    fi
+sleep 5
+done
+如果发生上述闹裂，通常情况下随机kill掉一台即可
+</code></pre>
+<pre><code class="language-bash">如果负载均衡的nginx宕机，会导致用户请求失败，但keepalived并不会进行切换，所以需要编写一个脚本检测nginx的存活状
+态，如果不存活则kill nginx和keepalived
+[root@lb01 ~]# mkdir /server/scripts -p
+[root@lb01 ~]# vim /server/scripts/check_web.sh 
+#!/bin/sh
+nginxpid=$(ps -C nginx --no-header|wc -l)
+
+#判断Nginx是否存活,如果不存活则尝试启动Nginx
+if [ $nginxpid -eq 0 ];then
+        systemctl start nginx
+        sleep 3
+        #等待3秒后再次获取一次Nginx状态
+        nginxpid=$(ps -C nginx --no-header|wc -l) 
+        #再次进行判断, 如Nginx还不存活则停止Keepalived,让地址进行漂移,并退出脚本  
+        if [ $nginxpid -eq 0 ];then
+                systemctl stop keepalived
+          fi
+fi
+#给脚本增加执行权限
+[root@lb01 ~]# chmod +x /server/scripts/check_web.sh
+</code></pre>
+<pre><code class="language-bash">在master的keepalived中调用脚本，抢占式仅需要在master配置即可（如果配置为非抢占式，需要两台服务器都配置该脚本）
+[root@lb01 ~]# cat /etc/keepalived/keepalived.conf
+global_defs {
+         router_id lb01
+}
+
+#每5秒执行一次脚本, 脚本执行内容不能超过5秒,否则会被中断再次重新运行脚本
+vrrp_script check_web {
+   script &quot;/server/scripts/check_web.sh&quot;
+   interval 5
+}
+
+vrrp_instance VI_1 {
+    nopreempt
+    state BACKUP
+    interface ens33
+    virtual_router_id 50
+    priority 150
+    advert_int 1
+    authentication {
+        auth_type PASS
+        auth_pass 1111
+    }
+    virtual_ipaddress {
+        10.0.0.3
+    }
+    
+    #调用并运行该脚本
+    track_script {
+        check_web
+    }
+}
+</code></pre>
+<pre><code class="language-bash">公有云不支持keepalived、银行、金融、证券、国企
+</code></pre>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#keepalived%E9%AB%98%E5%8F%AF%E7%94%A8%E5%9F%BA%E6%9C%AC%E6%A6%82%E8%BF%B0">Keepalived高可用基本概述</a>
+<ul>
+<li><a href="#%E4%BB%80%E4%B9%88%E6%98%AF%E9%AB%98%E5%8F%AF%E7%94%A8">什么是高可用</a></li>
+<li><a href="#%E9%AB%98%E5%8F%AF%E7%94%A8%E9%80%9A%E5%B8%B8%E4%BD%BF%E7%94%A8%E4%BB%80%E4%B9%88%E8%BD%AF%E4%BB%B6">高可用通常使用什么软件</a></li>
+<li><a href="#keepalived%E6%98%AF%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E9%AB%98%E5%8F%AF%E7%94%A8%E7%9A%84">keepalived是如何实现高可用的</a></li>
+<li><a href="#vrrp%E6%98%AF%E5%A6%82%E4%BD%95%E8%AF%9E%E7%94%9F%E7%9A%84vrrp%E7%9A%84%E5%8E%9F%E7%90%86">VRRP是如何诞生的，VRRP的原理</a></li>
+<li><a href="#%E9%AB%98%E5%8F%AF%E7%94%A8keepalived%E4%BD%BF%E7%94%A8%E5%9C%BA%E6%99%AF">高可用keepalived使用场景</a></li>
+<li><a href="#%E9%AB%98%E5%8F%AF%E7%94%A8%E6%A0%B8%E5%BF%83%E6%A6%82%E5%BF%B5%E6%80%BB%E7%BB%93">高可用核心概念总结</a></li>
+</ul>
+</li>
+<li><a href="#keepalived%E9%AB%98%E5%8F%AF%E7%94%A8%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE">Keepalived高可用安装配置</a>
+<ul>
+<li><a href="#%E6%A3%80%E6%9F%A5keepalived%E7%9A%84%E8%99%9A%E6%8B%9Fvip%E5%9C%B0%E5%9D%80%E8%83%BD%E5%90%A6%E6%BC%82%E7%A7%BB">检查keepalived的虚拟VIP地址能否漂移</a></li>
+</ul>
+</li>
+<li><a href="#keepalived%E9%AB%98%E5%8F%AF%E7%94%A8%E9%9D%9E%E6%8A%A2%E5%8D%A0%E5%BC%8F">Keepalived高可用非抢占式</a>
+<ul>
+<li><a href="#%E9%85%8D%E7%BD%AE%E9%9D%9E%E6%8A%A2%E5%8D%A0%E5%BC%8F%E8%A6%81%E6%B1%82">配置非抢占式要求</a></li>
+</ul>
+</li>
+<li><a href="#keepalived%E9%AB%98%E5%8F%AF%E7%94%A8%E6%95%85%E9%9A%9C%E8%84%91%E8%A3%82">keepalived高可用故障脑裂</a>
+<ul>
+<li><a href="#%E4%BA%A7%E7%94%9F%E6%95%85%E9%9A%9C%E8%84%91%E8%A3%82%E7%9A%84%E5%8E%9F%E5%9B%A0">产生故障脑裂的原因</a></li>
+<li><a href="#%E5%A4%84%E7%90%86%E6%95%85%E9%9A%9C%E8%84%91%E8%A3%82%E7%9A%84%E6%96%B9%E6%B3%95">处理故障脑裂的方法</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://ajie825.github.io/post/nginx-https-shi-jian/">
+              <h3 class="post-title">
+                nginx https实践
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

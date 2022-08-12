@@ -1,0 +1,283 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>k8s架构-组件-核心资源 | Gridea</title>
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1660297788946">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="k8s架构-组件-核心资源 | Gridea - Atom Feed" href="https://ajie825.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+
+    <meta name="description" content="kubernets简介
+kubernets是可移植、可扩展、开源的容器管理平台，是谷歌Borg的开源版本，简称k8s，它可以创建应用、更新应用、回滚应用，也可实现应用的扩容缩容，做到故障自恢复。
+可移植：基于镜像可从一个环境迁移到另一个环境..." />
+    <meta name="keywords" content="k8s" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://ajie825.github.io">
+  <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1660297788946" alt="">
+  </a>
+  <h1 class="site-title">
+    Gridea
+  </h1>
+  <p class="site-description">
+    温故而知新
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              k8s架构-组件-核心资源
+            </h2>
+            <div class="post-info">
+              <span>
+                2022-07-01
+              </span>
+              <span>
+                7 min read
+              </span>
+              
+                <a href="https://ajie825.github.io/tag/hCwwZMyh3G/" class="post-tag">
+                  # k8s
+                </a>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <h2 id="kubernets简介">kubernets简介</h2>
+<pre><code class="language-bash">kubernets是可移植、可扩展、开源的容器管理平台，是谷歌Borg的开源版本，简称k8s，它可以创建应用、更新应用、回滚应用，也可实现应用的扩容缩容，做到故障自恢复。
+可移植：基于镜像可从一个环境迁移到另一个环境
+可扩展：k8s集群可以横向扩展、根据流量实现自动扩缩容
+开源的：源代码已经公开了，可以被用户免费使用，可以二次开发
+
+1）可以对容器自动化部署、自动化扩缩容、跨主机管理等；
+2）可以对代码进行灰度发布、金丝雀发布、蓝绿发布、滚动更新等；
+3）具有完整的监控系统和日志收集平台，具有故障自恢复的能力。
+</code></pre>
+<h2 id="k8s强大的功能">k8s强大的功能</h2>
+<pre><code class="language-bash">1）批处理
+2）弹性伸缩
+3）故障自我恢复
+4）存储编排
+5）机密和配置管理
+6）自动部署和回滚
+7）服务发现和负载均衡
+</code></pre>
+<h2 id="掌握k8s全栈技术体系">掌握k8s全栈技术体系</h2>
+<pre><code class="language-bash">1）安装(kubeadm和二进制)、架构(单节点和多master节点)、组件、资源对象、命令行管理工具kubectl
+负载均衡service和ingress、服务发现、数据包转发代理kube-proxy、自动扩缩容、网络、故障排查、k8s数据持久化
+配置管理、健康检查、安全机制---认证、授权、准入控制，灰度发布、蓝绿部署、滚动更新、金丝雀发布
+k8s可视化UI界面、k8s包管理工具helm
+2）掌握微服务Istio：新一代微服务架构
+3）掌握可视化监控系统Prometheus+alertmanager+grafana
+4）掌握智能化日志系统采集平台EFK/ELK
+5）掌握Jenkins+gitlab+harbor和k8s构建企业级DevOps平台
+6）掌握适配边缘计算场景的轻量级的k8s-k3s入门与实战
+7）掌握rancher管理k8s集群---部署k8s应用
+8）CKA考试
+</code></pre>
+<h2 id="k8s的物理架构">k8s的物理架构</h2>
+<pre><code class="language-bash">k8s的物理架构是master/node模式，k8s集群至少需要一个主节点（master）和多个工作节点（worker）
+master节点是集群的控制节点，负责整个集群的管理和控制，主要用于暴露API、调度部署和对节点进行管理，
+工作节点主要是运行容器的。
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1656665514555.png" alt="" loading="lazy"></figure>
+<p>多master节点架构图如下：<br>
+<img src="https://ajie825.github.io/post-images/1656665603659.png" alt="" loading="lazy"></p>
+<h2 id="kubernetes组件">kubernetes组件</h2>
+<pre><code class="language-bash">1）kubectl：管理k8s的命令行工具，可以操作k8s中的资源对象，如增删改查等，可以安装在任何工作节点。
+2）etcd：是一个高可用的键值数据库，存储k8s的资源状态信息和网络信息的，etcd中的数据变更是通过apiserver进行的。
+3）apiserver：提供k8s的api接口，是整个系统的对外接口，提供资源操作的唯一入口，供客户端和其它组件调用，
+提供了k8s各类资源对象(pod、deployment、service等)的增删改查，是整个系统的数据总线和数据中心，并提供
+认证、授权、访问控制、API注册和发现等机制，并将操作对象持久化到etcd中。
+4）scheduler：负责k8s集群中pod的调度，scheduler通过与apiserver交互监听到创建副本的信息后，它会检索所有符合该
+pod要求的工作节点列表，开始执行pod调度逻辑，调度成功后将pod绑定到目标节点上，相当于“调度室”。
+5）controller-manager：作为集群内部的管理控制中心，负责集群内部的node、pod副本、服务端点(Endpoint)、
+命名空间(Namespace)、服务账号(ServiceAccount)、资源定额(ResourceQuota)的管理，当某个node意外宕机时，
+Controller manager会及时发现并执行自动化修复流程，确保集群始终处于预期的工作状态。
+</code></pre>
+<figure data-type="image" tabindex="2"><img src="https://ajie825.github.io/post-images/1656668773099.png" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">每个Controller通过API server提供的接口实时监控整个集群的每个资源对象当前的状态，当发生各种故障导致系统状态发生
+变化时，会尝试将系统状态修复到“期望状态”
+6）kubelet：每个node节点上的kubelet定期会调用API server的REST接口报告自身状态，API server接收这些信息后，将
+节点状态信息更新到etcd中，kebelet也通过API server监听pod信息，从而对node机器上的pod进行管理，如创建、删除
+更新pod。
+7）kube-proxy：提供网络代理和负载均衡，是实现service的通信与负载均衡机制的重要组件，kebu-proxy负责为pod创建代
+理服务，从apiserver获取所有service信息，并根据service信息创建代理服务，实现service到pod的请求路由和转发，从而
+实现k8s层级的虚拟转发网络，将service的请求转发到后端的pod上。
+8）coredns：coredns其实就是一个DNS服务，而DNS作为一种常见的服务发现手段，很多开源项目以及工程师都会使用coredns
+为集群提供服务发现的功能，kubernetes就在集群中使用coredns解决服务发现的问题。
+9）calico：是一套开源的网络和网络安全方案，用于容器、虚拟机、宿主机之间的网络连接，可以用在kubernetes、OpenShift、
+DockerEE、OpenStrack等PaaS或IaaS平台上。
+10）docker：容器运行时，负责启动容器的，在k8s1.20版本之后建议废弃docker，使用container作为容器运行时。
+</code></pre>
+<h2 id="kubernetes核心资源解读">kubernetes核心资源解读</h2>
+<h3 id="pod">pod</h3>
+<pre><code class="language-bash">pod是kubernetes中的最小调度单元，k8s是通过定义一个pod的资源，然后在pod里面运行容器，容器需要指定镜像，用来运行具体
+的服务。pod代表集群上运行的一个进程，一个pod封装一个容器（也可以封装多个容器），pod里的容器共享存储、网络等。也就是说，
+应该把整个pod看作虚拟机，然后每个容器相当于运行在虚拟机的进程。
+</code></pre>
+<h3 id="label">label</h3>
+<pre><code class="language-bash">label是标签的意思，k8s中的资源对象大都可以打上标签，如node、pod、service等，一个资源可以绑定任意多个label，k8s通过
+label可实现多维度的资源分组管理，后续可通过label selector查询和筛选拥有某些label的资源对象，例如创建一个pod，给定一
+个label是app=tomcat，那么service可以通过label selector选择拥有app=tomcat的pod，和其相关联，也可通过app=tomcat删
+除拥有该标签的pod资源。
+</code></pre>
+<figure data-type="image" tabindex="3"><img src="https://ajie825.github.io/post-images/1656924725209.png" alt="" loading="lazy"></figure>
+<h3 id="deployment">deployment</h3>
+<pre><code class="language-bash">replicaset是kubernetes中的副本控制器，管理pod，使pod副本的数量始终维持在预设的个数，deployment是管理replicaset和
+pod的副本控制器，deployment可以管理多个replicaset，是比replicaset更高级的控制器，也就是说在创建deployment的时候，
+会自动创建replicaset，由replicaset再创建pod，deployment能对pod扩容、缩容、滚动更新和回滚、维持pod数量。
+</code></pre>
+<figure data-type="image" tabindex="4"><img src="https://ajie825.github.io/post-images/1656925138940.png" alt="" loading="lazy"></figure>
+<h3 id="service">service</h3>
+<pre><code class="language-bash">在kubenetes中，pod是有生命周期的，如果pod重启IP很有可能发生变化，如果我们的服务都是将pod的IP地址写死，pod的挂掉或者重启，
+和刚才重启的pod相关联的其他服务将会找不到它所关联的pod，为了解决这个问题，在kubenetes中定义了service资源对象，service定
+义了一个服务访问的入口，客户端通过这个入口即可访问服务背后的应用集群实例，service是一组pod的逻辑集合，这一组pod能够被service
+访问到，通常是通过label selector实现的。
+可以看下面的图：
+</code></pre>
+<figure data-type="image" tabindex="5"><img src="https://ajie825.github.io/post-images/1656925576883.png" alt="" loading="lazy"></figure>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#kubernets%E7%AE%80%E4%BB%8B">kubernets简介</a></li>
+<li><a href="#k8s%E5%BC%BA%E5%A4%A7%E7%9A%84%E5%8A%9F%E8%83%BD">k8s强大的功能</a></li>
+<li><a href="#%E6%8E%8C%E6%8F%A1k8s%E5%85%A8%E6%A0%88%E6%8A%80%E6%9C%AF%E4%BD%93%E7%B3%BB">掌握k8s全栈技术体系</a></li>
+<li><a href="#k8s%E7%9A%84%E7%89%A9%E7%90%86%E6%9E%B6%E6%9E%84">k8s的物理架构</a></li>
+<li><a href="#kubernetes%E7%BB%84%E4%BB%B6">kubernetes组件</a></li>
+<li><a href="#kubernetes%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90%E8%A7%A3%E8%AF%BB">kubernetes核心资源解读</a>
+<ul>
+<li><a href="#pod">pod</a></li>
+<li><a href="#label">label</a></li>
+<li><a href="#deployment">deployment</a></li>
+<li><a href="#service">service</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://ajie825.github.io/post/mongodb-he-xin-ji-zhu-yun-wei/">
+              <h3 class="post-title">
+                mongodb核心技术
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

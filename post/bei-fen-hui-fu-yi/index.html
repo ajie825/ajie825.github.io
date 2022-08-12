@@ -1,0 +1,584 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>备份恢复（一） | Gridea</title>
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1660297788946">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="备份恢复（一） | Gridea - Atom Feed" href="https://ajie825.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+
+    <meta name="description" content="上节回顾
+二进制日志概述
+binlog如何开启？
+log_bin=/data/binlog/mysql-bin
+binlog_format=row   *****
+RBR：行模式（默认）
+SBR：语句模式，缺点存在记录错误的可能，比如函数类..." />
+    <meta name="keywords" content="mysql" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://ajie825.github.io">
+  <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1660297788946" alt="">
+  </a>
+  <h1 class="site-title">
+    Gridea
+  </h1>
+  <p class="site-description">
+    温故而知新
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              备份恢复（一）
+            </h2>
+            <div class="post-info">
+              <span>
+                2022-06-13
+              </span>
+              <span>
+                15 min read
+              </span>
+              
+                <a href="https://ajie825.github.io/tag/QZsgrmg-1Q/" class="post-tag">
+                  # mysql
+                </a>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <h2 id="上节回顾">上节回顾</h2>
+<h3 id="二进制日志概述">二进制日志概述</h3>
+<pre><code class="language-mysql">binlog如何开启？
+log_bin=/data/binlog/mysql-bin
+binlog_format=row   *****
+RBR：行模式（默认）
+SBR：语句模式，缺点存在记录错误的可能，比如函数类操作
+MBR：混合模式，一般不用
+sync_binlog=1 默认为1，双一标准之一，每次事务提交都立即刷写binlog到磁盘 *****
+
+show master status;  #查看正在使用的二进制日志
+show binlog events in ' ';#查看二进制日志的事件信息
+mysqlbinlog --base64-output=decode-rows -vvv #查看二进制日志内容（--help可查到，有印象即可）
+
+GTID
+在做数据恢复和主从复制时，会用到幂等性
+mysql&gt; show variables like '%gtid%';
+[root@mysqld ~]# mysqlbinlog --help |grep gtid
+--skip-gtids：不保留全局事务标识符；替代、跳过gtid的检测，导出日志时不进行记录gtid信息
+--include-gtids=' '
+--exclude-gtids=' '
+set sql_log_bin=0;
+soure  /tmp/bin.sql;
+set sql_log_bin=1;
+
+binlog最难的是怎么找到想要恢复的起始点和终点，在生产中一般通过配合备份
+</code></pre>
+<h3 id="二进制日志清理">二进制日志清理</h3>
+<pre><code class="language-mysql">日志文件会不断的增长，如果磁盘满了如何释放空间？
+切记勿使用 rm 操作系统层面的命令
+对于数据库相关的文件或对象操作时，一定要使用数据库内部的命令
+1）自动清理
+expire_logs_days=15  放到配置文件，重启即可
+依据：如果每周进行一次全备，至少1轮全备周期长度的过期时间（8天）
+2）手工清理（很少使用）
+mysql&gt; show binary logs;
+mysql&gt; help purge
+PURGE BINARY LOGS TO 'mysql-bin.010';
+PURGE BINARY LOGS BEFORE '2008-04-02 22:46:26';
+mysql&gt; reset master;  #重头开始，主从复制切记主库一定不要做，必崩
+mysql&gt; show binary logs;
+</code></pre>
+<h3 id="如何生成新的日志">如何生成新的日志</h3>
+<pre><code class="language-mysql">flush logs;
+数据库重启
+mysql&gt; select @@max_binlog_size;
++-------------------+
+| @@max_binlog_size |
++-------------------+
+|        1073741824 |
++-------------------+
+二进制文件的最大大小，默认1G
+</code></pre>
+<h3 id="slow-log-慢日志">slow-log 慢日志</h3>
+<pre><code class="language-mysql">mysql&gt; show variables like 'slow_query_log%';
+mysql&gt; show variables like 'long%';
+mysql&gt; show variables like '%using_indexes%';
+mysqldumpslow -s c -t 10  /data/mysql/slow.log
+</code></pre>
+<p>数据库运维的工作：</p>
+<pre><code class="language-mysql">基本的监控、备份和恢复、架构的设计和实施、SQL慢查询的处理和优化
+</code></pre>
+<h2 id="备份恢复">备份恢复</h2>
+<h3 id="职责">职责</h3>
+<p>1、备份策略的设计</p>
+<pre><code class="language-mysql">1）备份周期
+根据数据量设计备份周期，比如，周日全备，周1-周6增备
+60G数据每天用mysqldump做全备，大约30分钟左右，逻辑备份
+
+2）备份工具
+逻辑备份（mysqldump MDP+binlog）
+物理备份（XBK percona xtrabackup，MEB MySQL Enterprise BACKUP）
+
+3）逻辑备份和物理备份的比较
+逻辑备份优点：
+不需要下载安装；备份出来的是SQL，文本格式，可读性强，便于备份处理；压缩比较高，节省备份的磁盘空间
+逻辑备份缺点：
+依赖于数据库引擎，需要从磁盘读取数据，然后转换成SQL进行存储，比较耗费资源，数据量大效率低
+建议：
+100G以内的数据量级，可以使用mysqldump
+超过TB以上，我们也可能选择mysqldump，配合分布式系统
+1EB = 1024PB = 1000000TB
+物理备份优点：
+类似于直接cp数据文件，支持增量备份，不需要管逻辑结构，相对来说性能较高
+物理备份缺点：
+可读性差；压缩比低，需要更多磁盘空间
+建议：
+&gt;100G&lt;TB
+
+4）备份策略
+全备：备份所有数据
+增量：备份变化的数据
+逻辑备份=mysqldump+mysqlbinlog
+物理备份=xtrabackup_full+xtrabackup_incr+binlog或者xtrabackup_full+binlog
+XBK增量备份维护相当麻烦，有些公司是xtrabackup_full+binlog
+
+5）备份类型
+热备：在数据库正常业务时，备份数据，并且能够一致性恢复（innodb），对业务影响小
+温备：锁表备份，只能查询不能修改（myisam），影响到写入操作
+冷备：关闭数据库业务，数据库没有任何变更的情况下进行备份，业务停止
+</code></pre>
+<p>2、确认、检查备份可用性</p>
+<pre><code class="language-mysql">crontab –l   -----&gt;
+备份脚本      -----&gt;
+备份路径      -----&gt;
+看备份日志,检查备份文件(大小,内容)
+</code></pre>
+<p>3、定期做恢复演练</p>
+<pre><code class="language-mysql">一季度 或者 半年
+</code></pre>
+<p>4、数据恢复</p>
+<pre><code class="language-mysql">只要备份和日志是完整的，可以快速恢复到故障之前的时间点
+</code></pre>
+<p>5、数据迁移和升级</p>
+<pre><code class="language-mysql">操作系统不同的迁移：只能用逻辑形式
+mysql  -&gt;  mysql 
+其他   -&gt;  mysql 
+mysql  -&gt;  其他
+</code></pre>
+<h3 id="备份工具使用-mysqldump">备份工具使用-mysqldump</h3>
+<p>1、客户端通用参数</p>
+<pre><code class="language-mysql">-u   -p   -S   -h   -P  
+本地备份：
+mysqldump -uroot -p  -S /tmp/mysql.sock
+远程备份：
+mysqldump -uroot -p  -h 10.0.0.51 -P3306
+</code></pre>
+<p>2、备份专用基本参数</p>
+<pre><code class="language-mysql">-A：全备参数
+例子：
+[root@mysqld ~]# mkdir -p /data/backup
+[root@mysqld ~]# mysqldump -uroot -p -A &gt;/data/backup/full.sql
+Enter password: 
+Warning: A partial dump from a server that has GTIDs will by default include the GTIDs of 
+all transactions, even those that changed suppressed parts of the database
+If you don't want to restore GTIDs, pass --set-gtid-purged=OFF
+To make a complete dump, pass --all-databases --triggers --routines --events
+#补充
+1）常规备份时要加 --set-gtid-purged=OFF，解决备份时的警告
+[root@mysqld ~]# mysqldump -uroot -p -A --set-gtid-purged=OFF&gt;/data/backup/full.sql
+2）构建主从时，做的备份不需要加这个参数
+3）此参数可以不用记
+</code></pre>
+<pre><code class="language-mysql">-B  db1  db2  db3备份多个单库
+说明：生产中需要备份，生产相关的库和MySQL库
+[root@mysqld ~]# mysqldump -uroot -p -B mysql gtid --set-gtid-purged=OFF &gt;/data/backup/b.sql
+</code></pre>
+<pre><code class="language-mysql">备份单个或多个表 
+例子：备份world数据库下的city、country表
+mysqldump -uroot -p world city country --set-gtid-purged=OFF &gt;/backup/bak1.sql
+以上备份恢复时，必须库事先存在，并且use才能source恢复
+备份逻辑：从磁盘把数据取出来转换成SQL语句并且导出到文件
+</code></pre>
+<p>3、高级参数应用</p>
+<pre><code class="language-mysql">特殊参数1使用---必须要加
+-R：        备份存储过程及函数（类似于Linux系统中的shell脚本，性能比较差）
+--triggers：备份触发器
+-E：         备份事件（相当于linux系统中的crontab） 
+例子：
+[root@mysqld ~]# mysqldump -uroot -p -A -R -E --triggers &gt;/data/backup/full.sql
+
+-F：在备份开始时，刷新一个新的binlog日志（不推荐使用）
+mysqldump -uroot -p  -A  -R --triggers -F &gt;/bak/full.sql
+
+--master-data=2   *****
+以注释的形式，保存备份开始时间点的binlog的状态信息
+mysqldump -uroot -p -A -R -E --triggers --master-data=2 &gt;/data/backup/full.sql
+[root@mysqld ~]# vim /data/backup/full.sql
+-- CHANGE MASTER TO MASTER_LOG_FILE='mysql-bin.000001', MASTER_LOG_POS=154;
+功能：
+1）在备份时，会自动记录二进制日志文件名和位置号
+2）自动锁表，如果配合--single-transaction，只对非InnoDB表进行锁表备份，
+InnoDB表进行“热“”备，实际上是实现快照备份
+
+--single-transaction  *****
+innodb存储引擎开启热备（快照备份）功能
+多于InnoDB的表，进行一致性快照备份（对某一时刻进行备份），不锁表，真正的热备是备份数据的同
+时把备份过程中产生的新的数据一次性备份，mysqldump实现不了，真正能实现的是XBK
+
+--max-allowed-packet=#   ***
+向服务器发送或从服务器接收的最大数据包长度
+mysqldump -uroot -p -A -R -E --triggers --master-data=2  --single-transaction 
+--set-gtid-purged=OFF --max-allowed-packet=256M &gt;/data/backup/full.sql
+</code></pre>
+<h3 id="小练习">小练习</h3>
+<p>实现所有表的单独备份</p>
+<pre><code class="language-mysql">提示：
+information_schema.tables
+mysqldump -uroot -p123 world city &gt;/backup/world_city.sql
+
+select concat(&quot;mysqldump -uroot -p123 &quot;,table_schema,&quot; &quot;,table_name,&quot; --master-data=2 
+--single-transaction --set-gtid-purged=0  
+-R -E --triggers&gt;/backup/&quot;,table_schema,&quot;_&quot;,table_name,&quot;.sql&quot;) 
+from information_schema.tables where table_schema not in
+('sys','information_schema','performance_schema');
+</code></pre>
+<h3 id="模拟故障案例并恢复">模拟故障案例并恢复</h3>
+<p>1、背景环境</p>
+<pre><code class="language-mysql">正在运行的网站系统，mysql-5.7.26数据库，数据量50G，日业务增量1-5M
+</code></pre>
+<p>2、备份策略</p>
+<pre><code class="language-mysql">每天23:00点，计划任务调用mysqldump执行全备脚本
+</code></pre>
+<p>3、故障时间点</p>
+<pre><code class="language-mysql">年底故障演练：模拟周三上午10点误删除数据库，并进行恢复
+</code></pre>
+<p>4、思路</p>
+<pre><code class="language-mysql">1）停止业务，避免数据的二次伤害
+2）找一个临时库，恢复周二23:00全备
+3）截取周二23:00---周三10点误删除之间的binlog，恢复到临时库
+4）测试可用性和完整性
+5）方法一：直接使用临时库顶替原生产库，前端应用割接到新库
+   方法二：将误删除的表导出，导入到原生产库
+6）开启业务
+处理结果：经过20分钟的处理，最终业务恢复正常
+</code></pre>
+<p>5、故障模拟演练</p>
+<p>5.1 准备数据</p>
+<pre><code class="language-mysql">create database backup;
+use backup
+create table t1 (id int);
+insert into t1 values(1),(2),(3);
+commit;
+rm -rf /backup/*
+</code></pre>
+<p>5.2 周二23:00全备</p>
+<pre><code class="language-mysql">mysqldump -uroot -p123 -A -R -E --triggers --set-gtid-purged=OFF --master-data=2 
+--single-transaction|gzip &gt; /backup/full_$(date +%F).sql.gz
+</code></pre>
+<p>5.3 模拟周二 23:00到周三10点之间的数据变化</p>
+<pre><code class="language-mysql">use backup
+insert into t1 values(11),(22),(33);
+commit;
+create table t2 (id int);
+insert into t2 values(11),(22),(33);
+commit;
+</code></pre>
+<p>5.4 模拟故障，删除表（只是模拟，不代表生产操作）</p>
+<pre><code class="language-mysql">drop database backup;
+</code></pre>
+<p>5.5 恢复过程</p>
+<pre><code class="language-mysql">1）准备临时数据库（多实例3307）
+systemctl start mysqld3307
+</code></pre>
+<pre><code class="language-mysql">2）准备备份
+准备全备
+cd /backup/
+gunzip full_2022-06-14.sql.gz
+截取二进制日志
+vim full_2022-06-14.sql
+-- CHANGE MASTER TO MASTER_LOG_FILE='mysql-bin.000001', MASTER_LOG_POS=753;
+起点：753
+mysql&gt; show master status; #备份里记录哪一个就用哪一个
++------------------+----------+------------------------------------------+
+| File             | Position | Executed_Gtid_Set                        |
++------------------+----------+------------------------------------------+
+| mysql-bin.000001 |     1617 | 923a6d2c-9dc4-11ec-922c-000c299152c6:1-7 |
++------------------+----------+------------------------------------------+
+1 row in set (0.00 sec)
+mysql&gt; show binlog events in 'mysql-bin.000001';
++------+-------------+-------------------------------------------------------------------+
+| Pos  | End_log_pos | Info                                                              |
++------+-------------+-------------------------------------------------------------------+
+|    4 |         123 | Server ver: 5.7.26-log, Binlog ver: 4                             |
+|  123 |         154 |                                                                   |
+|  154 |         219 | SET @@SESSION.GTID_NEXT= '923a6d2c-9dc4-11ec-922c-000c299152c6:1' |
+|  219 |         319 | create database backup                                            |
+|  319 |         384 | SET @@SESSION.GTID_NEXT= '923a6d2c-9dc4-11ec-922c-000c299152c6:2' |
+|  384 |         486 | use `backup`; create table t1 (id int)                            |
+|  486 |         551 | SET @@SESSION.GTID_NEXT= '923a6d2c-9dc4-11ec-922c-000c299152c6:3' |
+|  551 |         625 | BEGIN                                                             |
+|  625 |         672 | table_id: 168 (backup.t1)                                         |
+|  672 |         722 | table_id: 168 flags: STMT_END_F                                   |
+|  722 |         753 | COMMIT /* xid=2790 */                                             |
+|  753 |         818 | SET @@SESSION.GTID_NEXT= '923a6d2c-9dc4-11ec-922c-000c299152c6:4' |
+|  818 |         892 | BEGIN                                                             |
+|  892 |         939 | table_id: 170 (backup.t1)                                         |
+|  939 |         989 | table_id: 170 flags: STMT_END_F                                   |
+|  989 |        1020 | COMMIT /* xid=3461 */                                             |
+| 1020 |        1085 | SET @@SESSION.GTID_NEXT= '923a6d2c-9dc4-11ec-922c-000c299152c6:5' |
+| 1085 |        1187 | use `backup`; create table t2 (id int)                            |
+| 1187 |        1252 | SET @@SESSION.GTID_NEXT= '923a6d2c-9dc4-11ec-922c-000c299152c6:6' |
+| 1252 |        1326 | BEGIN                                                             |
+| 1326 |        1373 | table_id: 211 (backup.t2)                                         |
+| 1373 |        1423 | table_id: 211 flags: STMT_END_F                                   |
+| 1423 |        1454 | COMMIT /* xid=3464 */                                             |
+| 1454 |        1519 | SET @@SESSION.GTID_NEXT= '923a6d2c-9dc4-11ec-922c-000c299152c6:7' |
+| 1519 |        1617 | drop database backup                                              |
++------+-------------+-------------------------------------------------------------------+
+终点：1519
+mysqlbinlog --skip-gtids   --start-position=753 --stop-position=1519 
+/data/binlog/mysql-bin.000001 &gt;/backup/bin.sql
+</code></pre>
+<p>3）恢复备份到临时库</p>
+<pre><code class="language-mysql">mysql -S /data/3307/mysql.sock
+set sql_log_bin=0;
+source /backup/full_2022-06-14.sql
+source /backup/bin.sql 
+set sql_log_bin=1;
+</code></pre>
+<p>4）将故障库和表导出并恢复到生产</p>
+<pre><code class="language-mysql">mysqldump -S /data/3307/mysql.sock -B  backup  &gt;/backup/bak.sql
+mysql -uroot -p123
+set sql_log_bin=0;
+source /backup/bak.sql;
+set sql_log_bin=1;
+show databases;
+show tables;
+select * from t1;
+select * from t2;
+</code></pre>
+<h3 id="练习">练习</h3>
+<pre><code class="language-mysql">练习：
+1、创建一个数据库 oldboy
+2、在oldboy下创建一张表t1
+3、插入5行任意数据
+4、全备
+5、插入两行数据，任意修改3行数据，删除1行数据
+6、删除所有数据
+7、再t1中又插入5行新数据，修改3行数据
+需求，跳过第六步恢复表数据
+写备份脚本和策略
+</code></pre>
+<pre><code class="language-mysql">#使用GTID恢复
+准备全备
+mysqldump -uroot -p123 -A --master-data=2 --single-transaction -R -E --triggers
+&gt;/backup/full.sql
+SET @@GLOBAL.GTID_PURGED='2d7141f4-6c1e-11ea-a31f-000c29956db1:1-10';  
+-- CHANGE MASTER TO MASTER_LOG_FILE='mysql-bin.000003', MASTER_LOG_POS=818;
+mysql&gt; show binlog events in 'mysql-bin.000003';
+截取二进制日志
+mysqlbinlog --skip-gtids --include-gtids='2d7141f4-6c1e-11ea-a31f-000c29956db1:11-16' 
+--exclude-gtids='2d7141f4-6c1e-11ea-a31f-000c29956db1:14' 
+/data/binlog/mysql-bin.000003&gt;/backup/bin.sql
+</code></pre>
+<h3 id="物理备份-xbk">物理备份-XBK</h3>
+<p>1、安装依赖包</p>
+<pre><code class="language-mysql">wget -O /etc/yum.repos.d/epel.repo http://mirrors.aliyun.com/repo/epel-7.repo
+yum -y install perl perl-devel libaio libaio-devel perl-Time-HiRes perl-DBD-MySQL libev
+</code></pre>
+<p>2、下载软件并安装</p>
+<pre><code class="language-mysql">wget https://www.percona.com/downloads/XtraBackup/Percona-XtraBackup-2.4.12/binary/redhat/7/
+x86_64/percona-xtrabackup-24-2.4.12-1.el7.x86_64.rpm
+https://www.percona.com/downloads/XtraBackup/Percona-XtraBackup-2.4.4/binary/redhat/6/
+x86_64/percona-xtrabackup-24-2.4.4-1.el6.x86_64.rpm
+[root@mysql ~]# yum -y install percona-xtrabackup-24-2.4.4-1.el7.x86_64.rpm
+[root@mysql ~]# innobackupex --version
+xtrabackup: recognized server arguments: --datadir=/data/mysql/data --server-id=6 
+--log_bin=/data/binlog/mysql-bin 
+innobackupex version 2.4.12 Linux (x86_64) (revision id: 170eb8c)
+</code></pre>
+<p>3、备份命令介绍</p>
+<pre><code class="language-mysql">xtrabackup
+innobackupex   *****
+</code></pre>
+<p>4、备份方式---物理备份</p>
+<pre><code class="language-mysql">1）对于非Innodb表（比如myisam）进行锁表备份，copy所有的非Innodb表文件，属于一种温备份
+2）Innodb表，不锁表，拷贝数据页，以数据文件的方式保存下来，把一部分redo和undo日志一起备份，属于热备份
+</code></pre>
+<p>面试题：XBK在Innodb表备份恢复的流程</p>
+<pre><code class="language-mysql">1）XBK在备份执行的瞬间，会立即触发CKPT，将已提交的数据脏页，从内存刷写到磁盘，并记录此时的LSN号
+2）备份时，拷贝磁盘数据页，并且将备份过程中产生的redo和undo日志一起备份，也就是CKPT LSN之后的日志
+3）恢复时，XBK会调用Innodb引擎的CSR过程（自动故障恢复），将数据和redo的LSN号追平，然后进行一致性恢复
+</code></pre>
+<p>5、innobackupex使用</p>
+<pre><code class="language-mysql">1）全备
+ grant all on *.* to root@'10.0.0.%' identified by '123';
+innobackupex --user=root --password=123 --host=10.0.0.51 --no-timestamp /backup/full
+或者
+innobackupex --user=root --password=123 --socket=/tmp/mysql.sock --no-timestamp /backup/full 
+</code></pre>
+<p>6、利用全备进行恢复</p>
+<pre><code class="language-mysql">前提：
+1）被恢复的目录是空的
+2）被恢复的数据库实例是关闭的
+[root@mysqld ~]# systemctl stop mysqld
+[root@mysqld ~]# rm -rf /data/mysql/data/*
+#将redo进行重做，已提交的写到数据文件，未提交的使用undo回滚，模拟CSR的过程
+[root@mysqld ~]# innobackupex --apply-log /backup/full/
+#恢复备份
+[root@mysqld ~]# cp -a /backup/full/* /data/mysql/data/
+#数据授权
+[root@mysqld ~]# chown -R mysql.mysql /data/mysql/data/*
+#启动数据库
+[root@mysqld ~]# systemctl start mysqld
+</code></pre>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#%E4%B8%8A%E8%8A%82%E5%9B%9E%E9%A1%BE">上节回顾</a>
+<ul>
+<li><a href="#%E4%BA%8C%E8%BF%9B%E5%88%B6%E6%97%A5%E5%BF%97%E6%A6%82%E8%BF%B0">二进制日志概述</a></li>
+<li><a href="#%E4%BA%8C%E8%BF%9B%E5%88%B6%E6%97%A5%E5%BF%97%E6%B8%85%E7%90%86">二进制日志清理</a></li>
+<li><a href="#%E5%A6%82%E4%BD%95%E7%94%9F%E6%88%90%E6%96%B0%E7%9A%84%E6%97%A5%E5%BF%97">如何生成新的日志</a></li>
+<li><a href="#slow-log-%E6%85%A2%E6%97%A5%E5%BF%97">slow-log 慢日志</a></li>
+</ul>
+</li>
+<li><a href="#%E5%A4%87%E4%BB%BD%E6%81%A2%E5%A4%8D">备份恢复</a>
+<ul>
+<li><a href="#%E8%81%8C%E8%B4%A3">职责</a></li>
+<li><a href="#%E5%A4%87%E4%BB%BD%E5%B7%A5%E5%85%B7%E4%BD%BF%E7%94%A8-mysqldump">备份工具使用-mysqldump</a></li>
+<li><a href="#%E5%B0%8F%E7%BB%83%E4%B9%A0">小练习</a></li>
+<li><a href="#%E6%A8%A1%E6%8B%9F%E6%95%85%E9%9A%9C%E6%A1%88%E4%BE%8B%E5%B9%B6%E6%81%A2%E5%A4%8D">模拟故障案例并恢复</a></li>
+<li><a href="#%E7%BB%83%E4%B9%A0">练习</a></li>
+<li><a href="#%E7%89%A9%E7%90%86%E5%A4%87%E4%BB%BD-xbk">物理备份-XBK</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://ajie825.github.io/post/ri-zhi-guan-li/">
+              <h3 class="post-title">
+                日志管理
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

@@ -1,0 +1,237 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>二进制部署node exporter（四） | Gridea</title>
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1660297788946">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="二进制部署node exporter（四） | Gridea - Atom Feed" href="https://ajie825.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+
+    <meta name="description" content="在Prometheus的架构设计中，Prometheus server并不直接监控特定的目标，其主要任务负责数据的收集、存储并且对外提供数据查询支持。因此为了能够监控到某些指标，如主机的CPU使用率、内存、磁盘，我们需要使用到exporte..." />
+    <meta name="keywords" content="prometheus" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://ajie825.github.io">
+  <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1660297788946" alt="">
+  </a>
+  <h1 class="site-title">
+    Gridea
+  </h1>
+  <p class="site-description">
+    温故而知新
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              二进制部署node exporter（四）
+            </h2>
+            <div class="post-info">
+              <span>
+                2022-04-26
+              </span>
+              <span>
+                3 min read
+              </span>
+              
+                <a href="https://ajie825.github.io/tag/OXb9iz9Q3p/" class="post-tag">
+                  # prometheus
+                </a>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <p>在Prometheus的架构设计中，Prometheus server并不直接监控特定的目标，其主要任务负责数据的收集、存储并且对外提供数据查询支持。因此为了能够监控到某些指标，如主机的CPU使用率、内存、磁盘，我们需要使用到exporter，Prometheus周期性的从exporter暴露的HTTP服务地址（通常是/metrics）拉取监控样本数据。</p>
+<pre><code class="language-shell">[root@prometheus ~]# wget https://github.com/prometheus/node_exporter/releases/download/v1.0.1/node_exporter-1.0.1.linux-amd64.tar.gz
+[root@prometheus ~]# tar xf node_exporter-1.0.1.linux-amd64.tar.gz -C /usr/local/src/
+[root@prometheus ~]# ln -s /usr/local/src/node_exporter-1.0.1.linux-amd64 /usr/local/node_exporter
+cat &gt;/usr/lib/systemd/system/node-exporter.service &lt;&lt;EOF
+[Unit]
+Description=Prometheus Server
+After=network.target
+[Service]
+ExecStart=/usr/local/node_exporter/node_exporter
+[Install]
+WantedBy=multi-user.target
+EOF
+[root@prometheus ~]# systemctl daemon-reload &amp;&amp; systemctl enable node-exporter.service &amp;&amp; systemctl start node-exporter.service
+Created symlink from /etc/systemd/system/multi-user.target.wants/node-exporter.service to /usr/lib/systemd/system/node-exporter.service.
+[root@prometheus ~]# ss -lnpt|grep node_exporter
+LISTEN     0      128       [::]:9100                  [::]:*                   users:((&quot;node_exporter&quot;,pid=11256,fd=3))
+</code></pre>
+<p>查看监控指标，仅截取了一部分</p>
+<pre><code class="language-shell">[root@prometheus ~]# curl http://10.0.0.51:9100/metrics
+# HELP go_gc_duration_seconds A summary of the pause duration of garbage collection cycles.
+# TYPE go_gc_duration_seconds summary
+go_gc_duration_seconds{quantile=&quot;0&quot;} 0
+go_gc_duration_seconds{quantile=&quot;0.25&quot;} 0
+go_gc_duration_seconds{quantile=&quot;0.5&quot;} 0
+go_gc_duration_seconds{quantile=&quot;0.75&quot;} 0
+go_gc_duration_seconds{quantile=&quot;1&quot;} 0
+go_gc_duration_seconds_sum 0
+go_gc_duration_seconds_count 0
+# HELP go_goroutines Number of goroutines that currently exist.
+# TYPE go_goroutines gauge
+go_goroutines 9
+# HELP go_info Information about the Go environment.
+# TYPE go_info gauge
+go_info{version=&quot;go1.14.4&quot;} 1
+# HELP go_memstats_alloc_bytes Number of bytes allocated and still in use.
+# TYPE go_memstats_alloc_bytes gauge
+go_memstats_alloc_bytes 3.495864e+06
+</code></pre>
+<p>在Prometheus的server端添加job任务</p>
+<pre><code class="language-shell">[root@prometheus ~]# vim /usr/local/prometheus/prometheus.yml 
+  - job_name: 'node_exporter'
+    static_configs:
+    - targets: [ 10.0.0.51:9100 ]
+[root@prometheus ~]# systemctl restart prometheus
+</code></pre>
+<p>通过浏览器访问 http://10.0.0.51:9090/targets<br>
+<img src="https://ajie825.github.io/post-images/1650958019855.png" alt="" loading="lazy"></p>
+<p>扩展（批量添加节点）</p>
+<p>在添加大量主机集群时，一台一台在Prometheus.yml中添加，显然不太方便，我们通过编写发现文件，进行批量主机管理</p>
+<p>编写自动发现文件</p>
+<pre><code class="language-shell">[root@prometheus ~]# mkdir -p /usr/local/prometheus/targets/
+[root@prometheus ~]# vim /usr/local/prometheus/targets/node.yml
+- targets: 
+  - '172.16.214.141:9100'
+  - '172.16.214.140:9100'
+  - '172.16.214.139:9100'
+  labels:
+    idc: &quot;bj&quot;               # 备注集群名
+</code></pre>
+<p>修改prometheus配置文件</p>
+<pre><code class="language-shell">[root@prometheus ~]# vim /usr/local/prometheus/prometheus.yml
+- job_name: 'nm_mch-app_node'
+    file_sd_configs:
+      - files: ['/usr/local/prometheus/targets/node.yml']
+        refresh_interval: 5s
+</code></pre>
+<p>配置prometheus告警规则</p>
+<p>参考博客园：https://www.cnblogs.com/ajie516/p/15740244.html</p>
+
+              </div>
+              <div class="toc-container">
+                
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://ajie825.github.io/post/alertmanager-gao-jing-mo-ban-san/">
+              <h3 class="post-title">
+                alertmanager告警模板（三）
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

@@ -1,0 +1,500 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>使用openresty实现WAF防火墙功能 | Gridea</title>
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1660297788946">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="使用openresty实现WAF防火墙功能 | Gridea - Atom Feed" href="https://ajie825.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+
+    <meta name="description" content="什么是WAF
+Web应用防护系统（也称为网站应用级入侵防御系统，英文：Web Application Firewall），利用国际上公认的一种说法：Web应用防火墙是通过执行一系列针对HTTP/HTTPS的安全策略来专门为Web应用提供保护..." />
+    <meta name="keywords" content="openresty" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://ajie825.github.io">
+  <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1660297788946" alt="">
+  </a>
+  <h1 class="site-title">
+    Gridea
+  </h1>
+  <p class="site-description">
+    温故而知新
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              使用openresty实现WAF防火墙功能
+            </h2>
+            <div class="post-info">
+              <span>
+                2022-05-10
+              </span>
+              <span>
+                16 min read
+              </span>
+              
+                <a href="https://ajie825.github.io/tag/7AWoqvhrTx/" class="post-tag">
+                  # openresty
+                </a>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <h2 id="什么是waf">什么是WAF</h2>
+<p>Web应用防护系统（也称为网站应用级入侵防御系统，英文：Web Application Firewall），利用国际上公认的一种说法：Web应用防火墙是通过执行一系列针对HTTP/HTTPS的安全策略来专门为Web应用提供保护的一款产品。</p>
+<h2 id="实现waf">实现WAF</h2>
+<p>实现WAF的方式有两种：</p>
+<p>1、使用nginx+lua来实现WAF，需要在编译nginx的时候配置lua</p>
+<p>2、部署openresty，不需要在编译nginx的时候指定lua</p>
+<p>这里我们采用的是第二钟</p>
+<p>WAF一句话描述：就是解析HTTP请求（协议解析模块）、规则检测（规则模块）、做不同的防御动作（动作模块），并将防御过程（日志模块）记录下来，所以WAF的实现由五个模块（配置模块、协议解析模块、规则模块、动作模块、错误处理模块）组成。</p>
+<h2 id="waf的功能">WAF的功能</h2>
+<p>1、支持IP白名单和黑名单功能，直接将黑名单的IP访问拒绝</p>
+<p>2、支持URL白名单，将不需要过滤的URL进行定义</p>
+<p>3、支持User-Agent的过滤，匹配自定义规则中的条目，然后进行处理（返回403）</p>
+<p>4、支持CC攻击防护，单个URL指定时间的访问次数，超过设定值（返回403）</p>
+<p>5、支持Cookie过滤，匹配自定义规则中的条目，然后进行处理（返回403）</p>
+<p>6、支持URL过滤，匹配自定义规则中的条目，如果用户请求的URL包含这些（返回403）</p>
+<p>7、支持URL参数过滤，原理同上</p>
+<p>8、支持日志记录，将所有拒绝的操作，记录到日志中去</p>
+<p>9、日志记录为JSON格式，便于日志分析，例如使用EFK进行攻击日志收集、存储、搜索和展示</p>
+<h2 id="部署waf">部署WAF</h2>
+<p>WAF已经有人通过lua写出了这个开源的功能，github地址：https://github.com/unixhot/waf</p>
+<h3 id="下载waf模块">下载waf模块</h3>
+<pre><code class="language-shell">[root@proxy cache]# cd /opt
+[root@proxy opt]# git clone https://github.com/unixhot/waf.git
+[root@proxy opt]# cp -a ./waf/waf/ /usr/local/openresty/nginx/conf 
+[root@proxy ~]# ls -lh /usr/local/openresty/nginx/conf/waf/
+total 20K
+-rw-r--r-- 1 root root  408 May  9 23:52 access.lua
+-rw-r--r-- 1 root root 1.3K May  9 23:52 config.lua
+-rw-r--r-- 1 root root 5.4K May  9 23:52 init.lua
+-rw-r--r-- 1 root root 2.3K May  9 23:52 lib.lua
+drwxr-xr-x 2 root root  158 May  9 23:52 rule-config
+</code></pre>
+<p>以上access.lua、lib.lua、init.lua都是功能实现的lua代码，如果不具备lua的开发能力，我们一般不会去进行改动</p>
+<p>config.lua 为各个功能的配置文件，rule-config 目录存放了各种防御策略规则，我们需要经常改动 config.lua 和存储策略的文件</p>
+<pre><code class="language-shell">[root@openresty ~]# ls -lh /usr/local/openresty/nginx/conf/waf/rule-config/
+total 24K
+-rw-r--r-- 1 root root 749 Dec 23 22:12 args.rule      #异常Get参数策略文件
+-rw-r--r-- 1 root root   0 Dec 23 22:12 blackip.rule   #IP黑名单策略文件
+-rw-r--r-- 1 root root 652 Dec 23 22:12 cookie.rule    #Cookie策略文件
+-rw-r--r-- 1 root root 739 Dec 23 22:12 post.rule      #异常POST参数策略文件
+-rw-r--r-- 1 root root 307 Dec 23 22:12 url.rule       #异常URL策略文件
+-rw-r--r-- 1 root root 173 Dec 23 22:12 useragent.rule #异常UserAgent策略文件
+-rw-r--r-- 1 root root   0 Dec 23 22:12 whiteip.rule   #IP白名单策略文件
+-rw-r--r-- 1 root root   6 Dec 23 22:12 whiteurl.rule  #白名单URL策略文件
+</code></pre>
+<h3 id="openresty引入waf模块">openresty引入WAF模块</h3>
+<p>1）下载lua-resty-core模块</p>
+<pre><code class="language-shell">[root@proxy ~]# cd /usr/local/openresty/
+[root@proxy openresty]# git clone https://github.com/openresty/lua-resty-core.git 
+</code></pre>
+<p>2）修改nginx配置文件引入WAF模块</p>
+<pre><code class="language-shell">[root@openresty ~]# vim /usr/local/openresty/nginx/conf/nginx.conf
+http {
+lua_shared_dict limit 10m;
+lua_package_path &quot;/usr/local/openresty/nginx/conf/waf/?.lua;/usr/local/openresty/lua-resty-core/lib/?.lua;;&quot;;
+init_by_lua_file &quot;/usr/local/openresty/nginx/conf/waf/init.lua&quot;;
+access_by_lua_file &quot;/usr/local/openresty/nginx/conf/waf/access.lua&quot;;
+...
+}
+[root@openresty ~]# openresty -t
+[root@openresty ~]# openresty -s reload
+</code></pre>
+<p>WAF模块配置文件详解</p>
+<pre><code class="language-shell">cat /usr/local/openresty/nginx/conf/waf/config.lua
+--lua为行注释
+--[[
+这是块注释
+]]
+config_waf_enable = &quot;on&quot;         --是否启用waf模块，值为on或off
+config_log_dir = &quot;/tmp&quot;          --waf的日志位置，日志格式默认为json
+config_rule_dir = &quot;/usr/local/openresty/nginx/conf/waf/rule-config&quot;  --策略规则目录位置，可根据情况变动
+config_white_url_check = &quot;on&quot;     --是否开启URL检测
+config_white_ip_check = &quot;on&quot;      --是否开启IP白名单检测
+config_black_ip_check = &quot;on&quot;      --是否开启IP黑名单检测
+config_url_check = &quot;on&quot;           --是否开启URL过滤
+config_url_args_check = &quot;on&quot;      --是否开启Get参数过滤
+config_user_agent_check = &quot;on&quot;    --是否开启UserAgent客户端过滤
+config_cookie_check = &quot;on&quot;        --是否开启cookie过滤
+config_cc_check = &quot;on&quot;            --是否开启CC攻击过滤
+config_cc_rate = &quot;10/60&quot;          --cc攻击的速率/时间，单位为秒；默认示例中为单个IP地址在60秒内访问同一个页面超过10次则认为是cc攻击，则自动禁止该IP访问此页面60秒，60秒后解封（封禁过程中此IP地址依然可以访问其它页面，如果同一个页面访问次数超过10次依然会被禁止）
+config_post_check = &quot;on&quot;           --是否开启POST检测
+config_waf_output = &quot;html&quot;         --对于违反规则的请求则跳转到一个自定义html页面还是指定页面，值为html和redirect
+config_waf_redirect_url = &quot;https://www.unixhot.com&quot;  --指定违反请求后跳转的指定html页面
+
+--指定违反规则后跳转的自定义html页面
+config_output_html=[[
+&lt;html&gt;
+&lt;head&gt;
+&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=utf-8&quot; /&gt;
+&lt;meta http-equiv=&quot;Content-Language&quot; content=&quot;zh-cn&quot; /&gt;
+&lt;title&gt;OpsAny｜Web应用防火墙&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;h1 align=&quot;center&quot;&gt; 欢迎白帽子进行授权安全测试，安全漏洞请联系QQ：57459267
+&lt;/body&gt;
+&lt;/html&gt;
+]]
+</code></pre>
+<h3 id="ip黑名单配置">IP黑名单配置</h3>
+<p>需要在config.lua中开启<code>config_black_ip_check = &quot;on&quot;</code>参数</p>
+<p>这个与nginx的 ngx_http_access_module 模块原理是一致的，只需要把拒绝的地址加入到waf/rule-config/blackip.rule文件中即可</p>
+<pre><code class="language-shell">cat /usr/local/openresty/nginx/conf/waf/rule-config/blackip.rule
+192.168.31.14
+</code></pre>
+<p>然后访问openrestry地址，如下已返回403被禁止</p>
+<h3 id="ip白名单配置">IP白名单配置</h3>
+<p>需要在config.lua中开启<code>config_white_ip_check = &quot;on&quot;</code>参数</p>
+<p>IP白名单与黑名单相反，添加到IP白名单中的IP不受WAF限制,具体请自行测试</p>
+<pre><code class="language-shell">cat /usr/local/openresty/nginx/conf/waf/rule-config/whiteip.rule
+192.168.31.14
+</code></pre>
+<h3 id="cc攻击过滤">CC攻击过滤</h3>
+<p>需要在config.lua中开启<code>config_cc_check = &quot;on&quot;</code>参数，然后指定<code>config_cc_rate = &quot;10/60&quot;</code>速率和时间</p>
+<p>如下指定在60秒内对于单个IP地址访问单个页面的次数最大10次，超过10次则自动拉入黑名单，60秒后自动解除</p>
+<pre><code class="language-shell">vim /usr/local/openresty/nginx/conf/waf/config.lua
+config_cc_check = &quot;on&quot;
+config_cc_rate = &quot;10/60&quot;
+</code></pre>
+<p>然后进行测试，如下刷新10次以后就变为来403</p>
+<p>我们换个页面再次刷新，如下换个页面可以正常访问，不过连续对一个页面60秒内刷新10次以后将也被拉入黑名单</p>
+<p>注：以上的请求速率和时间只能作为参考，大家线上使用具体还要根据相应环境进行调整</p>
+<h3 id="异常url策略配置">异常URL策略配置</h3>
+<p>需要在config.lua中开启<code>config_url_check = &quot;on&quot;</code>参数</p>
+<p>然后定义<code>rule-config/url.rule</code>文件，url.rule文件默认为如下，如果匹配到规则的将跳转到由config.lua中<code>config_waf_output = &quot;html&quot;</code>参数指定的页面</p>
+<pre><code class="language-shell">cat url.rule 
+\.(htaccess|bash_history)
+\.(bak|inc|old|mdb|sql|backup|java|class|tgz|gz|tar|zip)$
+(phpmyadmin|jmx-console|admin-console|jmxinvokerservlet)
+java\.lang
+\.svn\/
+/(attachments|upimg|images|css|uploadfiles|html|uploads|templets|static|template|data|inc|forumdata|upload|includes|cache|avatar)/(\\w+).(php|jsp)
+#禁止URL访问 .htaccess|.bash_history 的文件
+#禁止URL访问包含带有phpmyadmin|jmx-console|admin-console|jmxinvokerservlet地址
+#禁止URL访问包含 java.lang 的地址
+#禁止URL访问包含 .svn/ 的地址
+</code></pre>
+<p>假如你不想让别人访问根下的/login，那么就可以写入到配置中</p>
+<pre><code class="language-shell">cat url.rule
+\.(htaccess|bash_history)
+\.(bak|inc|old|mdb|sql|backup|java|class|tgz|gz|tar|zip)$
+(phpmyadmin|jmx-console|admin-console|jmxinvokerservlet)
+java\.lang
+\.svn\/
+/(attachments|upimg|images|css|uploadfiles|html|uploads|templets|static|template|data|inc|forumdata|upload|includes|cache|avatar)/(\\w+).(php|jsp)
+/login
+</code></pre>
+<p>然后进行重启后访问,如下就跳转到了我们在config.lua中指定的页面，此页面可根据需求进行修改。如果上面默认的url规则匹配到了你的地址，那么你就可以把相应配置去掉</p>
+<h3 id="异常useragent策略配置">异常UserAgent策略配置</h3>
+<p>需要在config.lua中开启<code>config_user_agent_check = &quot;on&quot;</code>参数</p>
+<p>WAF模块中默认封锁了以下UserAgent，如</p>
+<p>HTTrack网站下载</p>
+<p>namp网络扫描</p>
+<p>audit网络审计</p>
+<p>dirbuster网站目录扫描</p>
+<p>pangolin SQL注入工具</p>
+<p>scan网络扫描</p>
+<p>hydra密码暴力破解</p>
+<p>libwww漏洞工具</p>
+<p>sqlmap自动SQL注入工具</p>
+<p>w3af网络扫描</p>
+<p>Nikto Web漏洞扫描</p>
+<p>...</p>
+<p>等等</p>
+<pre><code class="language-shell">[root@openresty rule-config]# cat useragent.rule 
+(HTTrack|harvest|audit|dirbuster|pangolin|nmap|sqln|-scan|hydra|Parser|libwww|BBBike|sqlmap|w3af|owasp|Nikto|fimap|havij|PycURL|zmeu|BabyKrokodil|netsparker|httperf|bench)
+</code></pre>
+<p>我们正常访问URL是没问题的，下面来模拟一个非法的UserAgent进行访问</p>
+<pre><code class="language-shell">#模拟网站下载
+curl http://10.0.0.7/ --user-agent 'HTTrack'
+&lt;html&gt;
+&lt;head&gt;
+&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=utf-8&quot; /&gt;
+&lt;meta http-equiv=&quot;Content-Language&quot; content=&quot;zh-cn&quot; /&gt;
+&lt;title&gt;OpsAny｜Web应用防火墙&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;h1 align=&quot;center&quot;&gt; 欢迎白帽子进行授权安全测试，安全漏洞请联系QQ：57459267
+&lt;/body&gt;
+&lt;/html&gt;
+&lt;h1 align=&quot;center&quot;&gt; 欢迎白帽子进行授权安全测试，安全漏洞请联系QQ：57459267
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<p>添加禁止chrome浏览器访问的UserAgent</p>
+<pre><code class="language-shell">#跟随配置添加到最后
+cat useragent.rule
+(HTTrack|harvest|audit|dirbuster|pangolin|nmap|sqln|-scan|hydra|Parser|libwww|BBBike|sqlmap|w3af|owasp|Nikto|fimap|havij|PycURL|zmeu|BabyKrokodil|netsparker|httperf|bench|Chrome)
+</code></pre>
+<p>然后重启Openrestry，通过Chrome浏览器进行访问</p>
+<h3 id="异常get参数策略配置">异常Get参数策略配置</h3>
+<p>需要在config.lua配置中开启<code>config_url_args_check = &quot;on&quot;</code>参数</p>
+<p>默认封锁了如下：</p>
+<pre><code class="language-shell">cat args.rule 
+\.\./
+\:\$
+\$\{
+select.+(from|limit)
+(?:(union(.*?)select))
+having|rongjitest
+sleep\((\s*)(\d*)(\s*)\)
+benchmark\((.*)\,(.*)\)
+base64_decode\(
+(?:from\W+information_schema\W)
+(?:(?:current_)user|database|schema|connection_id)\s*\(
+(?:etc\/\W*passwd)
+into(\s+)+(?:dump|out)file\s*
+group\s+by.+\(
+xwork.MethodAccessor
+(?:define|eval|file_get_contents|include|require|require_once|shell_exec|phpinfo|system|passthru|preg_\w+|execute|echo|print|print_r|var_dump|(fp)open|alert|showmodaldialog)\(
+xwork\.MethodAccessor
+(gopher|doc|php|glob|file|phar|zlib|ftp|ldap|dict|ogg|data)\:\/
+java\.lang
+\$_(GET|post|cookie|files|session|env|phplib|GLOBALS|SERVER)\[
+\&lt;(iframe|script|body|img|layer|div|meta|style|base|object|input)
+(onmouseover|onerror|onload)\=
+</code></pre>
+<p>我们进行访问 <code>http://10.0.0.53/hello?aa=select id from mysql</code>,得到如下，进行匹配</p>
+<pre><code class="language-shell">curl 'http://10.0.0.7/hello?aa=select id from mysql'              
+&lt;html&gt;
+&lt;head&gt;
+&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=utf-8&quot; /&gt;
+&lt;meta http-equiv=&quot;Content-Language&quot; content=&quot;zh-cn&quot; /&gt;
+&lt;title&gt;OpsAny｜Web应用防火墙&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;h1 align=&quot;center&quot;&gt; 欢迎白帽子进行授权安全测试，安全漏洞请联系QQ：57459267
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<p>我们也可以根据自己需求去配置，如最后添加abcops</p>
+<pre><code class="language-shell">cat args.rule
+\.\./
+\:\$
+\$\{
+select.+(from|limit)
+(?:(union(.*?)select))
+having|rongjitest
+sleep\((\s*)(\d*)(\s*)\)
+benchmark\((.*)\,(.*)\)
+base64_decode\(
+(?:from\W+information_schema\W)
+(?:(?:current_)user|database|schema|connection_id)\s*\(
+(?:etc\/\W*passwd)
+into(\s+)+(?:dump|out)file\s*
+group\s+by.+\(
+xwork.MethodAccessor
+(?:define|eval|file_get_contents|include|require|require_once|shell_exec|phpinfo|system|passthru|preg_\w+|execute|echo|print|print_r|var_dump|(fp)open|alert|showmodaldialog)\(
+xwork\.MethodAccessor
+(gopher|doc|php|glob|file|phar|zlib|ftp|ldap|dict|ogg|data)\:\/
+java\.lang
+\$_(GET|post|cookie|files|session|env|phplib|GLOBALS|SERVER)\[
+\&lt;(iframe|script|body|img|layer|div|meta|style|base|object|input)
+(onmouseover|onerror|onload)\=
+abcops
+</code></pre>
+<p>然后我们进行访问<code>http://10.0.0.7/hello?aa=abcops</code>也会匹配到规则</p>
+<pre><code class="language-shell">curl http://10.0.0.7/hello?aa=abcops     
+&lt;html&gt;
+&lt;head&gt;
+&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=utf-8&quot; /&gt;
+&lt;meta http-equiv=&quot;Content-Language&quot; content=&quot;zh-cn&quot; /&gt;
+&lt;title&gt;OpsAny｜Web应用防火墙&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;h1 align=&quot;center&quot;&gt; 欢迎白帽子进行授权安全测试，安全漏洞请联系QQ：57459267
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<h3 id="异常post参数策略配置">异常POST参数策略配置</h3>
+<p>需要在config.lua中开启<code>config_post_check = &quot;on&quot;</code>选项</p>
+<p>默认POST请求封禁如下，POST封禁内容与GET相似</p>
+<pre><code class="language-shell">cat post.rule 
+\.\./
+select.+(from|limit)
+(?:(union(.*?)select))
+having|rongjitest
+sleep\((\s*)(\d*)(\s*)\)
+benchmark\((.*)\,(.*)\)
+base64_decode\(
+(?:from\W+information_schema\W)
+(?:(?:current_)user|database|schema|connection_id)\s*\(
+(?:etc\/\W*passwd)
+into(\s+)+(?:dump|out)file\s*
+group\s+by.+\(
+xwork.MethodAccessor
+(?:define|eval|file_get_contents|include|require|require_once|shell_exec|phpinfo|system|passthru|preg_\w+|execute|echo|print|print_r|var_dump|(fp)open|alert|showmodaldialog)\(
+xwork\.MethodAccessor
+(gopher|doc|php|glob|file|phar|zlib|ftp|ldap|dict|ogg|data)\:\/
+java\.lang
+\$_(GET|post|cookie|files|session|env|phplib|GLOBALS|SERVER)\[
+\&lt;(iframe|script|body|img|layer|div|meta|style|base|object|input)
+(onmouseover|onerror|onload)\=
+</code></pre>
+<p>直接对POST策略进行提交请求，通过curl -XPOST来进行提交POST请求</p>
+<pre><code class="language-shell">curl -XPOST 'http://10.0.0.7/hello?aa=select id from mysql'             
+&lt;html&gt;
+&lt;head&gt;
+&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=utf-8&quot; /&gt;
+&lt;meta http-equiv=&quot;Content-Language&quot; content=&quot;zh-cn&quot; /&gt;
+&lt;title&gt;OpsAny｜Web应用防火墙&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;h1 align=&quot;center&quot;&gt; 欢迎白帽子进行授权安全测试，安全漏洞请联系QQ：57459267
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<p>如上命中规则，我们查看Openrestry日志，查看是否为POST请求</p>
+<pre><code class="language-shell">10.0.0.7 - - [24/Dec/2021:00:28:07 -0500] &quot;POST /hello?aa=select id from mysql HTTP/1.1&quot; 403 323 &quot;-&quot; &quot;curl/7.29.0&quot;
+</code></pre>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#%E4%BB%80%E4%B9%88%E6%98%AFwaf">什么是WAF</a></li>
+<li><a href="#%E5%AE%9E%E7%8E%B0waf">实现WAF</a></li>
+<li><a href="#waf%E7%9A%84%E5%8A%9F%E8%83%BD">WAF的功能</a></li>
+<li><a href="#%E9%83%A8%E7%BD%B2waf">部署WAF</a>
+<ul>
+<li><a href="#%E4%B8%8B%E8%BD%BDwaf%E6%A8%A1%E5%9D%97">下载waf模块</a></li>
+<li><a href="#openresty%E5%BC%95%E5%85%A5waf%E6%A8%A1%E5%9D%97">openresty引入WAF模块</a></li>
+<li><a href="#ip%E9%BB%91%E5%90%8D%E5%8D%95%E9%85%8D%E7%BD%AE">IP黑名单配置</a></li>
+<li><a href="#ip%E7%99%BD%E5%90%8D%E5%8D%95%E9%85%8D%E7%BD%AE">IP白名单配置</a></li>
+<li><a href="#cc%E6%94%BB%E5%87%BB%E8%BF%87%E6%BB%A4">CC攻击过滤</a></li>
+<li><a href="#%E5%BC%82%E5%B8%B8url%E7%AD%96%E7%95%A5%E9%85%8D%E7%BD%AE">异常URL策略配置</a></li>
+<li><a href="#%E5%BC%82%E5%B8%B8useragent%E7%AD%96%E7%95%A5%E9%85%8D%E7%BD%AE">异常UserAgent策略配置</a></li>
+<li><a href="#%E5%BC%82%E5%B8%B8get%E5%8F%82%E6%95%B0%E7%AD%96%E7%95%A5%E9%85%8D%E7%BD%AE">异常Get参数策略配置</a></li>
+<li><a href="#%E5%BC%82%E5%B8%B8post%E5%8F%82%E6%95%B0%E7%AD%96%E7%95%A5%E9%85%8D%E7%BD%AE">异常POST参数策略配置</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://ajie825.github.io/post/openresty-de-an-zhuang/">
+              <h3 class="post-title">
+                openresty的安装
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

@@ -1,0 +1,452 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>nginx使用常见问题 | Gridea</title>
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1660297788946">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="nginx使用常见问题 | Gridea - Atom Feed" href="https://ajie825.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+
+    <meta name="description" content="nginx多server优先级
+在开始处理一个http请求时，nginx会取出header头中的Host变量，与nginx.conf中每个server的server_name进
+行匹配，以此决定由哪一个server来处理这个请求，但ngin..." />
+    <meta name="keywords" content="nginx" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://ajie825.github.io">
+  <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1660297788946" alt="">
+  </a>
+  <h1 class="site-title">
+    Gridea
+  </h1>
+  <p class="site-description">
+    温故而知新
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              nginx使用常见问题
+            </h2>
+            <div class="post-info">
+              <span>
+                2022-08-10
+              </span>
+              <span>
+                9 min read
+              </span>
+              
+                <a href="https://ajie825.github.io/tag/JmbVLnHII/" class="post-tag">
+                  # nginx
+                </a>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <h2 id="nginx多server优先级">nginx多server优先级</h2>
+<pre><code class="language-bash">在开始处理一个http请求时，nginx会取出header头中的Host变量，与nginx.conf中每个server的server_name进
+行匹配，以此决定由哪一个server来处理这个请求，但nginx如配置多个相同的server_name，会导致server_name
+出现优先级访问冲突。
+</code></pre>
+<pre><code class="language-bash">1）准备nginx对应的配置文件
+[root@web02 conf.d]# cat code1.conf 
+server {
+  listen 80;
+  server_name localhost code1.oldboy.com;
+  location / {
+     root /code1;
+     index index.html;
+  }
+}
+
+[root@web02 conf.d]# cat code2.conf 
+server {
+  listen 80;
+  server_name localhost code2.oldboy.com;
+  location / {
+     root /code2;
+     index index.html;
+  }
+}
+
+[root@web02 conf.d]# cat code3.conf 
+server {
+  listen 80;
+  server_name localhost code3.oldboy.com;
+  location / {
+     root /code3;
+     index index.html;
+  }
+}
+</code></pre>
+<pre><code class="language-bash">2）准备站点目录
+[root@web02 conf.d]# mkdir /code{1..3} -p
+[root@web02 conf.d]# for i in {1..3};do echo &quot;Code$i&quot; &gt; /code$i/index.html;done
+[root@web02 conf.d]# cat /code1/index.html 
+Code1
+[root@web02 conf.d]# cat /code2/index.html  
+Code2
+[root@web02 conf.d]# cat /code3/index.html  
+Code3
+</code></pre>
+<pre><code class="language-bash">3）检查语法，并重新加载nginx
+[root@web02 conf.d]# nginx -t
+nginx: [warn] conflicting server name &quot;localhost&quot; on 0.0.0.0:80, ignored
+nginx: [warn] conflicting server name &quot;localhost&quot; on 0.0.0.0:80, ignored
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+# 重启Nginx
+[root@Nginx ~]# systemctl restart nginx
+</code></pre>
+<pre><code class="language-bash">4）测试访问效果
+#当用户第一次访问, 由code1.conf返回输出信息
+[root@web02 ~]# curl localhost
+Code 1
+
+#此时将code1.conf修改为code5.conf后进行重载Nginx
+[root@web02 conf.d]# mv code1.conf code5.conf
+[root@web02 conf.d]# systemctl reload nginx
+
+#再次访问时, 由code2.conf返回输出信息
+[root@web02 ~]# curl localhost
+Code 2
+</code></pre>
+<h3 id="优先级匹配结果">优先级匹配结果</h3>
+<pre><code class="language-bash">1）首先选择所有的字符串完全匹配的server_name（完全匹配）
+2）选择通配符在前面的server_name，如*.oldboy.com
+3）选择通配符在后面的server_name，如oldboy.*
+4）最后选择使用正则表达式匹配的server_name
+5）如果全部都没有匹配到，那么将选择在listen配置项后加入[default_server]的server块
+6）如果没写，那么就找到匹配listen端口的第一个Server块的配置文件
+</code></pre>
+<pre><code class="language-bash">当出现多个相同的server_name情况下，配置文件排序优先使用则会被调用，所以建议配置相同端口，不同域名，这样则不
+会出现域名访问冲突
+</code></pre>
+<h2 id="nginx禁止ip直接访问">nginx禁止IP直接访问</h2>
+<pre><code class="language-bash">当用户通过访问IP或者未知域名访问网站的时候，希望禁止显示任何有效内容，可以返回500错误，目前国内很多机房都要求
+关闭空主机头，防止未备案的域名指向过来造成麻烦。
+server {
+    listen 80;
+    server_name www.oldboy.com;      # 这里指定自己的域名
+}
+server｛
+    listen 80 default_server;        # 默认优先返回
+    server_name _;                   # 空主机头或IP
+    return 500;                      # 返回500错误
+}
+</code></pre>
+<pre><code class="language-bash">也可以将流量集中导入自己的网站，只要做以下跳转设置就可以
+server {
+    listen 80 default_server;
+    return 302 https://www.oldboy.com;
+}
+</code></pre>
+<h2 id="nginx包含文件include">nginx包含文件Include</h2>
+<pre><code class="language-bash">一台服务器配置多个server网站，如果配置都写在nginx.conf主配置文件中，会导致nginx.conf主配置文件变得非常庞大
+而且可读性非常的差，那么后期的维护就变得麻烦。假设现在希望快速的关闭一个站点，该怎么办？
+1）如果是写在nginx.conf中，则需要手动注释，比较麻烦
+2）如果是include的方式，那么仅需修改配置文件的扩展名，即可完成注释
+Include包含的作用是为了简化主配置文件，便于人类可读。
+</code></pre>
+<h2 id="nginx路径root与alias">nginx路径root与alias</h2>
+<pre><code class="language-bash">root与alias路径匹配主要区别在于nginx如果解释location后面的uri，这会使两者分别以不同的方式将请求映射到服务
+器文件上，alias是一个目录别名的定义，root则是最上层目录的定义。
+root的处理结果是：root路径+location路径
+alias的处理结果是：使用alias路径替换location路径
+</code></pre>
+<h3 id="root路径配置实例">root路径配置实例</h3>
+<pre><code class="language-bash">用户访问image.oldboy.com/image/oldboy.png，实际上nginx会上/code/image/目录下找去找oldboy.png文件
+1）准备配置文件
+[root@web02 conf.d]# cat code2.conf 
+server {
+  listen 80;
+  server_name image.oldboy.com;
+  location /image/ {
+     root /code;
+  }
+}
+2）准备站点目录
+[root@web02 conf.d]# mkdir /code/image/ -p 
+[root@web02 conf.d]# cd /code/image/
+[root@web02 image]# ls
+oldboy.png
+3）检查语法，重启nginx服务
+[root@web02 conf.d]# nginx -t
+[root@web02 conf.d]# systemctl reload nginx
+4）域名解析，浏览器访问image.oldboy.com/image/oldboy.png可以正常访问页面
+</code></pre>
+<h3 id="alias路径配置实例">alias路径配置实例</h3>
+<pre><code class="language-bash">用户访问image.oldboy.com/image/oldboy.png，实际上nginx会上/code目录下去找oldboy.png文件
+1）准备配置文件
+[root@web02 conf.d]# cat code2.conf 
+server {
+   listen 80;
+   server_name image.oldboy.com;
+
+   location /image/ {
+       alias /code/;
+   }
+}
+2）准备站点目录
+[root@web02 conf.d]# cd /code
+[root@web02 image]# ls
+oldboy.png
+3）检查语法并重启nginx服务
+[root@web02 code]# nginx -t
+[root@web02 code]# systemctl reload nginx
+4）浏览器访问image.oldboy.com/image/oldboy.png可以正常访问页面
+</code></pre>
+<h2 id="nginx-try_file路径匹配">nginx try_file路径匹配</h2>
+<pre><code class="language-bash">nginx的try_file路径匹配，按顺序检查文件是否存在
+[root@web02 ~]# cat /etc/nginx/conf.d/try_file.conf
+server {
+    listen 80;
+    server_name try.oldboy.com;
+    root /code;
+
+    location / {
+        try_files $uri /404.html /index.php;
+    }
+}
+1）检查用户请求的uri内容是否存在本地，存在则解析
+2）如果请求的uri不存在，则访问对应站点目录中的404.html文件
+3）最后交给index.php处理
+</code></pre>
+<h3 id="演示实例">演示实例</h3>
+<pre><code class="language-bash">1）配置nginx的try_files
+[root@web02 ~]# cd /etc/nginx/conf.d/
+[root@web02 conf.d]# cat try.conf 
+server {
+        listen 80;
+        server_name try.oldboy.com;
+        root /code;
+        index index.html;
+        location / {
+                try_files $uri @java_page;
+        }
+        location @java_page {
+                proxy_pass http://127.0.0.1:8080;
+        }
+}
+2）准备站点目录
+[root@web02 conf.d]# echo &quot;Try-Page&quot; &gt; /code/index.html
+[root@web02 conf.d]# echo &quot;Tomcat-Page&quot; &gt; /usr/share/tomcat/webapps/ROOT/index.html
+3）重启nginx和检查tomcat服务
+[root@web02 conf.d]# nginx -t
+[root@web02 conf.d]# systemctl reload nginx
+[root@web02 conf.d]# systemctl reload nginx
+[root@web02 conf.d]# netstat -lnpt|grep 8080
+tcp6       0      0 :::8080                 :::*                    LISTEN      946/java
+4）配置域名解析并进行测试
+[root@web02 conf.d]# curl http://try.oldboy.com/index.html
+Try-Page
+#将/code/index.html文件移走
+[root@web02 conf.d]# mv /code/index.html /code/index.html_bak
+#发现由tomcat返回了请求
+[root@web02 conf.d]# curl http://try.oldboy.com/index.html   
+Tomcat-Page
+</code></pre>
+<h2 id="nginx调整上传文件大小">nginx调整上传文件大小</h2>
+<pre><code class="language-bash">在nginx使用过程中，上传文件的过程中，通常需要设置nginx报文大小限制，避免出现413 Request Entity Too Large
+Nginx上传文件大小限制配置语法
+Syntax ：client_max_body_size size；
+Default：client_max_body_size 1m；
+Context：http，server，location
+
+Nginx上传文件大小限制配置示例
+#也可以放入http层，全局生效
+Server {
+   client_max_body_size 200m;
+}
+</code></pre>
+<h2 id="nginx优雅显示错误页面">nginx优雅显示错误页面</h2>
+<pre><code class="language-bash">1）准备配置文件
+[root@web02 ~]# cd /etc/nginx/conf.d/
+[root@web02 conf.d]# cat node.conf
+server {
+  listen 80;
+  server_name node.oldboy.com;
+  root /code;
+  
+  location / {
+    index index.html index.php;
+  }
+ 
+  location ~ \.php$ {
+     fastcgi_pass 127.0.0.1:9000;
+  }
+
+  #如服务器返回如下错误状态码，则进行跳转，跳转至/40x.jpg
+  error_page 404 403 /40x.jpg;
+  #如服务器返回如下错误状态码，则进行跳转，跳转至/50x.html
+  error_page 500 502 503 504 /50x.html;
+  
+  location = /40x.jpg {
+     root /code/error_40x;
+  }
+
+  location = /50x.html {
+     root /code/error_50x;  
+  }
+}
+2）准备站点目录
+[root@web02 conf.d]# mkdir /code/error_40x/ -p
+[root@web02 conf.d]# cd /code/error_40x/
+[root@web02 error_40x]# ls
+40x.jpg
+3）浏览器访问node.oldboy.com/xyz，会出现下面图片
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1660116275337.jpg" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">注意：配置在后端web节点的error_page，跟负载均衡没有关系，用户得到的页面最终是由web节点反馈的
+</code></pre>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#nginx%E5%A4%9Aserver%E4%BC%98%E5%85%88%E7%BA%A7">nginx多server优先级</a>
+<ul>
+<li><a href="#%E4%BC%98%E5%85%88%E7%BA%A7%E5%8C%B9%E9%85%8D%E7%BB%93%E6%9E%9C">优先级匹配结果</a></li>
+</ul>
+</li>
+<li><a href="#nginx%E7%A6%81%E6%AD%A2ip%E7%9B%B4%E6%8E%A5%E8%AE%BF%E9%97%AE">nginx禁止IP直接访问</a></li>
+<li><a href="#nginx%E5%8C%85%E5%90%AB%E6%96%87%E4%BB%B6include">nginx包含文件Include</a></li>
+<li><a href="#nginx%E8%B7%AF%E5%BE%84root%E4%B8%8Ealias">nginx路径root与alias</a>
+<ul>
+<li><a href="#root%E8%B7%AF%E5%BE%84%E9%85%8D%E7%BD%AE%E5%AE%9E%E4%BE%8B">root路径配置实例</a></li>
+<li><a href="#alias%E8%B7%AF%E5%BE%84%E9%85%8D%E7%BD%AE%E5%AE%9E%E4%BE%8B">alias路径配置实例</a></li>
+</ul>
+</li>
+<li><a href="#nginx-try_file%E8%B7%AF%E5%BE%84%E5%8C%B9%E9%85%8D">nginx try_file路径匹配</a>
+<ul>
+<li><a href="#%E6%BC%94%E7%A4%BA%E5%AE%9E%E4%BE%8B">演示实例</a></li>
+</ul>
+</li>
+<li><a href="#nginx%E8%B0%83%E6%95%B4%E4%B8%8A%E4%BC%A0%E6%96%87%E4%BB%B6%E5%A4%A7%E5%B0%8F">nginx调整上传文件大小</a></li>
+<li><a href="#nginx%E4%BC%98%E9%9B%85%E6%98%BE%E7%A4%BA%E9%94%99%E8%AF%AF%E9%A1%B5%E9%9D%A2">nginx优雅显示错误页面</a></li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://ajie825.github.io/post/keepalived-gao-ke-yong/">
+              <h3 class="post-title">
+                keepalived高可用
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

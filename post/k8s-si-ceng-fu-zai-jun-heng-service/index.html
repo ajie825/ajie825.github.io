@@ -1,0 +1,775 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>k8s四层负载均衡-service | Gridea</title>
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1660297788946">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="k8s四层负载均衡-service | Gridea - Atom Feed" href="https://ajie825.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+
+    <meta name="description" content="service的概念、原理解读
+为什么要有service
+在k8s中，pod是有生命周期的，如果pod重启它的IP很有可能会发生变化，如果我们的服务都是将pod的IP地址写死，pod挂掉或者
+重启，和刚才的pod相关联的其他服务将会找不到它..." />
+    <meta name="keywords" content="k8s" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://ajie825.github.io">
+  <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1660297788946" alt="">
+  </a>
+  <h1 class="site-title">
+    Gridea
+  </h1>
+  <p class="site-description">
+    温故而知新
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              k8s四层负载均衡-service
+            </h2>
+            <div class="post-info">
+              <span>
+                2022-07-23
+              </span>
+              <span>
+                24 min read
+              </span>
+              
+                <a href="https://ajie825.github.io/tag/hCwwZMyh3G/" class="post-tag">
+                  # k8s
+                </a>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <h2 id="service的概念-原理解读">service的概念、原理解读</h2>
+<h3 id="为什么要有service">为什么要有service</h3>
+<pre><code class="language-bash">在k8s中，pod是有生命周期的，如果pod重启它的IP很有可能会发生变化，如果我们的服务都是将pod的IP地址写死，pod挂掉或者
+重启，和刚才的pod相关联的其他服务将会找不到它所关联的pod，为了解决这个问题，在k8s中定义了service资源对象，service
+定义了一个服务访问的入口，客户端通过这个入口即可访问服务背后的应用集群实例，service是一组pod的逻辑集合，这一组pod能
+够被service访问到，通常是通过Label Selector实现的。
+可以看下面的图：
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1658547995019.png" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">1）pod ip经常变化，service是pod的代理，我们客户端访问，只需要访问service，就会把请求代理到pod；
+2）pod ip在k8s集群之外无法访问，所以需要创建service，这个service可以在k8s集群外访问的。
+</code></pre>
+<h3 id="service概述">service概述</h3>
+<pre><code class="language-bash">service是一个固定接入层，客户端可以通过访问service的ip和端口，就可以访问到service关联的后端pod；
+service工作依赖于在k8s集群上部署的一个组件，就是k8s的conredns服务，service的名称解析是依赖于dns组件的，因此在部署完k8s
+之后还需要再部署dns组件；
+k8s要想给客户端提供网络功能，需要依赖第三方的网络插件（flannel、calico等）；
+每个k8s节点上都有一个组件叫做kube-proxy，kube-proxy这个组件始终监视着apiserver中有关service资源的变动信息，这种是通过
+k8s中固有的一种请求方法watch（监视）来实现的，一旦有service资源的内容发生变动（如创建、删除），kube-proxy都会把我们请求
+调度到后端特定的pod资源之上的规则，这个规则可能是iptables，也可能是ipvs，取决于service的实现方式。
+</code></pre>
+<h3 id="service工作原理">service工作原理</h3>
+<pre><code class="language-bash">k8s在创建service时，会根据标签选择器selector（label selector）来查找pod，并且创建与service同名的endpoint对象；
+pod地址发生变化时，endpoint也会随之发生变化，service接收前端client请求的时候，就会通过endpoint，找到转发到哪个
+pod进行访问（至于转发到哪个节点的pod，由负载均衡kube-proxy决定）。
+</code></pre>
+<h3 id="k8s集群中有三类ip地址">k8s集群中有三类IP地址</h3>
+<pre><code class="language-bash">1）node network：节点网络，如ens33接口上的网络地址
+[root@master1 ~]# ip a
+2: ens33: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc pfifo_fast state UP group default qlen 1000
+    link/ether 00:0c:29:91:52:c6 brd ff:ff:ff:ff:ff:ff
+    inet 192.168.40.180/24 brd 192.168.40.255 scope global noprefixroute ens33
+    
+2）pod network：pod网络，创建的pod具有的ip地址
+[root@master1 ~]# kubectl get pods -o wide
+NAME                        READY   STATUS    RESTARTS   AGE   IP                
+myapp-v1-67fd9fc9c8-96rwt   1/1     Running   0          15m   10.244.104.1   
+myapp-v1-67fd9fc9c8-bkfpf   1/1     Running   0          15m   10.244.166.184 
+node network和pod network这两种网络地址是我们实实在在配置的，其中节点网络地址是配置在节点接口之上的，而pod网络地址
+是配置在pod资源之上的，因此这些地址都是配置在某些设备之上的，这些设备可能是硬件，也可能是软件模拟的。
+
+3）cluster network：集群地址，也称为service网络，这个地址是虚拟的地址（virtual ip），没有配置在某个接口上，只是出
+现在service的规则当中。
+[root@master1 ~]# kubectl get svc        
+NAME         TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)          AGE
+kubernetes   ClusterIP   10.96.0.1     &lt;none&gt;        443/TCP          8d
+</code></pre>
+<h2 id="创建service资源">创建service资源</h2>
+<pre><code class="language-bash">#查看定义Service资源需要的字段有哪些？
+[root@master1 ~]# kubectl explain service
+KIND:     Service
+VERSION:  v1
+DESCRIPTION:
+
+FIELDS:
+   apiVersion   &lt;string&gt;  #service资源使用的api组---v1
+   kind &lt;string&gt;          #创建的资源类型---Service
+   metadata     &lt;Object&gt;  #定义元数据
+   spec &lt;Object&gt;
+</code></pre>
+<pre><code class="language-bash">#查看service的spec字段如何定义？
+[root@xianchaomaster1 ~]# kubectl explain service.spec
+KIND:     Service
+VERSION:  v1
+RESOURCE: spec &lt;Object&gt;
+DESCRIPTION:
+     
+FIELDS:
+   clusterIP	&lt;string&gt;        #动态分配的地址，也可以自己在创建的时候指定，创建之后就改不了了 
+   ports	&lt;[]Object&gt;          #定义service端口，用来和后端pod建立联系 
+   selector	&lt;map[string]string&gt; #通过标签选择器选择关联的pod有哪些  
+   sessionAffinityConfig	&lt;Object&gt; 
+   #service在实现负载均衡的时候还支持sessionAffinity，sessionAffinity
+   #什么意思？会话联系，默认是none，随机调度的（基于iptables规则调度的）；
+   #如果我们定义sessionAffinity的client ip，那就表示把来自同一客户端的IP请求调度到同一个pod上
+   type	&lt;string&gt;               #定义service的类型
+</code></pre>
+<h3 id="service的四种类型type">service的四种类型type</h3>
+<pre><code class="language-bash">#查看定义Service.spec.type需要的字段有哪些？
+[root@master1 ~]# kubectl explain service.spec.type
+KIND:     Service
+VERSION:  v1
+
+FIELD:    type &lt;string&gt;
+DESCRIPTION:
+     type determines how the Service is exposed. Defaults to ClusterIP. Valid
+     options are ExternalName, ClusterIP, NodePort, and LoadBalancer.
+     
+1）ExternalName：
+适用于k8s集群内部容器访问外部资源，它没有selector，也没有定义任何的端口和endpoint，以下service定义的是将prod名称空间中的
+my-service服务映射到my.database.example.com
+kind: Service
+apiVersion: v1
+metadata:
+  name: my-service
+  namespace: prod
+spec:
+  type: ExternalName
+  externalName: my.database.example.com
+当查询主机my-service.prod.svc.cluster.local时，集群DNS将返回值为my.database.example.com的CNAME记录。
+service的FQDN是： &lt;service_name&gt;.&lt;namespace&gt;.svc.cluster.local
+                   my-service.prod. svc.cluster.local               
+2）ClusterIP：*****
+通过k8s集群内部IP暴露服务，选择该值，服务只能够在集群内部访问，这也是默认的ServiceType。
+3）NodePort： *****
+通过每个node节点上的ip和静态端口暴露k8s集群内部的服务，通过请求&lt;NodeIP&gt;:&lt;NodePort&gt;可以把请求代理到内部的pod。
+Client-----&gt;NodeIP:NodePort-----&gt;Service Ip:ServicePort-----&gt;PodIP:ContainerPort。
+4）LoadBalancer：
+使用云提供商的负载均衡器，可以向外部暴露服务。外部的负载均衡器可以路由到NodePort服务和ClusterIP服务。
+</code></pre>
+<h3 id="service的端口ports">service的端口ports</h3>
+<pre><code class="language-bash">#查看service的spec.ports字段如何定义？
+[root@master1 ~]# kubectl explain service.spec.ports
+KIND:     Service
+VERSION:  v1
+RESOURCE: ports &lt;[]Object&gt;
+DESCRIPTION:
+
+FIELDS:
+   name &lt;string&gt;             #定义端口的名字
+   nodePort     &lt;integer&gt;
+   宿主机上映射的端口，比如一个web应用需要被k8s集群之外的其他用户访问，那么需要配置type=NodePort，
+   若配置nodePort=30001，那么其他集群就可以通过浏览器访问scheme://k8s集群中的任何一个节点ip:30001
+   即可访问到该服务，例如http://192.168.40.181:30001，如果在k8s中部署MySQL数据库，MySQL数据库可
+   能不需要被外界访问，只需要被内部服务访问，那么就不需要设置NodePort。
+   port &lt;integer&gt; -required- #service的端口，这个是k8s集群内部服务可访问的端口
+   protocol     &lt;string&gt;     #端口的协议
+   targetPort   &lt;string&gt;
+   targetPort是pod上的端口，从port和nodePort上来的流量，经过kube-proxy流入到后端pod的targetPort上，
+   最后进入容器，与制作容器时暴露的端口一致（使用DockerFile中的EXPOSE），例如官方的nginx暴露80端口。
+</code></pre>
+<h2 id="创建类型是clusterip的service">创建类型是ClusterIP的service</h2>
+<pre><code class="language-bash">1）创建pod
+#把nginx.tar.gz上传到node1和node2，手动解压
+[root@node1 ~]# docker load -i nginx.tar.gz 
+[root@node2 ~]# docker load -i nginx.tar.gz 
+Loaded image: nginx:v1
+
+#编写资源清单文件
+[root@master1 ~]# cat deploy-nginx.yaml 
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
+  name: my-nginx
+  namespace: default
+  labels:
+    run: my-nginx
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      run: my-nginx
+  template:
+      metadata:
+        labels:
+          run: my-nginx
+      spec:
+        containers:
+        - name: my-nginx
+          image: nginx:v1
+          imagePullPolicy: IfNotPresent
+          ports:
+          - containerPort: 80    #pod中容器暴露的端口
+          
+#更新资源清单文件
+[root@master1 ~]# kubectl apply -f deploy-nginx.yaml 
+deployment.apps/my-nginx created
+#查看刚才创建的Pod ip地址
+[root@master1 ~]# kubectl get pods -o wide
+NAME                       READY   STATUS    RESTARTS   AGE   IP               NODE    
+my-nginx-d4d698656-8qvgh   1/1     Running   0          75s   10.244.166.191   node1   
+my-nginx-d4d698656-kxd9d   1/1     Running   0          75s   10.244.104.11    node2
+#请求pod ip地址，查看结果
+[root@master1 ~]# curl 10.244.166.191
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+&lt;title&gt;Welcome to nginx!&lt;/title&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+[root@master1 ~]# curl 10.244.104.11
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+&lt;title&gt;Welcome to nginx!&lt;/title&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+需要注意的是：pod虽然定义了容器端口，但是不会调度到该节点的80端口，也不会使用特定的NAT规则去路由流量到pod上，
+这意味着可以在同一个节点可以运行多个pod，使用相同的容器端口，并且可以从集群中任何节点使用IP的方式访问到它。
+
+#误删除其中一个pod
+[root@master1 ~]# kubectl delete pods my-nginx-d4d698656-8qvgh
+pod &quot;my-nginx-d4d698656-8qvgh&quot; deleted
+[root@master1 ~]# kubectl get pods -o wide                    
+NAME                       READY   STATUS    RESTARTS   AGE   IP               NODE   
+my-nginx-d4d698656-kgw4c   1/1     Running   0          7s    10.244.166.130   node1  
+my-nginx-d4d698656-kxd9d   1/1     Running   0          14m   10.244.104.11    node2  
+通过上面看到重新生成一个pod：my-nginx-d4d698656-kgw4c，ip是10.244.166.130，在k8s中如果pod被删除，重新生成
+的pod ip地址会发生变化，所以需要在pod前端加一个固定接入层，就是service。
+
+#查看pod的标签
+[root@master1 ~]# kubectl get pods -l run=my-nginx
+</code></pre>
+<pre><code class="language-bash">2）创建service
+[root@master1 ~]# cat service-nginx.yaml 
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-nginx
+  namespace: default
+  labels:
+    run: my-nginx      
+spec:
+  selector:
+    run: my-nginx      #选择拥有run=my-nginx标签的pod
+  type: ClusterIP
+  ports:
+  - port: 80           #service的端口，暴露给k8s集群内部服务访问
+    protocol: TCP
+    targetPort: 80     #pod容器中接收流量的端口
+    
+[root@master1 ~]# kubectl apply -f service-nginx.yaml 
+service/my-nginx created
+[root@master1 ~]# kubectl get svc -l run=my-nginx
+NAME       TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)   AGE
+my-nginx   ClusterIP   10.102.52.44   &lt;none&gt;        80/TCP    10m
+#在k8s控制节点访问service的ip:port，就可以把请求代理到后端的pod
+[root@master1 ~]# curl 10.102.52.44
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+&lt;title&gt;Welcome to nginx!&lt;/title&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+注意：上面的10.102.52.44只能在k8s集群内部可以访问，在外部无法访问，比方说我们想要通过浏览器访问，是访问不通的，如果想要在
+k8s集群之外访问，需要把service type类型改成nodePort。
+
+#查看endpoint的信息
+[root@master1 ~]# kubectl get ep -l run=my-nginx
+NAME       ENDPOINTS                            AGE
+my-nginx   10.244.104.11:80,10.244.166.130:80   11m
+service可以对外提供统一固定的ip地址，并将请求重定向至集群中的pod，就是通过endpoint与selector协同工作实现的；
+selector用于选择pod，由selector选择出来的pod的IP地址和端口号，会被记录在endpoint中；
+当一个请求访问到service的IP地址时，就会从endpoint中选择出一个IP地址和端口号，然后将请求重定向至pod中；
+具体把请求代理到哪个pod，是由kube-proxy轮询实现的。
+</code></pre>
+<pre><code class="language-bash">service只要创建完成，pod中的容器就可以直接解析它的服务名，每一个服务创建完成后都会在k8s集群的dns中动态添加一个资源记录，
+添加完成后容器就可以解析了，资源记录格式是：
+SVC_NAME.NS_NAME_DOMAIN.LTD.
+服务名.命名空间.域名后缀
+集群默认的域名后缀是svc.cluster.local
+就像我们上面创建的my-nginx服务，它的完整名称解析就是my-nginx.default.svc.cluster.local
+[root@master1 ~]# kubectl exec -it my-nginx-d4d698656-kgw4c -- /bin/bash
+root@my-nginx-d4d698656-kgw4c:/# curl my-nginx.default.svc.cluster.local
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+&lt;title&gt;Welcome to nginx!&lt;/title&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<h2 id="创建类型是nodeport的service">创建类型是NodePort的service</h2>
+<pre><code class="language-bash">1）创建pod资源
+#编写资源清单文件
+[root@master1 ~]# cat deploy-nodeport.yaml 
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
+  name: my-nginx-nodeport
+  namespace: default
+  labels:
+    run: my-nginx-nodeport
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      run: my-nginx-nodeport
+  template:
+      metadata:
+        labels:
+          run: my-nginx-nodeport
+      spec:
+        containers:
+        - name: my-nginx-nodeport
+          image: nginx:v1
+          imagePullPolicy: IfNotPresent
+          ports:
+          - containerPort: 80
+#更新资源清单文件
+[root@master1 ~]# kubectl apply -f deploy-nodeport.yaml 
+deployment.apps/my-nginx-nodeport created
+#查看pod是否创建成功
+[root@master1 ~]# kubectl get pods
+NAME                                 READY   STATUS    RESTARTS   AGE
+my-nginx-nodeport-64dd5bfd66-9cvgq   1/1     Running   0          45s
+my-nginx-nodeport-64dd5bfd66-qgffs   1/1     Running   0          45s
+</code></pre>
+<pre><code class="language-bash">2）创建service
+#编写资源清单文件
+[root@master1 ~]# cat service-nodeport.yaml 
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-nginx-nodeport
+  namespace: default
+  labels:
+    run: my-nginx-nodeport
+spec:
+  selector:
+    run: my-nginx-nodeport
+  type: NodePort
+  ports:
+  - port: 80             #service的端口，暴露给k8s集群内部服务访问
+    protocol: TCP
+    targetPort: 80       #pod容器中接收流量的端口
+    nodePort: 30380      #宿主机映射的端口
+#更新资源清单文件
+[root@master1 ~]# kubectl apply -f service-nodeport.yaml 
+service/my-nginx-nodeport created
+#查看创建的service
+[root@master1 ~]# kubectl get svc -l run=my-nginx-nodeport
+NAME                TYPE       CLUSTER-IP     EXTERNAL-IP   PORT(S)        AGE
+my-nginx-nodeport   NodePort   10.97.235.55   &lt;none&gt;        80:30380/TCP   56s
+#在集群内部访问service
+[root@master1 ~]# curl 10.97.235.55
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+&lt;title&gt;Welcome to nginx!&lt;/title&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+注意：10.97.235.55是k8s集群内部的service的ip地址，只能在k8s集群内部访问，在集群外无法访问。
+#在集群外访问service
+[root@master1 ~]# curl 192.168.40.180:30380
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+&lt;title&gt;Welcome to nginx!&lt;/title&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+#在浏览器访问service
+</code></pre>
+<figure data-type="image" tabindex="2"><img src="https://ajie825.github.io/post-images/1658715966175.png" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">服务请求走向：
+Client---&gt;node的ip:30380---&gt;service的ip:80---&gt;pod的ip:container的port
+Client---&gt;192.168.40.180:30380---&gt;10.97.235.55:80---&gt;pod的ip:80
+</code></pre>
+<h2 id="创建类型是externalname的service">创建类型是ExternalName的service</h2>
+<pre><code class="language-bash">应用场景：跨名称空间访问
+需求：default名称空间下的client服务想要访问nginx-ns名称空间下的nginx-svc服务
+</code></pre>
+<pre><code class="language-bash">1）创建pod
+[root@master1 ~]# cat client.yaml 
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
+  name: client
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: busybox
+  template:
+      metadata:
+        labels:
+          app: busybox
+      spec:
+        containers:
+        - name: busybox
+          image: busybox
+          imagePullPolicy: IfNotPresent
+          command: [&quot;/bin/sh&quot;,&quot;-c&quot;,&quot;sleep 36000&quot;]
+[root@master1 ~]# kubectl apply -f client.yaml 
+deployment.apps/client created
+[root@master1 ~]# kubectl get pods
+NAME                      READY   STATUS    RESTARTS   AGE
+client-7d8bfb6fcf-8lhwp   1/1     Running   0          96s
+</code></pre>
+<pre><code class="language-bash">2）创建service
+[root@master1 ~]# cat client-svc.yaml 
+apiVersion: v1
+kind: Service
+metadata:
+  name: client-svc
+  namespace: default
+spec:
+  type: ExternalName
+  externalName: nginx-svc.nginx-ns.svc.cluster.local
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 80
+#该文件指定了到外部nginx-svc的软链接，让使用者感觉好像调用自己名称空间的服务一样。
+[root@master1 ~]# kubectl apply -f client-svc.yaml 
+service/client-svc created
+[root@master1 ~]# kubectl get svc
+NAME         TYPE           CLUSTER-IP   EXTERNAL-IP                            PORT(S)   AGE
+client-svc   ExternalName   &lt;none&gt;       nginx-svc.nginx-ns.svc.cluster.local   80/TCP    22s
+</code></pre>
+<pre><code class="language-bash">3）创建nginx-ns名称空间
+[root@master1 ~]# kubectl create ns nginx-ns
+namespace/nginx-ns created
+</code></pre>
+<pre><code class="language-bash">4）创建nginx-ns名称空间下的资源
+#创建pod
+[root@master1 ~]# cat server_nginx.yaml 
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
+  name: nginx
+  namespace: nginx-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+      metadata:
+        labels:
+          app: nginx
+      spec:
+        containers:
+        - name: nginx
+          image: nginx:v1
+          imagePullPolicy: IfNotPresent
+          ports:
+          - containerPort: 80
+[root@master1 ~]# kubectl apply -f server_nginx.yaml 
+deployment.apps/nginx created
+#查看pod是否创建成功
+[root@master1 ~]# kubectl get pods -n nginx-ns
+NAME                     READY   STATUS    RESTARTS   AGE
+nginx-598688df7d-8rnld   1/1     Running   0          38s
+2）创建service
+[root@master1 ~]# cat nginx_svc.yaml 
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-svc
+  namespace: nginx-ns
+spec:
+  selector:
+    app: nginx
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 80
+[root@master1 ~]# kubectl apply -f nginx_svc.yaml 
+service/nginx-svc created
+[root@master1 ~]# kubectl get svc -n nginx-ns
+NAME        TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)   AGE
+nginx-svc   ClusterIP   10.104.84.87   &lt;none&gt;        80/TCP    55s
+</code></pre>
+<pre><code class="language-bash">#验证，登录到client pod
+[root@master1 ~]# kubectl exec -it client-7d8bfb6fcf-8lhwp -- /bin/sh
+/ # wget -q -O - client-svc.default.svc.cluster.local
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+&lt;title&gt;Welcome to nginx!&lt;/title&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+/ # wget -q -O - nginx-svc.nginx-ns.svc.cluster.local
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+&lt;title&gt;Welcome to nginx!&lt;/title&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<h2 id="k8s最佳实践映射外部服务案例分享">k8s最佳实践：映射外部服务案例分享</h2>
+<pre><code class="language-bash">#k8s集群引用外部的mysql数据库
+1）在node2上安装mysql数据库
+[root@node2 ~]# yum install mariadb-server.x86_64 -y
+[root@node2 ~]# systemctl start mariadb
+2）编写service资源清单
+[root@master1 ~]# cat mysql_service.yaml 
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+spec:
+  type: ClusterIP
+  ports:
+  - port: 3306
+3）更新资源清单文件
+[root@master1 ~]# kubectl apply -f mysql_service.yaml 
+service/mysql created
+[root@master1 ~]# kubectl get svc|grep mysql
+mysql        ClusterIP   10.99.60.51   &lt;none&gt;        3306/TCP   2m8s
+#发现还没有endpoint
+[root@master1 ~]# kubectl get ep|grep mysql
+4）编写endpoint资源清单
+[root@master1 ~]# cat mysql_endpoint.yaml
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: mysql
+subsets:
+- addresses:
+  - ip: 192.168.40.182
+  ports:
+  - port: 3306
+[root@master1 ~]# kubectl apply -f mysql_endpoint.yaml 
+endpoints/mysql created
+[root@master1 ~]# kubectl get svc|grep mysql
+mysql        ClusterIP   10.99.60.51   &lt;none&gt;        3306/TCP   8m5s
+[root@master1 ~]# kubectl get ep|grep mysql     
+mysql        192.168.40.182:3306   52s
+上面配置就是将k8s集群外部服务引入到k8s集群内部，由service作为代理来达到能够访问外部服务的目的。
+</code></pre>
+<h2 id="kube-proxy组件详解">kube-proxy组件详解</h2>
+<h3 id="kube-proxy组件介绍">kube-proxy组件介绍</h3>
+<pre><code class="language-bash">k8s service只是把应用对外提供服务的方式做了代理，真正的应用跑在pod中的container里，我们的请求转发到k8s node对应
+的nodePort上，那么nodePort上的请求是如何进一步转到提供后台服务的pod的呢？就是kube-proxy实现的：
+kube-proxy部署在k8s的每一个node节点上，是k8s的核心组件，我们创建service的时候，kube-proxy会在iptables中追加一
+些规则，为我们提供路由与负载均衡的功能。
+k8s1.8之前，kube-proxy默认使用的是iptables模式，通过各个node节点上的iptables规则来实现service的负载均衡，但是
+随着service数量增大，iptables模式由于线性查找匹配、全量更新等特点，其性能会显著下降。k8s1.8版本开始，kube-proxy
+引入了IPVS模式，IPVS模式与iptables同样基于Netfilter，但是采用的hash表，因此当service数量达到一定规模时，hash查
+表的速度优势就会显现出来，从而提高service的服务性能。
+service是一组pod的服务抽象，相当于一组pod的LB，负责将请求分发给对应的pod，service会为这个LB提供一个IP，一般称为
+cluster IP.kube-proxy的作用主要是负责service的实现，具体来说，就是实现了内部从pod到service、外部从node port向
+service的访问。
+1）kube-proxy其实就是管理service的访问入口，包括集群内pod到service的访问和集群外访问service；
+2）kube-proxy管理service的endpoint，该service对外暴露一个virtual IP，也可以称为cluster IP，集群内通过访问这个
+cluster ip:port就能访问到集群内对应的service下的pod。
+</code></pre>
+<h3 id="kube-proxy三种工作模式">kube-proxy三种工作模式</h3>
+<p>1、userspace方式<br>
+<img src="https://ajie825.github.io/post-images/1658812308513.png" alt="" loading="lazy"></p>
+<pre><code class="language-bash">Client Pod要访问Server Pod时，它先将请求发给内核空间中的service iptables规则，由它再将请求转给监听在指定套接字上
+的kube-proxy的端口，kube-proxy处理完请求，并分发请求到指定Server Pod后,再将请求转发给内核空间中的service ip，由
+service iptables将请求转给各个节点中的Server Pod。
+这个模式有很大的问题，客户端请求先进入内核空间的，又进去用户空间访问kube-proxy，由kube-proxy封装完成后再进去内核空
+间的iptables，再根据iptables的规则分发给各节点的用户空间的pod。由于其需要来回在用户空间和内核空间交互通信，因此效率
+很差。
+在Kubernetes 1.1版本之前，userspace是默认的代理模型。
+</code></pre>
+<p>2、iptables方式：<br>
+<img src="https://ajie825.github.io/post-images/1658813224855.png" alt="" loading="lazy"></p>
+<pre><code class="language-bash">客户端IP请求时，直接请求本地内核service ip，根据iptables的规则直接将请求转发到到各pod上，因为使用iptable NAT来完成
+转发，也存在不可忽视的性能损耗。另外，如果集群中存上万的Service/Endpoint，那么Node上的iptables rules将会非常庞大，
+性能还会再打折。
+iptables代理模式由Kubernetes 1.1版本引入，自1.2版本开始成为默认类型。
+</code></pre>
+<p>3、ipvs方式：<br>
+<img src="https://ajie825.github.io/post-images/1658813556925.png" alt="" loading="lazy"></p>
+<pre><code class="language-bash">k8s自1.9-alpha版本引入了ipvs代理模式，自1.11版本开始成为默认设置。
+客户端请求到达内核空间时，根据ipvs的规则直接分发到各pod上。kube-proxy会监视k8s Service对象和Endpoints，调用netlink接
+口以相应地创建ipvs规则并定期与k8s Service对象和Endpoints对象同步ipvs规则，以确保ipvs状态与期望一致。访问服务时，流量将
+被重定向到其中一个后端Pod。与iptables类似，ipvs基于netfilter 的 hook 功能，但使用哈希表作为底层数据结构并在内核空间中工
+作。这意味着ipvs可以更快地重定向流量，并且在同步代理规则时具有更好的性能。此外，ipvs为负载均衡算法提供了更多选项，例如：
+rr：轮询调度
+lc：最小连接数
+dh：目标哈希
+sh：源哈希
+sed：最短期望延迟
+nq：不排队调度
+如果某个服务后端pod发生变化，标签选择器适应的pod又多一个，适应的信息会立即反映到apiserver上,而kube-proxy一定可以watch
+到etc中的信息变化，而将它立即转为ipvs或者iptables中的规则，这一切都是动态和实时的，删除一个pod也是同样的原理。如图：
+</code></pre>
+<figure data-type="image" tabindex="3"><img src="https://ajie825.github.io/post-images/1658813907329.png" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">以上不论哪种方式，kube-proxy都通过watch的方式监控着apiserver写入etcd中关于Pod的最新状态信息,它一旦检查到Pod资源被删除
+或新建了，它立即将这些变化反应在iptables或ipvs规则中，以便iptables和ipvs在调度Clinet Pod请求到Server Pod时，不会出现
+Server Pod不存在的情况。
+自k8s1.11以后,service默认使用ipvs规则，若ipvs没有被激活，则降级使用iptables规则。
+</code></pre>
+<h2 id="kube-proxy生成的iptables规则分析">kube-proxy生成的iptables规则分析</h2>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#service%E7%9A%84%E6%A6%82%E5%BF%B5-%E5%8E%9F%E7%90%86%E8%A7%A3%E8%AF%BB">service的概念、原理解读</a>
+<ul>
+<li><a href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E8%A6%81%E6%9C%89service">为什么要有service</a></li>
+<li><a href="#service%E6%A6%82%E8%BF%B0">service概述</a></li>
+<li><a href="#service%E5%B7%A5%E4%BD%9C%E5%8E%9F%E7%90%86">service工作原理</a></li>
+<li><a href="#k8s%E9%9B%86%E7%BE%A4%E4%B8%AD%E6%9C%89%E4%B8%89%E7%B1%BBip%E5%9C%B0%E5%9D%80">k8s集群中有三类IP地址</a></li>
+</ul>
+</li>
+<li><a href="#%E5%88%9B%E5%BB%BAservice%E8%B5%84%E6%BA%90">创建service资源</a>
+<ul>
+<li><a href="#service%E7%9A%84%E5%9B%9B%E7%A7%8D%E7%B1%BB%E5%9E%8Btype">service的四种类型type</a></li>
+<li><a href="#service%E7%9A%84%E7%AB%AF%E5%8F%A3ports">service的端口ports</a></li>
+</ul>
+</li>
+<li><a href="#%E5%88%9B%E5%BB%BA%E7%B1%BB%E5%9E%8B%E6%98%AFclusterip%E7%9A%84service">创建类型是ClusterIP的service</a></li>
+<li><a href="#%E5%88%9B%E5%BB%BA%E7%B1%BB%E5%9E%8B%E6%98%AFnodeport%E7%9A%84service">创建类型是NodePort的service</a></li>
+<li><a href="#%E5%88%9B%E5%BB%BA%E7%B1%BB%E5%9E%8B%E6%98%AFexternalname%E7%9A%84service">创建类型是ExternalName的service</a></li>
+<li><a href="#k8s%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5%E6%98%A0%E5%B0%84%E5%A4%96%E9%83%A8%E6%9C%8D%E5%8A%A1%E6%A1%88%E4%BE%8B%E5%88%86%E4%BA%AB">k8s最佳实践：映射外部服务案例分享</a></li>
+<li><a href="#kube-proxy%E7%BB%84%E4%BB%B6%E8%AF%A6%E8%A7%A3">kube-proxy组件详解</a>
+<ul>
+<li><a href="#kube-proxy%E7%BB%84%E4%BB%B6%E4%BB%8B%E7%BB%8D">kube-proxy组件介绍</a></li>
+<li><a href="#kube-proxy%E4%B8%89%E7%A7%8D%E5%B7%A5%E4%BD%9C%E6%A8%A1%E5%BC%8F">kube-proxy三种工作模式</a></li>
+</ul>
+</li>
+<li><a href="#kube-proxy%E7%94%9F%E6%88%90%E7%9A%84iptables%E8%A7%84%E5%88%99%E5%88%86%E6%9E%90">kube-proxy生成的iptables规则分析</a></li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://ajie825.github.io/post/deployment-kong-zhi-qi/">
+              <h3 class="post-title">
+                deployment控制器
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

@@ -1,0 +1,443 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>replicaset控制器 | Gridea</title>
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1660297788946">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="replicaset控制器 | Gridea - Atom Feed" href="https://ajie825.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+
+    <meta name="description" content="前面我们学习了pod，我们在定义pod资源时，可以通过yaml文件创建一个自主式pod，但是存在一个问题，假如pod被删
+除了，那这个pod就不能自我恢复，就会彻底被删除，线上这种情况非常危险，所以我们学习pod的控制器。
+所谓控制器就是能..." />
+    <meta name="keywords" content="k8s" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://ajie825.github.io">
+  <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1660297788946" alt="">
+  </a>
+  <h1 class="site-title">
+    Gridea
+  </h1>
+  <p class="site-description">
+    温故而知新
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              replicaset控制器
+            </h2>
+            <div class="post-info">
+              <span>
+                2022-07-21
+              </span>
+              <span>
+                12 min read
+              </span>
+              
+                <a href="https://ajie825.github.io/tag/hCwwZMyh3G/" class="post-tag">
+                  # k8s
+                </a>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <pre><code class="language-bash">前面我们学习了pod，我们在定义pod资源时，可以通过yaml文件创建一个自主式pod，但是存在一个问题，假如pod被删
+除了，那这个pod就不能自我恢复，就会彻底被删除，线上这种情况非常危险，所以我们学习pod的控制器。
+所谓控制器就是能够管理pod，监测pod的运行状况，当pod发生故障，可以自动恢复pod，也就是说能够代我们去管理pod
+中间层，并确保每一个pod资源始终处于所定义或者所期望的目标状态，一旦pod资源出现故障，那么控制器会尝试重启pod
+或者里面的容器，如果一直重启有问题它可能会基于某种策略来进行重新部署或者编排，如果pod副本数量低于用户所定义
+的目标数量，它也会自动补全，如果多余，也会自动终止pod资源。
+</code></pre>
+<h2 id="rs控制器的概念和原理">RS控制器的概念和原理</h2>
+<h3 id="replicaset概述">replicaset概述</h3>
+<pre><code class="language-bash">replicaset是k8s中的一种副本控制器，简称rs，主要作用是控制其管理的pod副本数量始终维持在预设的个数，它会持续
+监听这些pod的运行状态，在pod发生故障时重启pod，pod数量减少时重新运行新的pod副本，确保pod数量始终保持期望的
+状态。
+官方推荐不要直接使用replicaset，用deployment取而代之，deployment是比replicaset更高级的控制器，它会管理
+replicaset并提供很多有用的特性，最重要的是deployment支持声明式更新，声明式更新的好处是不会丢失历史变更，所
+以deployment控制器不直接管理pod对象，而是由deployment管理replicaset，再由replicaset负责管理pod对象。
+</code></pre>
+<h3 id="replicaset工作原理">replicaset工作原理</h3>
+<pre><code class="language-bash">replicaset核心作用在于代用户创建指定数量的pod副本，并确保pod副本一直处于满足用户期望的数量，起到多退少补的
+作用，并且还具有自动扩容缩容等机制。
+replicaset控制器主要由三个部分组成：
+1）用户期望的pod副本数：用来定义由这个控制器管控的pod副本有几个；
+2）标签选择器：选定哪些pod是自己管理的，如果通过标签选择器选到的pod副本数量少于我们指定的数量，需要用到下面的
+组件；
+3）pod资源模板：如果集群中现存的pod数量不够我们期望的数量怎么办，需要新建pod，这就需要pod模板，新建的pod是
+基于模板来创建的。
+</code></pre>
+<h2 id="rs资源清单文件编写技巧">RS资源清单文件编写技巧</h2>
+<pre><code class="language-bash">#查看定义replicaset资源需要的字段有哪些？
+[root@master1 ~]# kubectl explain rs
+KIND:     ReplicaSet
+VERSION:  apps/v1
+
+DESCRIPTION:
+     ReplicaSet ensures that a specified number of pod replicas are running at
+     any given time.
+FIELDS:
+   apiVersion   &lt;string&gt; #当前资源使用的api版本，跟apiVersion: apps/v1保持一致
+   kind &lt;string&gt;         #资源类型，跟kind: ReplicaSet保持一致
+   metadata     &lt;Object&gt; #元数据，定义replicaset名字、名称空间、标签
+   spec &lt;Object&gt;         #定义副本数、定义标签选择器、定义pod模板
+   status       &lt;Object&gt; #状态信息，不能改
+</code></pre>
+<pre><code class="language-bash">#查看replicaset的spec字段如果定义？
+[root@master1 ~]# kubectl explain rs.spec
+KIND:     ReplicaSet
+VERSION:  apps/v1
+RESOURCE: spec &lt;Object&gt;
+DESCRIPTION:
+     Spec defines the specification of the desired behavior of the ReplicaSet.
+     
+FIELDS:
+   minReadySeconds      &lt;integer&gt;
+   replicas     &lt;integer&gt;           #定义的pod副本数，根据我们指定的值创建对应数量的pod
+   selector     &lt;Object&gt; -required- #用于匹配pod的标签选择器
+   template     &lt;Object&gt;            #定义pod的模板，基于这个模板定义的所有pod是一样的
+</code></pre>
+<pre><code class="language-bash">#查看replicaset的spec.template字段如何定义？
+[root@master1 ~]# kubectl explain rs.spec.template
+KIND:     ReplicaSet
+VERSION:  apps/v1
+RESOURCE: template &lt;Object&gt;
+DESCRIPTION:
+
+FIELDS:
+   metadata     &lt;Object&gt;
+   spec &lt;Object&gt;
+
+[root@master1 ~]# kubectl explain rs.spec.template.spec
+通过上面可以看到，replicaset资源中有两个spec字段：
+第一个spec声明的是replicaset定义多少个pod副本（默认仅部署1个pod）、匹配pod标签的选择器、创建pod模板；
+第二个spec主要用于pod的元数据和容器属性等配置。
+spec.template里的内容声明pod对象时要定义的各种属性，所以这部分也叫做pod模板，还有一个值得注意的地方是：
+在spec.slector中定义的标签选择器必须能够匹配到spec.template.metadata.labels里定义的pod标签，否则k8s
+将不允许创建replicaset。
+</code></pre>
+<h2 id="replicaset使用案例">replicaset使用案例</h2>
+<pre><code class="language-bash">#部署guestbook留言板
+1）把#把frontend.tar.gz上传到node1和node2上，解压
+[root@node1 ~]# docker load -i frontend.tar.gz
+[root@node2 ~]# docker load -i frontend.tar.gz
+Loaded image: yecc/gcr.io-google_samples-gb-frontend:v3
+
+2）编写一个replicaset资源清单
+[root@master1 ~]# cat rs-guestbook.yaml 
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: frontend
+  namespace: default
+  labels:
+    app: guestbook
+    tier: frontend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      tier: frontend
+  template:
+    metadata:
+      labels:
+        tier: frontend
+    spec:
+      containers:
+      - name: php-redis
+        image: yecc/gcr.io-google_samples-gb-frontend:v3
+        imagePullPolicy: IfNotPresent
+        
+[root@master1 ~]# kubectl apply -f rs-guestbook.yaml 
+replicaset.apps/frontend created
+[root@master1 ~]# kubectl get rs|grep frontend
+frontend          3         3         3       67s
+[root@master1 ~]# kubectl get pods -o wide|grep frontend
+frontend-cmcwg       1/1     Running   0          3m15s   10.244.104.59    node2 
+frontend-v4nds       1/1     Running   0          3m15s   10.244.166.179   node1 
+frontend-w72ts       1/1     Running   0          3m15s   10.244.166.178   node1
+#pod的名字是由控制器的名字-随机数组成的，名称空间和replicaset一致。
+</code></pre>
+<pre><code class="language-bash">#资源清单详细说明
+apiVersion: apps/v1            #ReplicaSet 这个控制器属于的核心群组
+kind: ReplicaSet               #创建的资源类型
+metadata:
+  name: frontend               #控制器的名字
+  labels:
+    app: guestbook
+    tier: frontend
+spec:
+  replicas: 3                  #管理的pod副本数量
+  selector:
+    matchLabels:
+      tier: frontend           #管理带有tier=frontend标签的pod
+  template:                    #定义pod的模板
+    metadata:
+      labels:                  #pod标签，一定要有，这样上面控制器就能找到它要管理的pod是哪些了
+        tier: frontend 
+    spec:
+      containers:              #定义pod里运行的容器
+      - name: php-redis        #定义容器的名字
+        image: yecc/gcr.io-google_samples-gb-frontend:v3
+        ports:                 #定义端口
+        - containerPort:  80   #定义容器暴露的端口
+</code></pre>
+<h2 id="rs管理pod扩容-缩容-更新">RS管理pod：扩容、缩容、更新</h2>
+<h3 id="replicaset实现pod的动态扩容">replicaset实现pod的动态扩容</h3>
+<pre><code class="language-bash">replicaset最核心的功能是可以动态扩容和缩容，如果我们觉得两个pod副本太少了，想要增加，只需要修改配置文件rs-guestbook.yaml
+里的replicas的值即可，原来replicas: 3现在变成replicas: 4，修改之后，执行如下命令更新：
+[root@master1 ~]# kubectl apply -f rs-guestbook.yaml 
+replicaset.apps/frontend configured
+[root@master1 ~]# kubectl get rs
+NAME       DESIRED   CURRENT   READY   AGE
+frontend   4         4         4       16h
+[root@master1 ~]# kubectl get pods
+NAME             READY   STATUS    RESTARTS   AGE
+frontend-6nc9v   1/1     Running   0          45s
+frontend-cmcwg   1/1     Running   1          16h
+frontend-v4nds   1/1     Running   1          16h
+frontend-w72ts   1/1     Running   1          16h
+
+#也可以直接编辑控制器实现扩容
+[root@master1 ~]# kubectl edit rs frontend    #这个是把请求提交给了apiserver，实时修改
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      tier: frontend
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        tier: frontend
+ #把上面的spec.replicas后面的值改成5，保存退出
+ [root@master1 ~]# kubectl get rs           
+NAME       DESIRED   CURRENT   READY   AGE
+frontend   5         5         5       16h
+[root@master1 ~]# kubectl get pods         
+NAME             READY   STATUS    RESTARTS   AGE
+frontend-6nc9v   1/1     Running   0          5m41s
+frontend-cmcwg   1/1     Running   1          16h
+frontend-csfxl   1/1     Running   0          5s
+frontend-v4nds   1/1     Running   1          16h
+frontend-w72ts   1/1     Running   1          16h
+</code></pre>
+<h3 id="replicaset实现pod的动态缩容">replicaset实现pod的动态缩容</h3>
+<pre><code class="language-bash">如果我们觉得5个pod副本太多了，想要减少，只需要修改配置文件rs-guestbook.yaml的replicas的值即可，把replicas: 4
+变成replicas: 2，修改之后，执行如下命令更新：
+[root@master1 ~]# kubectl apply -f rs-guestbook.yaml 
+replicaset.apps/frontend configured
+[root@master1 ~]# kubectl get rs
+NAME       DESIRED   CURRENT   READY   AGE
+frontend   2         2         2       16h
+[root@master1 ~]# kubectl get pods                   
+NAME             READY   STATUS    RESTARTS   AGE
+frontend-v4nds   1/1     Running   1          16h
+frontend-w72ts   1/1     Running   1          16h
+#同样也可以直接编辑控制器实现缩容
+</code></pre>
+<h3 id="replicaset实现pod的更新">replicaset实现pod的更新</h3>
+<pre><code class="language-bash">1）把myapp-v2.tar.gz上传到node1和node2上，手动解压：
+[root@node1 ~]# docker load -i myapp-v2.tar.gz 
+[root@node2 ~]# docker load -i myapp-v2.tar.gz 
+Loaded image: ikubernetes/myapp:v2
+
+2）修改镜像image: yecc/gcr.io-google_samples-gb-frontend:v3变成image: ikubernetes/myapp:v2，修改之后保存退出
+ spec:
+      containers:
+      - image: ikubernetes/myapp:v2
+        imagePullPolicy: IfNotPresent
+        name: php-redis
+        resources: {}
+        
+3）可以看到镜像变成了ikubernetes/myapp:v2，说明滚动升级成功了
+[root@master1 ~]# kubectl get rs frontend -o wide
+NAME       DESIRED   CURRENT   READY   AGE   CONTAINERS   IMAGES                 SELECTOR
+frontend   2         2         2       16h   php-redis    ikubernetes/myapp:v2   tier=frontend
+[root@master1 ~]# kubectl get pods -o wide
+NAME             READY   STATUS    RESTARTS   AGE   IP               NODE    
+frontend-v4nds   1/1     Running   1          16h   10.244.166.181   node1   
+frontend-w72ts   1/1     Running   1          16h   10.244.166.180   node1
+
+4）访问pod的IP可以看到镜像已经更新了，但是原来的pod使用的还是之前的镜像
+[root@master1 ~]# curl 10.244.166.181
+&lt;div style=&quot;width: 50%; margin-left: 20px&quot;&gt;
+      &lt;h2&gt;Guestbook&lt;/h2&gt;
+    &lt;form&gt;
+    &lt;fieldset&gt;
+[root@master1 ~]# curl 10.244.166.180
+&lt;div style=&quot;width: 50%; margin-left: 20px&quot;&gt;
+      &lt;h2&gt;Guestbook&lt;/h2&gt;
+    &lt;form&gt;
+    &lt;fieldset&gt;
+    
+5）删除旧的pod，新创建的pod才会使用最新的镜像
+#删除10.244.166.181这个ip对应的pod
+[root@master1 ~]# kubectl delete pods frontend-v4nds
+pod &quot;frontend-v4nds&quot; deleted
+#重新生成一个新的pod：frontend-zp8zb 
+[root@master1 ~]# kubectl get pods -o wide          
+NAME             READY   STATUS    RESTARTS   AGE   IP               NODE 
+frontend-w72ts   1/1     Running   1          16h   10.244.166.180   node1  
+frontend-zp8zb   1/1     Running   0          21s   10.244.104.3     node2
+#新生成的pod镜像已经变成了myapp的，说明更新完成了
+[root@master1 ~]# curl 10.244.104.3
+Hello MyApp | Version: v2 | &lt;a href=&quot;hostname.html&quot;&gt;Pod Name&lt;/a&gt;
+</code></pre>
+<pre><code class="language-bash">#同样如果我们直接修改rs-guestbook.yaml文件，把image: yecc/gcr.io-google_samples-gb-frontend:v3
+#变成image: ikubernetes/myapp:v2
+[root@master1 ~]# kubectl apply -f rs-guestbook.yaml
+#发现原来的pod还是用的frontend:v3这个镜像，没有实现自动更新
+</code></pre>
+<pre><code class="language-bash">生产环境如果升级，可以删除一个pod，观察一段时间之后没问题再删除另一个pod，但是这样需要人工干预多次；
+实际生产环境一般采用蓝绿发布，原来有一个rs1，再创建一个rs2（控制器），通过修改service标签，可以匹配到rs2的控制器，这样才是蓝绿发布；
+这个也需要我们精心的部署规划，我们有一个控制器就是建立在rs之上完成的，叫做deployment。
+</code></pre>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#rs%E6%8E%A7%E5%88%B6%E5%99%A8%E7%9A%84%E6%A6%82%E5%BF%B5%E5%92%8C%E5%8E%9F%E7%90%86">RS控制器的概念和原理</a>
+<ul>
+<li><a href="#replicaset%E6%A6%82%E8%BF%B0">replicaset概述</a></li>
+<li><a href="#replicaset%E5%B7%A5%E4%BD%9C%E5%8E%9F%E7%90%86">replicaset工作原理</a></li>
+</ul>
+</li>
+<li><a href="#rs%E8%B5%84%E6%BA%90%E6%B8%85%E5%8D%95%E6%96%87%E4%BB%B6%E7%BC%96%E5%86%99%E6%8A%80%E5%B7%A7">RS资源清单文件编写技巧</a></li>
+<li><a href="#replicaset%E4%BD%BF%E7%94%A8%E6%A1%88%E4%BE%8B">replicaset使用案例</a></li>
+<li><a href="#rs%E7%AE%A1%E7%90%86pod%E6%89%A9%E5%AE%B9-%E7%BC%A9%E5%AE%B9-%E6%9B%B4%E6%96%B0">RS管理pod：扩容、缩容、更新</a>
+<ul>
+<li><a href="#replicaset%E5%AE%9E%E7%8E%B0pod%E7%9A%84%E5%8A%A8%E6%80%81%E6%89%A9%E5%AE%B9">replicaset实现pod的动态扩容</a></li>
+<li><a href="#replicaset%E5%AE%9E%E7%8E%B0pod%E7%9A%84%E5%8A%A8%E6%80%81%E7%BC%A9%E5%AE%B9">replicaset实现pod的动态缩容</a></li>
+<li><a href="#replicaset%E5%AE%9E%E7%8E%B0pod%E7%9A%84%E6%9B%B4%E6%96%B0">replicaset实现pod的更新</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://ajie825.github.io/post/pod-sheng-ming-zhou-qi-he-jian-kang-tan-ce/">
+              <h3 class="post-title">
+                pod生命周期和健康探测
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

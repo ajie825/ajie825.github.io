@@ -1,0 +1,250 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>编译安装php7.0 | Gridea</title>
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1660297788946">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="编译安装php7.0 | Gridea - Atom Feed" href="https://ajie825.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+
+    <meta name="description" content="#!/bin/bash
+cd /tmp
+yum install epel-release -y
+amazon-linux-extras install epel -y
+yum install gcc -y
+yum install gcc-c..." />
+    <meta name="keywords" content="脚本,php" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://ajie825.github.io">
+  <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1660297788946" alt="">
+  </a>
+  <h1 class="site-title">
+    Gridea
+  </h1>
+  <p class="site-description">
+    温故而知新
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              编译安装php7.0
+            </h2>
+            <div class="post-info">
+              <span>
+                2022-05-14
+              </span>
+              <span>
+                5 min read
+              </span>
+              
+                <a href="https://ajie825.github.io/tag/y7W7IDYc9l/" class="post-tag">
+                  # 脚本
+                </a>
+              
+                <a href="https://ajie825.github.io/tag/0eAWIJuY3k/" class="post-tag">
+                  # php
+                </a>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <pre><code class="language-shell">#!/bin/bash
+cd /tmp
+yum install epel-release -y
+amazon-linux-extras install epel -y
+yum install gcc -y
+yum install gcc-c++ -y
+yum install libxml2 libxml2-devel openssl openssl-devel curl-devel libjpeg-devel libpng-devel freetype-devel mhash gd gd-devel bz2 -y
+yum install libcurl-devel
+yum install libjpeg* -y
+yum install bzip2 bzip2-devel -y
+yum install libpng* -y
+yum install libxslt-devel* -y
+yum install libmcrypt-devel -y
+
+wget https://www.php.net/distributions/php-7.0.33.tar.gz -O php-7.0.33.tar.gz
+tar xf php-7.0.33.tar.gz
+cd php-7.0.33
+./configure --prefix=/usr/local/php  --with-curl --with-bz2 --enable-calendar --enable-exif --enable-ftp --enable-fpm --enable-mbstring --with-mcrypt --with-gd --enable-gd-native-ttf --with-mysqli --with-pdo-mysql --with-pear --with-iconv-dir --with-freetype-dir --with-jpeg-dir --with-png-dir --with-zlib --with-libxml-dir --enable-xml --disable-rpath --enable-shmop --enable-sysvsem --enable-inline-optimization --enable-mbregex --with-openssl --with-mhash --enable-pcntl --enable-sockets --with-xmlrpc --enable-soap --enable-short-tags --enable-static --enable-zip --with-gettext --enable-bcmath
+make
+make install
+cp php.ini-development /usr/local/php/lib/php.ini
+
+#修改php时区
+sed -i &quot;/.*timezone =.*/c date\.timezone = Asia/Shanghai&quot; /usr/local/php/lib/php.ini
+#禁止显示php版本号
+sed -i &quot;/.*expose_php =.*/c expose_php = Off&quot; /usr/local/php/lib/php.ini
+#禁止打开远程资源
+sed -i &quot;/.*allow_url_fopen =.*/c allow_url_fopen = Off&quot; /usr/local/php/lib/php.ini
+#禁用危险函数
+sed -i &quot;/.*disable_functions =.*/c disable_functions = eval,exec,shell_exec,system,passthru,popen,phpinfo,proc_open,assert,chroot,chmod,chgrp,chown,parse_ini_file,show_source,ini_restore,dl,syslog,readlink,symlink,openlog&quot; /usr/local/php/lib/php.ini
+#限制php读取文件范围在/data/app/
+sed -i &quot;/.*open_basedir =.*/c open_basedir = /data/app/&quot; /usr/local/php/lib/php.ini
+#禁止显示php错误display_errors =
+sed -i &quot;/.*display_errors =.*/c display_errors = Off&quot; /usr/local/php/lib/php.ini
+sed -i &quot;/.*display_startup_errors =.*/c display_startup_errors = Off&quot; /usr/local/php/lib/php.ini
+#开启错误日志
+sed -i &quot;/.*log_errors =.*/c log_errors = On&quot; /usr/local/php/lib/php.ini
+sed -i &quot;/.*error_reporting =.*/c error_reporting = E_ALL &amp; ~E_DEPRECATED &amp; ~E_STRICT&quot; /usr/local/php/lib/php.ini
+sed -i &quot;/.*ignore_repeated_errors =.*/c ignore_repeated_errors = Off&quot; /usr/local/php/lib/php.ini
+#开启opcache
+sed -i &quot;/.*or under UNIX:.*/a\zend_extension=opcache.so&quot; /usr/local/php/lib/php.ini
+sed -i &quot;/.*opcache.enable=.*/c opcache.enable=1&quot; /usr/local/php/lib/php.ini
+sed -i &quot;/.*opcache.enable_cli=.*/c opcache.enable_cli=1&quot; /usr/local/php/lib/php.ini
+sed -i &quot;/.*opcache.memory_consumption=.*/c opcache.memory_consumption=512&quot; /usr/local/php/lib/php.ini
+sed -i &quot;/.*opcache.interned_strings_buffer=.*/c opcache.interned_strings_buffer=64&quot; /usr/local/php/lib/php.ini
+sed -i &quot;/.*opcache.max_accelerated_files=.*/c opcache.max_accelerated_files=100000&quot; /usr/local/php/lib/php.ini
+
+ln -s /usr/local/php/lib/php.ini /etc/php.ini
+
+cp /usr/local/php/etc/php-fpm.conf.default /usr/local/php/etc/php-fpm.conf
+#开启php-fpm错误日志
+sed -i &quot;/.*error_log =.*/c error_log = /var/log/php-fpm.log&quot; /usr/local/php/etc/php-fpm.conf
+echo &quot;catch_workers_output = yes&quot; &gt;&gt; /usr/local/php/etc/php-fpm.conf
+
+cp /usr/local/php/etc/php-fpm.d/www.conf.default /usr/local/php/etc/php-fpm.d/www.conf
+
+#创建用户apache
+groupadd apache
+useradd -g apache apache
+
+#修改php-fpm用户为apache
+sed -i &quot;/user = nobody/c user = apache&quot; /usr/local/php/etc/php-fpm.d/www.conf
+sed -i &quot;/group = nobody/c group = apache&quot; /usr/local/php/etc/php-fpm.d/www.conf
+
+#添加php命令环境变量
+echo &quot;export PATH=\$PATH:/usr/local/php/bin&quot; &gt;&gt; ~/.bashrc
+source ~/.bashrc
+
+cp sapi/fpm/init.d.php-fpm /etc/init.d/php-fpm
+chmod 755 /etc/init.d/php-fpm
+systemctl enable php-fpm
+service php-fpm start
+</code></pre>
+
+              </div>
+              <div class="toc-container">
+                
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://ajie825.github.io/post/bian-yi-an-zhuang-php74/">
+              <h3 class="post-title">
+                编译安装php7.4
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

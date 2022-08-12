@@ -1,0 +1,533 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pod概述-入门知识讲解 | Gridea</title>
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1660297788946">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="Pod概述-入门知识讲解 | Gridea - Atom Feed" href="https://ajie825.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+
+    <meta name="description" content="k8s核心资源pod介绍
+K8s官方文档：https://kubernetes.io/
+K8s中文官方文档： https://kubernetes.io/zh/
+K8s Github地址：https://github.com/kuberne..." />
+    <meta name="keywords" content="k8s" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://ajie825.github.io">
+  <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1660297788946" alt="">
+  </a>
+  <h1 class="site-title">
+    Gridea
+  </h1>
+  <p class="site-description">
+    温故而知新
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              Pod概述-入门知识讲解
+            </h2>
+            <div class="post-info">
+              <span>
+                2022-07-14
+              </span>
+              <span>
+                13 min read
+              </span>
+              
+                <a href="https://ajie825.github.io/tag/hCwwZMyh3G/" class="post-tag">
+                  # k8s
+                </a>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <h2 id="k8s核心资源pod介绍">k8s核心资源pod介绍</h2>
+<pre><code class="language-bash">K8s官方文档：https://kubernetes.io/
+K8s中文官方文档： https://kubernetes.io/zh/
+K8s Github地址：https://github.com/kubernetes/
+</code></pre>
+<h3 id="pod是什么">pod是什么</h3>
+<pre><code class="language-bash">官方文档：https://kubernetes.io/docs/concepts/workloads/pods/
+</code></pre>
+<pre><code class="language-bash">pod是kubernets中的最小调度单元，k8s是通过定义一个pod的资源，然后在pod里面运行容器，容器运行需要指定一个镜像，这
+样可以用来运行具体的服务。一个pod封装一个容器（也可以封装多个容器），pod里面的容器共享存储、网络等。也就是说，应该
+把整个pod看作虚拟机，然后每个容器相当于运行在虚拟机的进程。
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1657781608064.png" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">pod是需要调度到k8s集群的工作节点来运行的，具体调度到哪个工作节点，是根据scheduler调度器实现的。
+白话解释：
+可以把pod看成是一个“豌豆荚”，里面有很多“豆子”（容器）。一个豌豆荚里的豆子，它们吸收着共同的营养成分、肥料、水分等，
+Pod和容器的关系也是一样，Pod里面的容器共享pod的网络、存储等。
+</code></pre>
+<figure data-type="image" tabindex="2"><img src="https://ajie825.github.io/post-images/1657781905907.png" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">pod相当于一个逻辑主机，比方说我们要部署一个tomcat应用，如果不用容器，我们可能会部署到物理机、虚拟机或者云主机上，
+那么k8s之后，我们就可以定义一个pod资源，在pod里定义一个tomcat容器，所以pod充当的是一个逻辑主机的角色。
+</code></pre>
+<h3 id="pod如何管理多个容器">pod如何管理多个容器</h3>
+<figure data-type="image" tabindex="3"><img src="https://ajie825.github.io/post-images/1657782421728.png" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">pod中可以同时运行多个容器，同一个pod中的容器会自动的分配到同一个node上。同一个pod中的容器共享资源、网络环境。它
+们总是被同时调度，在一个pod中同时运行多个容器是一种比较高级的用法，只有当你的容器需要紧密配合协作的时候才考虑用这
+种模式。例如，你有一个容器作为web服务器运行，需要用到共享的volume，有另一个&quot;sidecar&quot;容器从远端获取资源更新这些
+文件。
+
+一些pod有init容器和应用容器，在应用程序容器启动之前，运行初始化容器。
+</code></pre>
+<h3 id="pod网络">pod网络</h3>
+<pre><code class="language-bash">pod是有IP地址的，每个pod都被分配唯一的IP地址（IP地址是靠网络插件calico、flannel、weave等分配的），pod中的容器
+共享网络名称空间，包括IP地址和网络端口。pod内部的容器可以使用localhost相互通信。pod中的容器也可以通过网络插件
+calico与其它节点的pod通信。
+</code></pre>
+<h3 id="pod存储">pod存储</h3>
+<pre><code class="language-bash">创建pod的时候可以指定挂载的存储卷。pod中的容器都可以访问共享卷，允许这些容器共享数据。pod只要挂载持久化数据卷，
+pod重启之后数据还是会存在的。
+</code></pre>
+<h3 id="pod工作方式">pod工作方式</h3>
+<pre><code class="language-bash">在k8s中，所有的资源都可以使用一个yaml文件来创建，创建pod也可以使用yaml配置文件。或者使用kubectl run在命令行创建
+pod（不常用）。
+</code></pre>
+<h4 id="自主式pod">自主式pod</h4>
+<pre><code class="language-bash">所谓自主式pod，就是直接定义一个pod资源，如下
+[root@master1 ~]# vim pod-tomcat.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: tomcat-test
+  namespace: default
+  labels:
+    app:  tomcat
+spec:
+  containers:
+  - name:  tomcat-java
+    ports:
+    - containerPort: 8080
+    image: 8.5-jre8-alpine
+    imagePullPolicy: IfNotPresent
+1）导入镜像
+把tomcat.tar.gz上传到node1、node2，手动解压
+[root@node1 ~]# docker load -i tomcat.tar.gz
+[root@node2 ~]# docker load -i tomcat.tar.gz
+2）更新资源清单文件
+[root@master1 ~]# kubectl apply -f pod-tomcat.yaml 
+3）查看pod是否创建成功
+[root@master1 ~]# kubectl get pods                 
+NAME          READY   STATUS    RESTARTS   AGE
+demo-pod      1/1     Running   1          8m39s
+tomcat-test   1/1     Running   0          57s
+</code></pre>
+<pre><code class="language-bash">但是自主式pod是存在一个问题的，加入我们不小心删除了pod
+[root@master1 ~]# kubectl delete pods tomcat-test
+#查看pod是否存在
+[root@master1 ~]# kubectl get pods -l app=tomcat
+#结果是空，说明Pod已经被删除了
+
+通过上面可以看到，如果直接定义了一个pod资源，那么pod被删除，就彻底被删除了，不会再创建一个新的pod。
+这在生产环境还是具有非常大风险的，所以今后我们接触的pod，都是控制器管理的。
+</code></pre>
+<h4 id="控制器管理的pod">控制器管理的pod</h4>
+<pre><code class="language-bash">常见的管理pod的控制器：Replicaset、Deployment、Job、CronJob、Daemonset、Statefulset。
+控制器管理的pod可以确保pod始终维持在指定的副本数运行。
+</code></pre>
+<pre><code class="language-bash">#通过deployment管理pod
+1）解压镜像
+把nginx.tar.gz上传到node1和node2节点
+[root@node1 ~]# docker load -i nginx.tar.gz 
+[root@node2 ~]# docker load -i nginx.tar.gz
+
+2）创建一个资源清单文件
+[root@master1 ~]# cat nginx-deploy.yaml 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-test
+  labels:
+    app: nginx-deploy
+spec:
+  selector:
+    matchLabels:
+      app: nginx
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: my-nginx
+        image: nginx:v1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+
+3）更新资源清单文件
+[root@master1 ~]# kubectl apply -f nginx-deploy.yaml 
+
+4）查看deployment
+[root@master1 ~]# kubectl get deployments -l app=nginx-deploy
+NAME         READY   UP-TO-DATE   AVAILABLE   AGE
+nginx-test   2/2     2            2           84s
+
+5）查看replicaset
+[root@master1 ~]# kubectl get rs -l app=nginx
+NAME                    DESIRED   CURRENT   READY   AGE
+nginx-test-5df9f4b5c5   2         2         2       2m12s
+
+6）查看pod
+[root@master1 ~]# kubectl get pods -o wide -l app=nginx
+NAME                          READY   STATUS    RESTARTS   AGE     IP               NODE 
+nginx-test-5df9f4b5c5-6rs2g   1/1     Running   0          3m10s   10.244.104.8     node2
+nginx-test-5df9f4b5c5-dwvp4   1/1     Running   0          3m10s   10.244.166.133   node1
+
+7）删除nginx-test-5df9f4b5c5-6rs2g这个pod
+[root@master1 ~]# kubectl delete pods nginx-test-5df9f4b5c5-6rs2g
+[root@master1 ~]# kubectl get pods -o wide -l app=nginx          
+NAME                          READY   STATUS    RESTARTS   AGE     IP               NODE 
+nginx-test-5df9f4b5c5-dwvp4   1/1     Running   0          4m56s   10.244.166.133   node1
+nginx-test-5df9f4b5c5-j2kdj   1/1     Running   0          17s     10.244.166.134   node1
+#发现重新创建一个新的pod是nginx-test-5df9f4b5c5-j2kdj
+
+通过上面可以发现deployment管理的pod，可以确保pod始终维持在指定副本数量。
+</code></pre>
+<h2 id="如何创建一个pod资源">如何创建一个pod资源</h2>
+<h3 id="k8s创建pod流程">k8s创建pod流程</h3>
+<figure data-type="image" tabindex="4"><img src="https://ajie825.github.io/post-images/1657792216378.png" alt="" loading="lazy"></figure>
+<pre><code>pod是kubernetes中最基本的部署调度单元，可以包含container，逻辑上表示某种应用的一个实例。例如一个
+web站点应用由前端、后端及数据库构建而成，这三个组件将运行在各自的容器中，那么我们可以创建三个container的pod。
+</code></pre>
+<figure data-type="image" tabindex="5"><img src="https://ajie825.github.io/post-images/1657792494343.png" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">master节点：kubectl---&gt;kube-api---&gt;kubelet---&gt;CRI容器环境初始化
+第一步：
+客户端提交创建pod的请求，可以通过调用API server的Rest API接口，也可以通过kubectl命令行工具。
+如kubectl apply -f filename.yaml(资源清单文件)。
+
+第二步：
+apiserver接收到创建pod请求后，会将yaml中的属性信息(metadata)写入etcd中。
+
+第三步：
+apiserver触发watch机制准备创建pod，信息转发给调度器scheduler，调度器使用调度算法选择node，调度器将node信息
+给apiserver，apiserver将绑定的node信息写入etcd中。
+调度器用一组规则过滤掉不符合要求的主机，比如pod指定了所需要的资源量，那么可用资源比pod需要的资源少的主机会被过
+滤掉。
+
+第四步：
+apiserver通过watch机制将pod信息转发给kubelet，kubelet调用docker API创建并启动pod内的容器。
+
+第五步：
+kubelet创建完成pod后，将pod的状态信息反馈给apiserver，apiserver又将pod的状态信息写入etcd中。
+</code></pre>
+<h3 id="资源清单yaml文件书写技巧">资源清单YAML文件书写技巧</h3>
+<pre><code class="language-bash">[root@master1 ~]# cat pod-tomcat.yaml 
+apiVersion: v1                       #api版本
+kind: Pod                            #创建的资源
+metadata:  
+  name: tomcat-test                  #Pod的名字
+  namespace: default                 #Pod所在的名称空间
+  labels:
+    app:  tomcat                     #Pod具有的标签
+spec:
+  containers:
+  - name:  tomcat-java               #Pod里容器的名字
+    ports:
+    - containerPort: 8080            #容器暴露的端口
+    image: tomcat:8.5-jre8-alpine    #容器使用的镜像
+    imagePullPolicy: IfNotPresent    #镜像拉取策略
+    
+#更新资源清单文件
+[root@master1 ~]# kubectl apply -f pod-tomcat.yaml
+
+#查看pod
+[root@master1 ~]# kubectl get pods -l app=tomcat -o wide
+NAME          READY   STATUS    RESTARTS   AGE     IP              NODE 
+tomcat-test   1/1     Running   0          5m15s   10.244.104.12   node2
+</code></pre>
+<pre><code class="language-bash">#通过kubectl explain查看定义pod资源包含哪些字段?
+[root@master1 ~]# kubectl explain pod
+KIND:     Pod
+VERSION:  v1
+
+DESCRIPTION:
+     [pod是可以在主机上运行的容器的集合。此资源是由客户端创建并安排到主机上.]
+
+FIELDS:
+   apiVersion   &lt;string&gt;
+     [APIVersion定义了对象，代表了一个版本.]
+     
+   kind &lt;string&gt;
+     [kind是字符串类型的值，代表了要创建的资源，服务器可以从客户端提交的请求推断出这个资源.]
+
+   metadata     &lt;Object&gt;
+     [metadata是对象，定义元数据属性信息的]
+
+   spec &lt;Object&gt;
+     [spec制定了定义pod的规格，里面包含容器的信息]
+
+   status       &lt;Object&gt;
+     [status表示状态，这个不可以修改，定义pod的时候也不需要定义这个字段.
+</code></pre>
+<pre><code class="language-bash">#查看pod.metadata字段如何定义
+[root@master1 ~]# kubectl explain pod.metadata
+KIND:     Pod
+VERSION:  v1
+
+RESOURCE: metadata &lt;Object&gt;
+#metadata是对象&lt;Object&gt;，下面可以有多个字段
+
+FIELDS:  
+   labels &lt;map[string]string&gt; #创建的资源具有的标签
+   #labels是标签，labels是map类型，map类型表示对应的值是key-value键值对，&lt;string&gt;表示key和value都是string类型的。
+   name &lt;string&gt;              #创建的资源的名字
+   namespace &lt;string&gt;         #创建的资源所属的名称空间
+   #namespaces划分了一个空间，在同一个namespace下的资源名字是唯一的，默认的名称空间是default。
+</code></pre>
+<pre><code class="language-bash">#查看pod.spec字段如何定义
+[root@master1 ~]# kubectl explain pod.spec
+KIND:     Pod
+VERSION:  v1
+
+RESOURCE: spec &lt;Object&gt;
+DESCRIPTION:
+#pod的spec字段是用来描述pod的
+
+FIELDS:
+   activeDeadlineSeconds        &lt;integer&gt;
+    #表示pod可以运行的最长时间，达到设置的值后，pod会自动停止。
+   affinity &lt;Object&gt; #定义亲和性的
+   containers   &lt;[]Object&gt; -required-
+   #containers是对象列表，用来定义容器的，是必须字段，对象列表表示下面有很多对象，下面的内容用 - 连接
+</code></pre>
+<pre><code class="language-bash">#查看pod.spec.containers字段如何定义
+[root@master1 ~]# kubectl explain pod.spec.containers           
+KIND:     Pod
+VERSION:  v1
+
+RESOURCE: containers &lt;[]Object&gt;
+
+DESCRIPTION:
+#container 是定义在pod里面的，一个pod至少要有一个容器。
+FIELDS:
+   image        &lt;string&gt;
+   #image 是用来指定容器需要的镜像的 
+   imagePullPolicy      &lt;string&gt;
+   #镜像拉取策略，pod是要调度到node节点上的，那pod启动需要镜像，可以根据这个字段设置镜像拉取策略，支持如下三种：
+   Always： 不管本地是否存在镜像，都要重新拉取镜像
+   Never： 从不拉取镜像
+   IfNotPresent：如果本地存在，使用本地的镜像，本地不存在，从官方拉取镜像
+   name &lt;string&gt; -required-
+   #name是必须字段，用来指定容器名字的
+   ports        &lt;[]Object&gt;
+   #port 是端口，属于对象列表
+</code></pre>
+<pre><code class="language-bash">#查看pod.spec.containers.ports字段如何定义
+[root@master1 ~]# kubectl explain pod.spec.containers.ports
+KIND:     Pod
+VERSION:  v1
+
+RESOURCE: ports &lt;[]Object&gt;
+
+DESCRIPTION:
+    #ContainerPort表示单个容器中的网络端口。
+
+FIELDS:
+   containerPort        &lt;integer&gt; -required-
+   #containerPort是必须字段，pod中的容器需要暴露的端口。
+   hostIP       &lt;string&gt;
+   #将容器中的服务暴露到宿主机的端口上时，可以指定绑定的宿主机IP。
+   hostPort     &lt;integer&gt;
+   #容器中的服务在宿主机上映射的端口。
+</code></pre>
+<h3 id="通过资源清单文件创建第一个pod">通过资源清单文件创建第一个pod</h3>
+<pre><code class="language-bash">[root@master1 ~]# cat pod-first.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-first
+  namespace: default
+  labels:
+    app: tomcat-pod-first
+spec:
+  containers:
+  - name: tomcat-first
+    ports:
+    - containerPort: 8080
+    image: tomcat:8.5-jre8-alpine
+    imagePullPolicy: IfNotPresent
+1）导入镜像
+#把tomcat.tar.gz 上传到node1和node2节点，手动解压：
+[root@node1 ~]# docker load -i tomcat.tar.gz
+[root@node2 ~]# docker load -i tomcat.tar.gz
+
+2）更新资源清单文件
+[root@master1 ~]# kubectl apply -f pod-first.yaml
+
+3）查看pod是否创建成功
+[root@master1 ~]# kubectl get pods -o wide -l app=tomcat-pod-first    
+NAME        READY   STATUS    RESTARTS   AGE     IP              NODE 
+pod-first   1/1     Running   0          4m17s   10.244.104.13   node2
+
+4）查看日志
+[root@master1 ~]# kubectl logs pod-first
+
+5）查看pod里指定容器的日志
+[root@master1 ~]# kubectl logs pod-first -c tomcat-first
+
+6）假如pod里有多个容器，进入到pod里的指定容器，按如下命令：
+kubectl exec -it pod-first  -c  tomcat-first -- /bin/bash 
+</code></pre>
+<pre><code class="language-bash">我们上面创建的pod是一个自主式pod，也就是通过pod创建一个应用程序，如果pod出现故障停掉，那么我们通过pod部署的应用也就会停掉，不安全; 
+还有一种控制器管理的pod，通过控制器创建pod，可以对pod的生命周期做管理，可以定义pod的副本数，如果有一个pod意外停掉，那么会自动起来一
+个pod替代之前的pod，之后会讲解pod的控制器。
+</code></pre>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#k8s%E6%A0%B8%E5%BF%83%E8%B5%84%E6%BA%90pod%E4%BB%8B%E7%BB%8D">k8s核心资源pod介绍</a>
+<ul>
+<li><a href="#pod%E6%98%AF%E4%BB%80%E4%B9%88">pod是什么</a></li>
+<li><a href="#pod%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%A4%9A%E4%B8%AA%E5%AE%B9%E5%99%A8">pod如何管理多个容器</a></li>
+<li><a href="#pod%E7%BD%91%E7%BB%9C">pod网络</a></li>
+<li><a href="#pod%E5%AD%98%E5%82%A8">pod存储</a></li>
+<li><a href="#pod%E5%B7%A5%E4%BD%9C%E6%96%B9%E5%BC%8F">pod工作方式</a>
+<ul>
+<li><a href="#%E8%87%AA%E4%B8%BB%E5%BC%8Fpod">自主式pod</a></li>
+<li><a href="#%E6%8E%A7%E5%88%B6%E5%99%A8%E7%AE%A1%E7%90%86%E7%9A%84pod">控制器管理的pod</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#%E5%A6%82%E4%BD%95%E5%88%9B%E5%BB%BA%E4%B8%80%E4%B8%AApod%E8%B5%84%E6%BA%90">如何创建一个pod资源</a>
+<ul>
+<li><a href="#k8s%E5%88%9B%E5%BB%BApod%E6%B5%81%E7%A8%8B">k8s创建pod流程</a></li>
+<li><a href="#%E8%B5%84%E6%BA%90%E6%B8%85%E5%8D%95yaml%E6%96%87%E4%BB%B6%E4%B9%A6%E5%86%99%E6%8A%80%E5%B7%A7">资源清单YAML文件书写技巧</a></li>
+<li><a href="#%E9%80%9A%E8%BF%87%E8%B5%84%E6%BA%90%E6%B8%85%E5%8D%95%E6%96%87%E4%BB%B6%E5%88%9B%E5%BB%BA%E7%AC%AC%E4%B8%80%E4%B8%AApod">通过资源清单文件创建第一个pod</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://ajie825.github.io/post/kubeadm-an-zhuang-duo-master-jie-dian-de-k8s-ji-qun-120-yi-shang-wen-ding-ban-ben/">
+              <h3 class="post-title">
+                kubeadm安装多master节点的k8s集群-1.20以上稳定版本
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

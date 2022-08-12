@@ -1,0 +1,269 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>nginx日志切割脚本 | Gridea</title>
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1660297788946">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="nginx日志切割脚本 | Gridea - Atom Feed" href="https://ajie825.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+
+    <meta name="description" content="#!/bin/bash
+#nginx access log segmentation shell script
+#日志目录
+log_dir=&quot;/data/logs/&quot;
+backup_dir=&quot;/data/log..." />
+    <meta name="keywords" content="nginx,脚本" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://ajie825.github.io">
+  <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1660297788946" alt="">
+  </a>
+  <h1 class="site-title">
+    Gridea
+  </h1>
+  <p class="site-description">
+    温故而知新
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              nginx日志切割脚本
+            </h2>
+            <div class="post-info">
+              <span>
+                2022-04-22
+              </span>
+              <span>
+                3 min read
+              </span>
+              
+                <a href="https://ajie825.github.io/tag/JmbVLnHII/" class="post-tag">
+                  # nginx
+                </a>
+              
+                <a href="https://ajie825.github.io/tag/y7W7IDYc9l/" class="post-tag">
+                  # 脚本
+                </a>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <pre><code class="language-shell">#!/bin/bash
+#nginx access log segmentation shell script
+#日志目录
+log_dir=&quot;/data/logs/&quot;
+backup_dir=&quot;/data/logs/backup/&quot;
+weblog_dir=&quot;/data/logs/weblog/&quot;
+
+cd $log_dir
+
+time=`date +%Y-%m-%d --date=&quot;-1 day&quot;`
+#日志保存天数
+save_days=15
+
+#此处待优化（取得文件不带后缀的文件名）
+filenames=`ls $log_dir*.log | xargs -n 1 | cut -f 1 -d &quot;.&quot; | cut -f 4 -d &quot;/&quot;`
+
+#日志目录下所有的日志文件为文件夹，循环新建对应的时间文件
+for i in $filenames
+do
+    cp $log_dir$i.log $backup_dir$i-$time.log
+    true&gt;$log_dir$i.log
+done
+
+#weblog中前一天的日志移入backup
+find $weblog_dir -mtime +0 -type f -exec mv {} $backup_dir \;
+#删除backup中设置天数前的数据
+find $backup_dir -mtime +$save_days -type f -exec rm -f {} \;
+</code></pre>
+<pre><code class="language-shell">#!/bin/bash
+#nginx access log segmentation shell script
+#日志目录
+log_dir=&quot;/data/logs/&quot;
+cd $log_dir
+time=`date +%Y%m%d --date=&quot;-1 day&quot;`
+#日志保存天数
+save_days=15
+#日志文件名所处'/'分割的位置，key('/'数+1)
+num=`echo &quot;$log_dir&quot; | awk -F'/' '{print NF-1}'`
+num=$[$num+1];
+
+#此处待优化（取得文件不带后缀的文件名）
+website=`ls $log_dir*.log | xargs -n 1 | cut -f 1 -d &quot;.&quot; | cut -f $num -d &quot;/&quot;`
+
+#日志目录下所有的日志文件为文件夹，循环新建对应的时间文件
+for i in $website
+do
+    #判断目录是否存在
+    if [ ! -d $log_dir$i ];then
+        mkdir &quot;$i&quot;
+    fi
+
+    cp $log_dir$i.log $log_dir$i/$i-$time.log
+    true&gt;$log_dir$i.log
+
+done
+
+#删除设置天数前的数据
+find $log_dir -mtime +$save_days -type f -exec rm -f {} \;
+</code></pre>
+<pre><code class="language-shell">#!/bin/bash
+#nginx access log segmentation shell script
+#日志目录
+log_dir=&quot;/data/logs/&quot;
+backup_dir=&quot;/data/logs/backup/&quot;
+weblog_dir=&quot;/data/logs/weblog/&quot;
+time=`date +%Y-%m-%d --date=&quot;-1 day&quot;`
+#日志保存天数
+save_days=15
+
+cd $weblog_dir
+
+filename1=`ls $weblog_dir*.log | xargs -n 1 | cut -f 5 -d &quot;/&quot; | rev| cut -f 2-$n -d &quot;.&quot; | rev`
+for i in $filename1
+do
+    cp $weblog_dir$i.log $backup_dir$i-$time.log
+    true&gt;$weblog_dir$i.log
+done
+
+cd $log_dir
+
+#此处待优化（取得文件不带后缀的文件名）
+filenames=`ls $log_dir*.log | xargs -n 1 | cut -f 1 -d &quot;.&quot; | cut -f 4 -d &quot;/&quot;`
+
+#日志目录下所有的日志文件为文件夹，循环新建对应的时间文件
+for i in $filenames
+do
+    cp $log_dir$i.log $backup_dir$i-$time.log
+    true&gt;$log_dir$i.log
+done
+
+#删除backup中设置天数前的数据
+find $backup_dir -mtime +$save_days -type f -exec rm -f {} \;
+</code></pre>
+
+              </div>
+              <div class="toc-container">
+                
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://ajie825.github.io/post/bian-yi-an-zhuang-nginx-jiao-ben/">
+              <h3 class="post-title">
+                编译安装nginx脚本
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

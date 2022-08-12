@@ -1,0 +1,234 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>prometheus监控mysql（五） | Gridea</title>
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1660297788946">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="prometheus监控mysql（五） | Gridea - Atom Feed" href="https://ajie825.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+
+    <meta name="description" content="下载二进制包，执行以下命令
+[root@mysqld ~]# wget https://github.com/prometheus/mysqld_exporter/releases/download/v0.12.1/mysqld_expor..." />
+    <meta name="keywords" content="prometheus" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://ajie825.github.io">
+  <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1660297788946" alt="">
+  </a>
+  <h1 class="site-title">
+    Gridea
+  </h1>
+  <p class="site-description">
+    温故而知新
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              prometheus监控mysql（五）
+            </h2>
+            <div class="post-info">
+              <span>
+                2022-04-27
+              </span>
+              <span>
+                3 min read
+              </span>
+              
+                <a href="https://ajie825.github.io/tag/OXb9iz9Q3p/" class="post-tag">
+                  # prometheus
+                </a>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <p>下载二进制包，执行以下命令</p>
+<pre><code class="language-shell">[root@mysqld ~]# wget https://github.com/prometheus/mysqld_exporter/releases/download/v0.12.1/mysqld_exporter-0.12.1.linux-amd64.tar.gz
+[root@mysqld ~]# tar xf mysqld_exporter-0.12.1.linux-amd64.tar.gz -C /usr/local/
+[root@mysqld ~]# ln -sv /usr/local/mysqld_exporter-0.12.1.linux-amd64/ /usr/local/prometheus_mysqld
+</code></pre>
+<p>在MySQL中创建用户并授权</p>
+<pre><code class="language-shell">mysql&gt; CREATE USER  'mysqld_exporter'@'%'  IDENTIFIED BY  'mysqld_exporter';
+mysql&gt; GRANT REPLICATION CLIENT,PROCESS ON *.* TO 'mysqld_exporter'@'%' identified by 'mysqld_exporter';
+mysql&gt; GRANT SELECT ON *.* TO 'mysqld_exporter'@'%';
+</code></pre>
+<p>写一个mysqld_exporter的配置文件</p>
+<pre><code class="language-shell">[root@mysqld ~]# cat /usr/local/prometheus_mysqld/.my.cnf 
+[client]
+user=mysqld_exporter
+password=mysqld_exporter
+port=3306
+</code></pre>
+<p>配置systemd启动mysqld_exporter</p>
+<pre><code class="language-shell">[root@mysqld ~]# cat /lib/systemd/system/mysqld_exporter.service
+[Unit]
+Description=Mysqld_exporter
+After=network.target
+[Service]
+ExecStart=/usr/local/prometheus_mysqld/mysqld_exporter --config.my-cnf=/usr/local/prometheus_mysqld/.my.cnf
+[Install]
+WantedBy=multi-user.target
+systemctl daemon-reload
+systemctl start mysqld_exporter
+systemctl enable mysqld_exporter
+ss -lnpt|grep 9104
+LISTEN     0      128       [::]:9104                  [::]:*                   users:((&quot;mysqld_exporter&quot;,pid=1853,fd=3))
+</code></pre>
+<p>确认监控指标正常</p>
+<pre><code class="language-shell">[root@mysqld ~]# curl http://localhost:9104/metrics|grep mysql_up
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100  130k    0  130k    0     0  6920k      0 --:--:-- --:--:-- --:--:-- 7269k
+# HELP mysql_up Whether the MySQL server is up.
+# TYPE mysql_up gauge
+mysql_up 1
+</code></pre>
+<p>在Prometheus的server端添加job任务</p>
+<pre><code class="language-shell">[root@prometheus prometheus]# vim /usr/local/prometheus/prometheus.yml 
+  - job_name: 'mysql_db'
+    static_configs:
+    - targets: ['10.0.0.52:9104']
+      labels:
+        group: mysql_db
+[root@prometheus prometheus]# systemctl restart prometheus
+</code></pre>
+<p>通过在浏览器中访问 http://10.0.0.51:9090/targets可以看到配置成功</p>
+<p>在grafana中添加MySQL监控图表</p>
+<p>打开grafana监控界面，导入MySQL监控图表，在弹出界面中输入7362，数据源选择Prometheus</p>
+<p>配置告警规则</p>
+<pre><code class="language-shell">[root@prometheus rules]# pwd
+/usr/local/prometheus/rules
+[root@prometheus rules]# cat mysql_rules.yml
+#参考https://www.cnblogs.com/ajie516/p/15740329.html
+</code></pre>
+<p>修改Prometheus的配置文件</p>
+<pre><code class="language-shell">[root@prometheus prometheus]# vim /usr/local/prometheus/prometheus.yml 
+rule_files:
+  - &quot;/usr/local/prometheus/rules/*.yml&quot;
+[root@prometheus prometheus]# systemctl restart prometheus
+</code></pre>
+
+              </div>
+              <div class="toc-container">
+                
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://ajie825.github.io/post/er-jin-zhi-bu-shu-node-exporter/">
+              <h3 class="post-title">
+                二进制部署node exporter（四）
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

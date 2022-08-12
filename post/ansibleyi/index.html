@@ -1,0 +1,684 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ansible（一） | Gridea</title>
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1660297788946">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="ansible（一） | Gridea - Atom Feed" href="https://ajie825.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+
+    <meta name="description" content="什么是ansible
+ansible是一个IT自动化配置管理工具，自动化主要体现在ansible集成了丰富模块，丰富的功能组件，可以通过一个命令行完成一系列的操作，进而能减少我们重复性的工作和维护成本，以提高工作的效率假如我们要在10台Li..." />
+    <meta name="keywords" content="ansible" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://ajie825.github.io">
+  <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1660297788946" alt="">
+  </a>
+  <h1 class="site-title">
+    Gridea
+  </h1>
+  <p class="site-description">
+    温故而知新
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              ansible（一）
+            </h2>
+            <div class="post-info">
+              <span>
+                2022-05-18
+              </span>
+              <span>
+                20 min read
+              </span>
+              
+                <a href="https://ajie825.github.io/tag/0nBVJS-wrj/" class="post-tag">
+                  # ansible
+                </a>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <h2 id="什么是ansible">什么是ansible</h2>
+<p>ansible是一个IT自动化配置管理工具，自动化主要体现在ansible集成了丰富模块，丰富的功能组件，可以通过一个命令行完成一系列的操作，进而能减少我们重复性的工作和维护成本，以提高工作的效率假如我们要在10台Linux服务器上安装一个nginx服务，手动如何作的？</p>
+<p>第一步、ssh登录NUM(1..n)服务器</p>
+<p>第二步、输入对应服务器密码</p>
+<p>第三步、安装yuminstall nginx</p>
+<p>第四步、启动systemctlstart nginx</p>
+<p>第五步 退出登录</p>
+<p>循环操作n=10次</p>
+<h2 id="ansible可以完成哪些功能">ansible可以完成哪些功能</h2>
+<p>1）批量执行远程命令，可以对N多台主机同时进行命令的执行</p>
+<p>2）批量配置软件服务，可以进行自动化的方式配置和管理服务</p>
+<p>3）实现软件开发功能，jumpserver底层使用ansible来实现自动化管理</p>
+<p>4）编排高级的IT任务，ansible的playbook是一门编程语言，可以用来描绘一套IT架构</p>
+<h2 id="ansible特点">ansible特点</h2>
+<p>1）容易学习，无代理模式，不像saltstack既要学客户端与服务端，还需要学习客户端与服务端中间通讯协议</p>
+<p>2）操作灵活，体现在ansible有较多的模块，提供了丰富的功能，playbook则提供类似于编程语言的复杂功能</p>
+<p>3）简单易用，体现在ansible一个命令可以完成很多事情</p>
+<p>4）安全可靠，因为ansible使用了SSH协议进行通讯，既稳定也安全</p>
+<p>5）移植性高，可以将写好的playbook拷贝至任意机器进行执行</p>
+<h2 id="ansible的架构中的控制节点-被控制节点-inventroy-ad-hoc-playbook-连接协议这些是什么">ansible的架构中的控制节点、被控制节点、inventroy、ad-hoc、playbook、连接协议这些是什么</h2>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1652942400752.png" alt="" loading="lazy"></figure>
+<h2 id="ansible安装">ansible安装</h2>
+<h3 id="环境准备">环境准备</h3>
+<table>
+<thead>
+<tr>
+<th>主机</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>10.0.0.51</td>
+<td>ansible 控制端</td>
+</tr>
+<tr>
+<td>10.0.0.52</td>
+<td>ansible 被控端</td>
+</tr>
+<tr>
+<td>10.0.0.53</td>
+<td>ansible 被控端</td>
+</tr>
+</tbody>
+</table>
+<h3 id="安装epel源">安装epel源</h3>
+<pre><code class="language-shell">wget -O /etc/yum.repos.d/epel.repo http://mirrors.aliyun.com/repo/epel-7.repo
+</code></pre>
+<h3 id="安装ansible">安装ansible</h3>
+<pre><code class="language-shell">[root@ansible ~]# yum install ansible -y
+#查看ansible的版本
+[root@ansible ~]# ansible --version
+ansible 2.9.27
+  config file = /etc/ansible/ansible.cfg
+  configured module search path = [u'/root/.ansible/plugins/modules', u'/usr/share/ansible/plugins/modules']
+  ansible python module location = /usr/lib/python2.7/site-packages/ansible
+  executable location = /usr/bin/ansible
+  python version = 2.7.5 (default, Oct 14 2020, 14:45:30) [GCC 4.8.5 20150623 (Red Hat 4.8.5-44)]
+</code></pre>
+<h3 id="ansible的配置文件"><strong>ansible的配置文件</strong></h3>
+<pre><code class="language-shell">配置文件可以随意放，但有查找顺序
+$ANSIBLE_CONFIG
+ansible.cfg                                 #当前目录下面查找
+.ansible.cfg                                #当前用户的家目录下查找
+/etc/ansible/ansible.cfg
+
+[root@ansible ~]# cat /etc/ansible/ansible.cfg
+[defaults]
+#inventory      = /etc/ansible/hosts                  #主机列表配置文件
+#library        = /usr/share/my_modules/              #库文件存放目录          
+#remote_tmp     = ~/.ansible/tmp                      #临时py文件存放在远程主机目录
+#local_tmp      = ~/.ansible/tmp                      #本机的临时执行目录
+#forks          = 5                                   #默认并发数
+#sudo_user      = root                                #默认sudo用户
+#ask_sudo_pass = True                                 #每次执行是否询问sudo的ssh密码
+#ask_pass      = True                                 #每次执行是否询问ssh密码
+#remote_port    = 22                                  #远程主机端口                       
+#host_key_checking =False                             #跳过检查主机指纹
+#log_path = /var/log/ansible.log                      #ansible日志
+[privilege_escalation]                                #如果是普通用户则需要配置提权
+#become=True
+#become_method=sudo
+#become_user=root
+#become_ask_pass=False
+</code></pre>
+<h2 id="ineventory主机清单"><strong>Ineventory主机清单</strong></h2>
+<p>inventory文件中填写需要被管理主机与主机组信息(逻辑上定义)。默认inventory文件在</p>
+<p>/etc/ansible/hosts。当然也可以自定义，然后使用 -i 指定inventory文件位置，下面通过几个场景演示，如何配置inventory文件</p>
+<pre><code class="language-shell">1）场景一、基于密码连接(生产中基本不会使用)
+[root@oldboy.com ~]# cat /etc/ansible/hosts
+#方式一、主机+端口+密码
+[webservers]
+10.0.0.52 ansible_ssh_port=22 ansible_ssh_user=root ansible_ssh_pass='123456'
+10.0.0.53 ansible_ssh_port=22 ansible_ssh_user=root ansible_ssh_pass='123456'
+
+#方式二、主机+端口+密码
+[webservers]
+web[1:2].oldboy.com ansible_ssh_pass='123456'
+
+#方式三、主机+端口+密码
+[webservers]
+web[1:2].oldboy.com
+[webservers:vars]
+ansible_ssh_pass='123456'
+
+注意：如果控制端和被控制端第一次通讯，需要先添加指纹信息，那如果机器特别多的情况下怎么办？仅需开启
+ansible中的host_key_checking = False
+
+[root@ansible ~]# ansible webservers -m ping
+10.0.0.53 | SUCCESS =&gt; {
+    &quot;ansible_facts&quot;: {
+        &quot;discovered_interpreter_python&quot;: &quot;/usr/bin/python&quot;
+    }, 
+    &quot;changed&quot;: false, 
+    &quot;ping&quot;: &quot;pong&quot;
+}
+10.0.0.52 | SUCCESS =&gt; {
+    &quot;ansible_facts&quot;: {
+        &quot;discovered_interpreter_python&quot;: &quot;/usr/bin/python&quot;
+    }, 
+    &quot;changed&quot;: false, 
+    &quot;ping&quot;: &quot;pong&quot;
+}
+</code></pre>
+<pre><code class="language-shell">场景二、基于密钥连接，需要先创建公钥和私钥，并下发公钥至被控端 （生产中使用）
+[root@ansible ~]# ssh-keygen -t rsa
+[root@ansible ~]# ssh-copy-id -i ~/.ssh/id_rsa.pub root@10.0.0.52
+[root@ansible ~]# ssh-copy-id -i ~/.ssh/id_rsa.pub root@10.0.0.53
+
+Now try logging into the machine, with:   &quot;ssh 'root@10.0.0.53'&quot;
+and check to make sure that only the key(s) you wanted were added.
+
+#方式一、主机+端口+密钥
+[root@ansible ~]# cat hosts 
+[webservers]
+10.0.0.52
+10.0.0.53
+[root@ansible ~]# ansible webservers -m ping -i./hosts
+10.0.0.53 | SUCCESS =&gt; {
+    &quot;ansible_facts&quot;: {
+        &quot;discovered_interpreter_python&quot;: &quot;/usr/bin/python&quot;
+    }, 
+    &quot;changed&quot;: false, 
+    &quot;ping&quot;: &quot;pong&quot;
+}
+10.0.0.52 | SUCCESS =&gt; {
+    &quot;ansible_facts&quot;: {
+        &quot;discovered_interpreter_python&quot;: &quot;/usr/bin/python&quot;
+    }, 
+    &quot;changed&quot;: false, 
+    &quot;ping&quot;: &quot;pong&quot;
+}
+
+#方式二、别名+主机+端口+密钥（常用）
+[root@ansible ~]# cat hosts 
+[webservers]
+web01 ansible_ssh_host=10.0.0.52 ansible_ssh_port=22
+web02 ansible_ssh_host=10.0.0.53
+[root@ansible ~]# ansible webservers -m ping -i./hosts
+web01 | SUCCESS =&gt; {
+    &quot;ansible_facts&quot;: {
+        &quot;discovered_interpreter_python&quot;: &quot;/usr/bin/python&quot;
+    }, 
+    &quot;changed&quot;: false, 
+    &quot;ping&quot;: &quot;pong&quot;
+}
+web02 | SUCCESS =&gt; {
+    &quot;ansible_facts&quot;: {
+        &quot;discovered_interpreter_python&quot;: &quot;/usr/bin/python&quot;
+    }, 
+    &quot;changed&quot;: false, 
+    &quot;ping&quot;: &quot;pong&quot;
+}
+</code></pre>
+<pre><code class="language-shell">场景三、主机组使用方式（并不是太重要）
+#1. 定义两个组
+[lbservers]
+10.0.0.5
+10.0.0.6
+
+[webservers]
+10.0.0.52
+10.0.0.53
+
+#2. servers组包括两个子组[lbservers,webserver]
+[servers:children]
+lbservers
+webservers
+
+#列出当前某个组有多少台主机
+[root@ansible ~]# ansible lbservers -m ping -i./hosts --list-hosts
+  hosts (2):
+    10.0.0.5
+    10.0.0.6
+或者
+[root@ansible ~]# ansible all -i ./hosts --list-hosts
+  hosts (4):
+    10.0.0.5
+    10.0.0.6
+    10.0.0.52
+    10.0.0.53
+</code></pre>
+<h2 id="ad-hoc和常用模块">Ad-Hoc和常用模块</h2>
+<h3 id="ad-hoc">Ad-Hoc</h3>
+<p>Ad-Hoc，简而言之就是“临时命令”，执行完即结束，并不会保存</p>
+<p>使用场景: 比如在多台机器上查看进程是否启动，或拷贝指定文件到本地，等等</p>
+<p>命令使用：ansible oldboy -m command -a 'df -h'<br>
+<img src="https://ajie825.github.io/post-images/1652925797835.png" alt="" loading="lazy"></p>
+<pre><code class="language-shell">[root@ansible ~]# ansible webservers -m command -a 'df -h' -i ./hosts -f 20
+10.0.0.53 | CHANGED | rc=0 &gt;&gt;
+Filesystem               Size  Used Avail Use% Mounted on
+devtmpfs                 898M     0  898M   0% /dev
+tmpfs                    910M     0  910M   0% /dev/shm
+tmpfs                    910M  9.5M  901M   2% /run
+tmpfs                    910M     0  910M   0% /sys/fs/cgroup
+/dev/mapper/centos-root   17G  1.3G   16G   8% /
+/dev/sda1               1014M  151M  864M  15% /boot
+tmpfs                    182M     0  182M   0% /run/user/0
+10.0.0.52 | CHANGED | rc=0 &gt;&gt;
+Filesystem               Size  Used Avail Use% Mounted on
+devtmpfs                 898M     0  898M   0% /dev
+tmpfs                    910M     0  910M   0% /dev/shm
+tmpfs                    910M  9.5M  901M   2% /run
+tmpfs                    910M     0  910M   0% /sys/fs/cgroup
+/dev/mapper/centos-root   17G  1.3G   16G   8% /
+/dev/sda1               1014M  151M  864M  15% /boot
+tmpfs                    182M     0  182M   0% /run/user/0
+</code></pre>
+<p>使用ad-hoc执行一次远程命令，注意观察返回结果的颜色</p>
+<p>绿色：代表被管理端主机没有被修改</p>
+<p>黄色：代表被管理端主机发现变更</p>
+<p>红色：代表出现了故障，注意查看提示</p>
+<h3 id="常用模块">常用模块</h3>
+<pre><code class="language-shell">command            #执行shell命令(不支持管道等特殊字符)
+shell              #执行shell命令
+scripts            #执行shell脚本
+yum_repository     #配置yum仓库
+yum                #安装软件
+copy               #变更配置文件
+file               #建立目录或文件
+service\systemd    #启动与停止服务
+mount              #挂载设备
+cron               #定时任务
+firewalld          #防火墙
+get_url            #下载软件
+
+使用过程中需要先了解ansible-doc帮助手册
+ansible-doc -l       #查看所有模块说明
+ansible-doc copy     #表示指定模块方法  *****
+ansible-doc -s copy  #表示指定模块参数
+</code></pre>
+<h4 id="command模块">command模块</h4>
+<p>command默认执行bash命令模块，模块不支持重定向或管道</p>
+<pre><code class="language-shell">[root@ansible ~]# ansible webservers -a &quot;hostname&quot;
+10.0.0.53 | CHANGED | rc=0 &gt;&gt;
+localhost.localdomain
+10.0.0.52 | CHANGED | rc=0 &gt;&gt;
+localhost.localdomain
+</code></pre>
+<h4 id="shell模块">shell模块</h4>
+<p>shell模块，如果需要一些管道操作，则使用shell模块</p>
+<pre><code class="language-shell">[root@ansible ~]# ansible webservers -m shell -a &quot;ip addr|grep ens33&quot; -f 50        
+10.0.0.52 | CHANGED | rc=0 &gt;&gt;
+2: ens33: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc pfifo_fast state UP group default qlen 1000
+    inet 10.0.0.52/24 brd 10.0.0.255 scope global noprefixroute ens33
+10.0.0.53 | CHANGED | rc=0 &gt;&gt;
+2: ens33: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc pfifo_fast state UP group default qlen 1000
+    inet 10.0.0.53/24 brd 10.0.0.255 scope global noprefixroute ens33
+</code></pre>
+<h4 id="script模块">script模块</h4>
+<p>script脚本模块（并不是特别的常用）</p>
+<pre><code class="language-shell">[root@ansible ~]# cat /server/scripts/yum.sh 
+#!/usr/bin/bash
+yum install vim wget lrzsz -y
+
+#在本地运行script模块，不需要将脚本文件推送至目标主机执行
+[root@ansible ~]# ansible webservers -m script -a &quot;/server/scripts/yum.sh&quot;  -i hosts -f 50
+</code></pre>
+<h4 id="yum安装软件模块">yum安装软件模块   *****</h4>
+<pre><code class="language-shell">[root@ansible ~]# ansible webservers -m yum -a&quot;name=vsftpd state=latest&quot; -i hosts -f 50
+name                                              
+       httpd                                   #指定要安装的软件包名称
+       file://                                 #指定从本地哪个目录安装rpm
+       http://                                 #指定从哪个网站安装rpm包
+state                                          #指定使用yum的方法
+       present                                 #安装软件包
+       absent                                  #移除软件包，慎用
+       latest                                  #安装最新软件包
+
+以下三个动作不常用  ***
+list=ansible                                   #列出当前仓库可用的软件包
+disablerepo=&quot;epel,ol7_latest&quot;                  #安装软件时，不从哪些仓库获取
+download_only=true                             #仅下载软件包，不安装
+</code></pre>
+<h4 id="文件管理模块">文件管理模块   *****</h4>
+<p>ansible文件管理模块，主要涉及copy文件拷贝（scp）、file创建文件并做授权(touch或mkdir)、get_url文件下载（wget）</p>
+<p>1、copy文件拷贝模块</p>
+<pre><code class="language-shell">拷贝文件至被控节点，如果文件不存在，则会创建（生产用的最多）
+[root@ansible ~]# ansible webservers -m copy -a&quot;src=./hosts dest=/tmp/&quot; -i hosts -f 50
+对远端已有文件进行备份，按照时间信息备份，只有控制端源文件改变后才会改变
+[root@ansible ~]# ansible webservers -m copy -a&quot;src=/etc/hosts dest=/tmp/ backup=yes&quot;
+向被控端主机写入数据，并且会覆盖远端文件内原有数据信息，如果文件不存在，则会创建
+[root@ansible ~]# ansible webservers -m copy -a&quot;content=123456 dest=/tmp/test.txt&quot;
+
+src              #推送数据的源文件信息
+dest             #推送数据的目标路径
+backup           #对推送传输过去的文件，进行备份
+content          #直接批量在被管理端文件中添加内容,覆盖式的
+group            #将本地文件推送到远端，指定文件属组信息
+owner            #将本地文件推送到远端，指定文件属主信息
+mode             #将本地文件推送到远端，指定文件权限信息
+</code></pre>
+<p>2、file文件创建模块</p>
+<pre><code class="language-shell">直接修改被控端的权限
+[root@ansible ~]# ansible web02 -m file -a&quot;path=/opt mode=0400&quot; -i ./hosts 
+在被控端创建目录
+[root@ansible ~]# ansible webservers -m file -a &quot;path=/tmp/oldboy state=directory&quot;
+在被控端创建文件
+[root@ansible ~]# ansible webservers  -m file -a &quot;path=/tmp/1.txt state=touch mode=644 owner=root group=root&quot; 
+递归授权目录权限
+[root@ansible ~]# ansible webservers -m file -a&quot;path=/data owner=root group=root recurse=yes&quot; 
+
+path             #指定远程主机目录或文件
+recurse          #递归授权
+state            #状态
+directory        #在远端创建目录
+touch            #在远端创建文件
+link             #创建链接文件
+absent           #表示删除文件或目录（慎用）
+mode             #设置文件或目录权限
+owner            #设置文件或目录属主
+group            #设置文件或目录属组
+</code></pre>
+<p>3、git_url文件下载模块</p>
+<pre><code class="language-shell">[root@ansible ~]# ansible webservers -m get_url -a &quot;url=http,https dest=/opt mode=0777&quot; -i ./hosts 
+下载一个文件前先进行md5校验，通过则下载，不通过则失败（不常用）
+[root@ansible ~]# ansible webservers -m get_url -a &quot;url=http,https dest=/opt mode=0777 checksum=md5:76eb3af80ffd&quot; -i ./hosts
+</code></pre>
+<h4 id="服务管理模块">服务管理模块 *****</h4>
+<p>ansible管理服务的启动与停止，使用service、systemd</p>
+<pre><code class="language-shell">启动crond服务，并加入开机自启
+[root@ansible ~]# ansible webservers -m service -a &quot;name=crond state=started enabled=yes&quot;
+停止crond服务，并删除开机自启
+[root@ansible ~]# ansible webservers -m service -a &quot;name=crond state=stopped enabled=no&quot;
+重启crond服务
+[root@ansible ~]# ansible webservers -m service -a &quot;name=crond state=restarted&quot;
+重载crond服务
+[root@ansible ~]# ansible webservers -m service -a &quot;name=crond state=reloaded&quot;
+
+name          #定义要启动服务的名称
+state         #指定服务状态
+started       #启动服务
+stopped       #停止服务
+restarted     #重启服务
+reloaded      #重载服务
+enabled       #开机自启   
+</code></pre>
+<h4 id="用户管理模块">用户管理模块 *****</h4>
+<p>ansible管理用户与组，通常是user、group模块</p>
+<pre><code class="language-shell">group组模块
+[root@ansible ~]# ansible webservers -m group -a &quot;name=oldboy gid=888&quot;
+
+name           #指定创建的组名
+gid            #指定组的gid
+state
+absent         #移除远端主机的组（删除组之前先删除用户）
+present        #创建远端主机的组（默认）
+
+user模块
+创建用户指定uid和gid，不创建家目录也不允许登陆
+[root@ansible ~]# ansible webservers -m user -a&quot;name=oldboy uid=888 group=888 shell=/sbin/nologin create_home=no&quot; 
+删除用户
+[root@ansible ~]# ansible webservers -m user -a&quot;name=tmd state=absent&quot; -i ./hosts 
+给新创建的用户生成ssh密钥对
+[root@ansible ~]# ansible webservers -m user -a&quot;name=oo uid=6677 group=adm generate_ssh_key=yes ssh_key_bits=2048 ssh_key_file=.ssh/id_rsa&quot; -i ./hosts
+将明文密码进行hash加密，然后进行用户创建
+[root@ansible ~]# ansible localhost -m debug -a &quot;msg={{ '123456' | password_hash('sha512', 'salt') }}&quot;
+localhost | SUCCESS =&gt; {
+    &quot;msg&quot;: &quot;$6$salt$MktMKPZJ6t59GfxcJU20DwcwQzfMvOlHFVZiOVD71w.igcOo1R7vBYR65JquIQ/7siC7VRpmteKvZmfSkNc69.&quot;
+}
+[root@ansible ~]# ansible webservers -m user -a'name=xlw password=$6$salt$MktMKPZJ6t59GfxcJU20DwcwQzfMvOlHFVZiOVD71w.igcOo1R7vBYR65JquIQ/7siC7VRpmteKvZmfSkNc69.create_home=yes shell=/bin/bash' -i ./hosts
+
+uid                  #指定用户的uid
+group                #指定用户组名称
+groups               #指定附加组名称
+password             #给用户添加密码（记得单引号）
+shell                #指定用户登录shell
+create_home          #是否创建家目录
+</code></pre>
+<h4 id="crond定时任务模块">crond定时任务模块</h4>
+<pre><code class="language-shell">正常使用crond服务（默认没写的时间都算*表示）
+[root@ansible ~]# crontab -l
+* * * * * /bin/sh /server/scripts/yum.sh
+使用ansible添加一条定时任务（不常用）
+[root@ansible ~]# ansible web01 -m cron -a &quot;minute=* hour=* day=* month=* weekday=* job='/bin/sh /server/scripts/test.sh'&quot; -i ./hosts
+[root@ansible ~]# ansible web01 -m cron -a &quot;job='/bin/sh /server/scripts/test.sh'&quot; -i hosts
+[DEPRECATION WARNING]: The 'name' parameter will be required in future releases.. 
+设置定时任务注释信息，防止重复，name设定
+[root@ansible ~]# ansible web01 -m cron -a &quot;name='cron01' job='/bin/sh /server/scripts/test.sh'&quot; -i ./hosts
+删除相应定时任务
+[root@ansible ~]# ansible web01 -m cron -a &quot;name=cron01 state=absent&quot; -i ./hosts 
+注释相应定时任务，使定时任务失效
+[root@ansible ~]# ansible web01 -m cron -a &quot;name=cron01  job='/bin/sh /server/scripts/test.sh' disabled=yes&quot; -i ./hosts
+</code></pre>
+<h4 id="mount挂载模块">mount挂载模块</h4>
+<p>10.0.0.52 nfs  10.0.0.53客户端挂载</p>
+<pre><code class="language-shell">[root@ansible ~]# ansible web01 -m yum -a'name=nfs-utils state=present' -i ./hosts
+[root@ansible ~]# ansible web01 -m file -a'path=/data state=directory' -i ./hosts
+[root@ansible ~]# ansible web01 -m copy -a'content=&quot;/data 10.0.0.0/24(rw,sync,no_all_squash)&quot; dest=/etc/exports' -i ./hosts
+[root@ansible ~]# ansible web01 -m systemd -a&quot;name=nfs state=started enabled=yes&quot; -i ./hosts
+
+#注意，客户端也需要安装nfs服务
+[root@ansible ~]# ansible web02 -m mount -a&quot;src=10.0.0.52:/data path=/data fstype=nfs opts=defaults state=present&quot; -i ./hosts
+[root@ansible ~]# ansible web02 -m mount -a&quot;src=10.0.0.52:/data path=/data fstype=nfs opts=defaults state=mounted&quot; -i ./hosts
+[root@ansible ~]# ansible web02 -m mount -a&quot;src=10.0.0.52:/data path=/data fstype=nfs opts=defaults state=unmounted&quot; -i ./hosts 
+[root@ansible ~]# ansible web02 -m mount -a&quot;src=10.0.0.52:/data path=/data fstype=nfs opts=defaults state=absent&quot; -i ./hosts 
+
+present         #开机挂载，仅将挂载配置写入/etc/fstab
+mounted         #挂载设备，并将配置写入/etc/fstab
+unmounted       #卸载设备，不会清除/etc/fstab写入的配置
+absent          #卸载设备，会清理/etc/fstab写入的配置
+</code></pre>
+<h4 id="防火墙管理模块">防火墙管理模块</h4>
+<p>1、selinux模块</p>
+<pre><code class="language-shell">[root@ansible ~]# ansible webservers -m selinux -a &quot;state=disabled&quot; -i ./hosts
+</code></pre>
+<p>2、firewalld模块</p>
+<pre><code class="language-shell">[root@ansible ~]# ansible webservers -m systemd -a &quot;name=firewalld state=started&quot; -i ./hosts
+[root@ansible ~]# ansible webservers -m firewalld -a &quot;service=http immediate=yes permanent=yes state=enabled&quot; -i ./hosts
+[root@ansible ~]# ansible webservers -m firewalld -a &quot;port=8080-8090/tcp immediate=yes permanent=yes state=enabled&quot; -i ./hosts
+
+service            #指定开放或关闭的服务名称
+port               #指定开放或关闭的端口
+masquerade         #开启地址伪装
+immediate          #临时生效
+permanent          #是否添加永久生效
+state              #开启或是关闭
+zone               #指定配置某个区域
+rich_rule          #配置富规则
+source             #指定来源IP
+</code></pre>
+<h4 id="常用模块练习">常用模块练习</h4>
+<p>1）安装http服务                                                                   yum</p>
+<p>2）编写简单网页测试内容                                                    copy</p>
+<p>3）启动httpd服务并加入开机自启                                         ystemd|service</p>
+<p>4）放行对应的firewalld防火墙端口，临时和永久生效           firewalld</p>
+<pre><code class="language-shell">[root@ansible ~]# ansible web01 -m yum -a &quot;name=httpd state=present&quot; -i ./hosts
+[root@ansible ~]# ansible web01 -m copy -a&quot;content='This Web' dest=/var/www/html/index.html&quot; -i ./hosts
+[root@ansible ~]# ansible web01 -m systemd -a&quot;name=httpd state=started enabled=yes&quot; -i ./hosts
+[root@ansible ~]# ansible web01 -m systemd -a&quot;name=firewalld state=started enabled=yes&quot; -i ./hosts
+[root@ansible ~]# ansible web01 -m firewalld -a&quot;service=http immediate=yes permanent=yes state=enabled&quot; -i ./hosts
+</code></pre>
+<p>playbook的写法</p>
+<pre><code class="language-shell">[root@ansible ~]# mkdir project
+[root@ansible ~]# cd project/
+[root@ansible project]# cat httpd.yml 
+---
+
+- hosts: webservers
+
+ tasks:
+    -name: Installed Httpd Server
+     yum: name=httpd state=present
+
+    -name: Configure Httpd Server
+     copy: content='Test' dest=/var/www/html/index.html
+
+    -name: Start Httpd Server
+     systemd: name=httpd state=started enabled=yes
+
+    -name: Start Firewalld Server
+     systemd: name=firewalld state=started enabled=yes
+
+    -name: Configure Firewalld Server
+     firewalld: service=http immediate=yes permanent=yes state=enabled
+</code></pre>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#%E4%BB%80%E4%B9%88%E6%98%AFansible">什么是ansible</a></li>
+<li><a href="#ansible%E5%8F%AF%E4%BB%A5%E5%AE%8C%E6%88%90%E5%93%AA%E4%BA%9B%E5%8A%9F%E8%83%BD">ansible可以完成哪些功能</a></li>
+<li><a href="#ansible%E7%89%B9%E7%82%B9">ansible特点</a></li>
+<li><a href="#ansible%E7%9A%84%E6%9E%B6%E6%9E%84%E4%B8%AD%E7%9A%84%E6%8E%A7%E5%88%B6%E8%8A%82%E7%82%B9-%E8%A2%AB%E6%8E%A7%E5%88%B6%E8%8A%82%E7%82%B9-inventroy-ad-hoc-playbook-%E8%BF%9E%E6%8E%A5%E5%8D%8F%E8%AE%AE%E8%BF%99%E4%BA%9B%E6%98%AF%E4%BB%80%E4%B9%88">ansible的架构中的控制节点、被控制节点、inventroy、ad-hoc、playbook、连接协议这些是什么</a></li>
+<li><a href="#ansible%E5%AE%89%E8%A3%85">ansible安装</a>
+<ul>
+<li><a href="#%E7%8E%AF%E5%A2%83%E5%87%86%E5%A4%87">环境准备</a></li>
+<li><a href="#%E5%AE%89%E8%A3%85epel%E6%BA%90">安装epel源</a></li>
+<li><a href="#%E5%AE%89%E8%A3%85ansible">安装ansible</a></li>
+<li><a href="#ansible%E7%9A%84%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6"><strong>ansible的配置文件</strong></a></li>
+</ul>
+</li>
+<li><a href="#ineventory%E4%B8%BB%E6%9C%BA%E6%B8%85%E5%8D%95"><strong>Ineventory主机清单</strong></a></li>
+<li><a href="#ad-hoc%E5%92%8C%E5%B8%B8%E7%94%A8%E6%A8%A1%E5%9D%97">Ad-Hoc和常用模块</a>
+<ul>
+<li><a href="#ad-hoc">Ad-Hoc</a></li>
+<li><a href="#%E5%B8%B8%E7%94%A8%E6%A8%A1%E5%9D%97">常用模块</a>
+<ul>
+<li><a href="#command%E6%A8%A1%E5%9D%97">command模块</a></li>
+<li><a href="#shell%E6%A8%A1%E5%9D%97">shell模块</a></li>
+<li><a href="#script%E6%A8%A1%E5%9D%97">script模块</a></li>
+<li><a href="#yum%E5%AE%89%E8%A3%85%E8%BD%AF%E4%BB%B6%E6%A8%A1%E5%9D%97">yum安装软件模块   *****</a></li>
+<li><a href="#%E6%96%87%E4%BB%B6%E7%AE%A1%E7%90%86%E6%A8%A1%E5%9D%97">文件管理模块   *****</a></li>
+<li><a href="#%E6%9C%8D%E5%8A%A1%E7%AE%A1%E7%90%86%E6%A8%A1%E5%9D%97">服务管理模块 *****</a></li>
+<li><a href="#%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%E6%A8%A1%E5%9D%97">用户管理模块 *****</a></li>
+<li><a href="#crond%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E6%A8%A1%E5%9D%97">crond定时任务模块</a></li>
+<li><a href="#mount%E6%8C%82%E8%BD%BD%E6%A8%A1%E5%9D%97">mount挂载模块</a></li>
+<li><a href="#%E9%98%B2%E7%81%AB%E5%A2%99%E7%AE%A1%E7%90%86%E6%A8%A1%E5%9D%97">防火墙管理模块</a></li>
+<li><a href="#%E5%B8%B8%E7%94%A8%E6%A8%A1%E5%9D%97%E7%BB%83%E4%B9%A0">常用模块练习</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://ajie825.github.io/post/bian-yi-an-zhuang-php70/">
+              <h3 class="post-title">
+                编译安装php7.0
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

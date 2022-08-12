@@ -1,0 +1,408 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>读写分离架构-Atlas | Gridea</title>
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1660297788946">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="读写分离架构-Atlas | Gridea - Atom Feed" href="https://ajie825.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+
+    <meta name="description" content="上节回顾
+1、半同步复制：性能比较差
+2、延时从库：逻辑故障恢复的速度快，比备份快很多
+3、GTID：如果是XBK物理备份，MASTER_AUTO_POSITION 不能为1，通过 xtrabackup_binlog_info 找到GTID..." />
+    <meta name="keywords" content="mysql" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://ajie825.github.io">
+  <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1660297788946" alt="">
+  </a>
+  <h1 class="site-title">
+    Gridea
+  </h1>
+  <p class="site-description">
+    温故而知新
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              读写分离架构-Atlas
+            </h2>
+            <div class="post-info">
+              <span>
+                2022-06-21
+              </span>
+              <span>
+                8 min read
+              </span>
+              
+                <a href="https://ajie825.github.io/tag/QZsgrmg-1Q/" class="post-tag">
+                  # mysql
+                </a>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <h2 id="上节回顾">上节回顾</h2>
+<pre><code class="language-shell">1、半同步复制：性能比较差
+2、延时从库：逻辑故障恢复的速度快，比备份快很多
+3、GTID：如果是XBK物理备份，MASTER_AUTO_POSITION 不能为1，通过 xtrabackup_binlog_info 找到GTID的起点
+4、MHA Failover
+5、binlog server：只要没有保存到新的位置，主库的事务就不能提交成功
+</code></pre>
+<pre><code class="language-shell">6、MHA配置参数
+cat &gt; /etc/mha/app1.cnf &lt;&lt;EOF
+[server default]
+manager_log=/var/log/mha/app1/manager        
+manager_workdir=/var/log/mha/app1            
+master_binlog_dir=/data/binlog     #主库二进制日志的目录     
+user=mha                                   
+password=mha                               
+ping_interval=2
+repl_password=123
+repl_user=repl
+ssh_user=root                               
+[server1]                                   
+hostname=10.0.0.51
+port=3306                                  
+[server2]            
+hostname=10.0.0.52
+port=3306	
+candidate_master=1
+check_repl_delay=0
+[server3]
+hostname=10.0.0.53
+port=3306
+EOF
+[binlog1]
+no_master=1
+hostname=10.0.0.53
+master_binlog_dir=/data/mysql/binlog
+</code></pre>
+<pre><code class="language-shell">7、MHA故障排查
+7.1 搭建过程中的排查
+1）检查脚本
+masterha_check_ssh --conf=/etc/mha/app1.cnf 
+masterha_check_repl --conf=/etc/mha/app1.cnf 
+一主两从复制环境
+2）配置文件
+节点地址、端口
+vip和send脚本指定位置和权限
+
+7.2 切换过程的问题
+查看/var/log/mha/app1/manager，脚本问题比较多一些
+vip、send、binlog
+
+7.3 恢复MHA故障
+1）检查各个节点是否启动
+2）找到主库是谁
+3）恢复一主两从
+CHANGE MASTER TO MASTER_HOST='10.0.0.51', MASTER_PORT=3306, MASTER_AUTO_POSITION=1, MASTER_USER='repl', MASTER_PASSWORD='123';
+4）检查配置文件，恢复节点信息
+[server1]
+hostname=10.0.0.51
+port=3306
+[server2]
+hostname=10.0.0.52
+port=3306
+[server3]
+hostname=10.0.0.53
+port=3306
+5）检查vip和binlogserver
+检查vip是否在主库，如果不在，手工调整到主库
+重新启动 binlogserve r拉取
+mysqlbinlog  -R --host=10.0.0.51 --user=mha --password=mha --raw  --stop-never mysql-bin.000001 &amp;
+注意：
+拉取日志的起点,需要按照目前从库已经获取到的二进制日志点为起点
+启动manager
+nohup masterha_manager --conf=/etc/mha/app1.cnf --remove_dead_master_conf --ignore_last_failover  &lt; /dev/null&gt; /var/log/mha/app1/manager.log 2&gt;&amp;1 &amp;
+masterha_check_status --conf=/etc/mha/app1.cnf
+</code></pre>
+<h2 id="atlas读写分离">Atlas读写分离</h2>
+<h3 id="atlas-介绍">Atlas 介绍</h3>
+<pre><code class="language-shell">Atlas是由 Qihoo 360, Web平台部基础架构团队开发维护的一个基于MySQL协议的数据中间层项目
+它是在mysql-proxy 0.8.2版本的基础上，对其进行了优化，增加了一些新的功能特性
+360内部使用Atlas运行的mysql业务，每天承载的读写请求数达几十亿条
+下载地址
+https://github.com/Qihoo360/Atlas/releases
+注意：
+1）Atlas只能安装运行在64位的系统上
+2）Centos 5.X安装 Atlas-XX.el5.x86_64.rpm，Centos 6.X安装Atlas-XX.el6.x86_64.rpm
+3）后端mysql版本应大于5.1，建议使用Mysql 5.6以上
+</code></pre>
+<h3 id="安装配置">安装配置</h3>
+<pre><code class="language-shell">#db03服务器，生产中最好单独的一台服务器
+rpm -ivh Atlas-2.2.1.el6.x86_64.rpm
+cd /usr/local/mysql-proxy/conf
+mv test.cnf test.cnf.bak
+vim test.cnf
+[mysql-proxy]
+#管理接口的用户名
+admin-username = user
+#管理接口的密码
+admin-password = pwd
+#Atlas后端连接的MySQL主库的IP和端口，写库的地址和端口
+proxy-backend-addresses = 10.0.0.55:3306
+#Atlas后端连接的MySQL从库的IP和端口，读库的地址和端口
+proxy-read-only-backend-addresses = 10.0.0.52:3306,10.0.0.53:3306
+#用户名与其对应的加密过的MySQL密码
+pwds = repl:3yb5jEku5h4=,mha:O2jBXONX098=
+daemon = true
+keepalive = true
+event-threads = 8
+log-level = message
+log-path = /usr/local/mysql-proxy/log
+sql-log=ON
+#Atlas监听的工作接口IP和端口
+proxy-address = 0.0.0.0:33060
+#Atlas监听的管理接口IP和端口
+admin-address = 0.0.0.0:2345
+charset=utf8
+启动atlas
+/usr/local/mysql-proxy/bin/mysql-proxyd test start
+netstat -lnpt
+</code></pre>
+<h3 id="atlas功能测试">Atlas功能测试</h3>
+<pre><code class="language-shell">#测试读操作：
+mysql -umha -pmha -h 10.0.0.53 -P 33060
+db03 [(none)]&gt;select @@server_id;
++-------------+
+| @@server_id |
++-------------+
+|          53 |
++-------------+
+1 row in set (0.00 sec)
+
+db03 [(none)]&gt;select @@server_id;
++-------------+
+| @@server_id |
++-------------+
+|          52 |
++-------------+
+1 row in set (0.00 sec)
+#测试写操作
+db03 [(none)]&gt;begin;select @@server_id;commit;
+Query OK, 0 rows affected (0.00 sec)
+
++-------------+
+| @@server_id |
++-------------+
+|          51 |
++-------------+
+1 row in set (0.00 sec)
+</code></pre>
+<h3 id="生产用户要求">生产用户要求</h3>
+<pre><code class="language-shell">开发人员申请一个应用用户app(select  update  insert)，密码123456，要通过10网段登录
+1）在主库中，创建用户
+grant select ,update,insert on *.* to app@'10.0.0.%' identified by '123456';
+2）在atlas中添加生产用户
+/usr/local/mysql-proxy/bin/encrypt 123456  ---&gt;制作加密密码
+/iZxz+0GRoA=
+cd /usr/local/mysql-proxy/conf
+vim test.cnf
+pwds = repl:3yb5jEku5h4=,mha:O2jBXONX098=,app:/iZxz+0GRoA=
+/usr/local/mysql-proxy/bin/mysql-proxyd test restart
+mysql -uapp -p123456 -h 10.0.0.53 -P 3306
+</code></pre>
+<h3 id="atlas基本管理">Atlas基本管理</h3>
+<p>1、连接管理接口</p>
+<pre><code class="language-shell">mysql -uuser -ppwd -h127.0.0.1 -P2345
+</code></pre>
+<p>2、打印帮助</p>
+<pre><code class="language-shell">&gt;select * from help;
++----------------------------+---------------------------------------------------------+
+| command                    | description                                             |
++----------------------------+---------------------------------------------------------+
+| SELECT * FROM help         | shows this help                                         |
+| SELECT * FROM backends     | lists the backends and their state                      |
+| SET OFFLINE $backend_id    | offline backend server, $backend_id is backend_ndx's id |
+| SET ONLINE $backend_id     | online backend server, ...                              |
+| ADD MASTER $backend        | example: &quot;add master 127.0.0.1:3306&quot;, ...               |
+| ADD SLAVE $backend         | example: &quot;add slave 127.0.0.1:3306&quot;, ...                |
+| REMOVE BACKEND $backend_id | example: &quot;remove backend 1&quot;, ...                        |
+| SELECT * FROM clients      | lists the clients                                       |
+| ADD CLIENT $client         | example: &quot;add client 192.168.1.2&quot;, ...                  |
+| REMOVE CLIENT $client      | example: &quot;remove client 192.168.1.2&quot;, ...               |
+| SELECT * FROM pwds         | lists the pwds                                          |
+| ADD PWD $pwd               | example: &quot;add pwd user:raw_password&quot;, ...               |
+| ADD ENPWD $pwd             | example: &quot;add enpwd user:encrypted_password&quot;, ...       |
+| REMOVE PWD $pwd            | example: &quot;remove pwd user&quot;, ...                         |
+| SAVE CONFIG                | save the backends to config file                        |
+| SELECT VERSION             | display the version of Atlas                            |
++----------------------------+---------------------------------------------------------+
+16 rows in set (0.00 sec)
+</code></pre>
+<p>3、查询后端所有节点信息</p>
+<pre><code class="language-shell">db03 [(none)]&gt;SELECT * FROM backends;
++-------------+----------------+-------+------+
+| backend_ndx | address        | state | type |
++-------------+----------------+-------+------+
+|           1 | 10.0.0.55:3306 | up    | rw   |
+|           2 | 10.0.0.52:3306 | up    | ro   |
+|           3 | 10.0.0.53:3306 | up    | ro   |
++-------------+----------------+-------+------+
+</code></pre>
+<p>4、动态删除节点</p>
+<pre><code class="language-shell">REMOVE BACKEND 3;
+</code></pre>
+<p>5、动态添加节点</p>
+<pre><code class="language-shell">ADD SLAVE 10.0.0.53:3306;
+</code></pre>
+<p>6、保存配置到配置文件</p>
+<pre><code class="language-shell">SAVE CONFIG;
+</code></pre>
+<h3 id="自动分表">自动分表</h3>
+<pre><code class="language-shell">使用Atlas的分表功能时，首先需要在配置文件test.cnf设置tables参数。
+tables参数设置格式：数据库名.表名.分表字段.子表数量，
+比如：
+你的数据库名叫school，表名叫stu，分表字段叫id，总共分为2张表，那么就写为school.stu.id.2，如果还有其他的分表，以逗号分隔即可。
+</code></pre>
+<h3 id="关于读写分离建议">关于读写分离建议</h3>
+<pre><code class="language-shell">MySQL-Router     ---&gt; MySQL官方
+ProxySQL         ---&gt; Percona
+Maxscale         ---&gt; MariaDB
+</code></pre>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#%E4%B8%8A%E8%8A%82%E5%9B%9E%E9%A1%BE">上节回顾</a></li>
+<li><a href="#atlas%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB">Atlas读写分离</a>
+<ul>
+<li><a href="#atlas-%E4%BB%8B%E7%BB%8D">Atlas 介绍</a></li>
+<li><a href="#%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE">安装配置</a></li>
+<li><a href="#atlas%E5%8A%9F%E8%83%BD%E6%B5%8B%E8%AF%95">Atlas功能测试</a></li>
+<li><a href="#%E7%94%9F%E4%BA%A7%E7%94%A8%E6%88%B7%E8%A6%81%E6%B1%82">生产用户要求</a></li>
+<li><a href="#atlas%E5%9F%BA%E6%9C%AC%E7%AE%A1%E7%90%86">Atlas基本管理</a></li>
+<li><a href="#%E8%87%AA%E5%8A%A8%E5%88%86%E8%A1%A8">自动分表</a></li>
+<li><a href="#%E5%85%B3%E4%BA%8E%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB%E5%BB%BA%E8%AE%AE">关于读写分离建议</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://ajie825.github.io/post/mha-gao-ke-yong-ji-zhu/">
+              <h3 class="post-title">
+                MHA高可用技术
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>
