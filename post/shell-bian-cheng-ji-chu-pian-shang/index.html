@@ -1,0 +1,1287 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>Shell编程基础篇-上 | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">Shell编程基础篇-上</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2023-08-23</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/uw58vclBw/">
+                    Shell
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="11-前言">1.1 前言</h2>
+<h3 id="111-为什么学shell">1.1.1 为什么学Shell</h3>
+<p>Shell脚本语言是实现Linux/UNIX系统管理及自动化运维所必备的重要工具，Linux/UNIX系统的底层及基础应用软件的核心都涉及Shell脚本的内容。每一个合格的Linux系统管理员或运维工程师，都需要能够熟练地编写Shell脚本语言，并能够阅读系统及各类软件附带的Shell脚本内容。只有这样才能提升运维人员的工作效率，适应日益复杂的工作环境，减少不必要的重复工作，从而为个人的职场发展奠定较好的基础。</p>
+<h3 id="112-什么是shell">1.1.2 什么是Shell</h3>
+<p>Shell是一个命令解释器，它在操作系统的最外层，负责直接与用户对话，把用户的输入解释给操作系统，并处理各种各样的操作系统的输出结果，输出屏幕返回给用户。</p>
+<p>这种对话方式可以是：</p>
+<p>交互的方式：从键盘输入命令，通过<code>/bin/bash</code>的解析，可以立即得到Shell的回应</p>
+<pre><code class="language-shell">[root@ops ~]# ls            
+anaconda-ks.cfg  
+[root@ops ~]# echo ls |bash 
+anaconda-ks.cfg  
+</code></pre>
+<p>非交互的方式：脚本<br>
+<img src="https://ajie825.github.io/post-images/1692784881565.png" alt="" loading="lazy"></p>
+<h3 id="113-什么是shell脚本">1.1.3 什么是Shell脚本</h3>
+<p>命令、变量和流程控制语句等有机的结合起来</p>
+<p>shell脚本擅长处理纯文本类型的数据，而linux中，几乎所有的配置文件、日志，都是纯文本类型文件</p>
+<h3 id="114-脚本语言的种类">1.1.4 脚本语言的种类</h3>
+<p><strong>一、编译型语言</strong></p>
+<p><strong>定义</strong>：指用专用的编译器，针对特定的操作平台（操作系统）将某种高级语言源代码一次性翻译成可被硬件平台直接运行的二进制机器码（具有操作数、指令、及相应的格式），这个过程叫做编译（<code>./configure make makeinstall</code>），编译好的可执行文件（<code>.exe</code>），可在相对应的平台上运行（移植性差，但运行效率高）。</p>
+<p>典型的编译型语言有，<code>C语言</code>、<code>C++</code>等。</p>
+<p>另外，<code>Java</code>语言是一门很特殊的语言，<code>Java</code>程序需要进行编译步骤，但并不会生成特定平台的二进制机器码，它编译后生成的是一种与平台无关的字节码文件（<code>*.class</code>）（移植性好的原因），这种字节码自然不能被平台直接执行，运行时需要由解释器解释成相应平台的二进制机器码文件，大多数人认为<code>Java</code>是一种编译型语言，但我们说<code>Java</code>既是编译型语言，也是解释型语言也并没有错。</p>
+<p><strong>二、解释型语言</strong></p>
+<p><strong>定义</strong>：指用专门解释器对源程序逐行解释成特定平台的机器码并立即执行的语言，相当于把编译型语言的编译链接过程混到一起同时完成的。</p>
+<p>解释型语言执行效率较低，且不能脱离解释器运行，但它的跨平台型比较容易，只需提供特定解释器即可。</p>
+<p>常见的解释型语言有，<code>python</code>（同时是脚本语言）与<code>ruby</code>等。</p>
+<p><strong>三、脚本语言</strong></p>
+<p><strong>定义</strong>：为了缩短传统的编写-编译-链接-运行（<code>edit-compile-link-run</code>）过程而创建的计算机编程语言。</p>
+<p><strong>特点</strong>：程序代码即是最终的执行文件，只是这个过程需要解释器的参与，所以说脚本语言与解释型语言有很大的联系。脚本语言通常是被解释执行的，而且程序是文本文件。</p>
+<p>典型的脚本语言有，<code>JavaScript</code>，<code>Python</code>，<code>Shell</code>等。</p>
+<p><strong>四、其他常用的脚本语句种类</strong></p>
+<p><code>PHP</code>是网页程序，也是脚本语言。是一款更专注于<code>web</code>页面开发（前端展示）的脚本语言，例如：<code>Dedecms</code>，<code>discuz</code>。<code>PH</code>程序也可以处理系统日志，配置文件等，<code>php</code>也可以调用系统命令。</p>
+<p><code>Perl脚本语言</code>，比shell脚本强大很多，语法灵活、复杂，实现方式很多，不易读，团队协作困难，但仍不失为很好的脚本语言，存世大量的程序软件。<code>MHA</code>高可用<code>Perl</code>写的。</p>
+<p><code>python</code>，不但可以做脚本程序开发，也可以实现<code>web</code>程序以及软件的开发。近两年越来越多的公司都要求会<code>python</code>。</p>
+<p><strong>Shell脚本与<code>php/perl/python</code>语言的区别和优势？</strong></p>
+<p>shell脚本的优势在于处理操作系统底层的业务（Linux系统内部的应用都是shell脚本完成），因为有大量的Linux系统命令为它做支撑。2000多个命令都是shell脚本编程的有力支撑，特别是<code>grep</code>、<code>awk</code>、<code>sed</code>等。例如：一键软件安装、优化、监控报警脚本、常规的业务应用，shell开发更简单快速，符合运维的简单、易用、高效原则。</p>
+<p><code>php</code>、<code>python</code>优势在于开发运维工具以及<code>web</code>界面的管理工具<code>web</code>业务的开发等。处理一键软件安装、优化、报警脚本、常规业务的应用等<code>php/python</code>也是能够做到的。但是开发效率和复杂比用shell就差很多了。</p>
+<p><strong>系统环境说明</strong></p>
+<pre><code class="language-shell">[root@ops ~]# cat /etc/redhat-release 
+CentOS Linux release 7.9.2009 (Core)
+[root@ops ~]# uname -r
+3.10.0-1160.el7.x86_64
+[root@ajie ~]# getenforce 
+Disabled
+[root@ajie ~]# systemctl status firewalld
+● firewalld.service - firewalld - dynamic firewall daemon
+   Loaded: loaded (/usr/lib/systemd/system/firewalld.service; disabled; vendor preset: enabled)
+   Active: inactive (dead)
+     Docs: man:firewalld(1)
+</code></pre>
+<h3 id="115-系统中的shell">1.1.5 系统中的shell</h3>
+<p>查看系统中的命令解释器</p>
+<pre><code class="language-shell">[root@ops ~]# cat /etc/shells
+/bin/sh
+/bin/bash
+/usr/bin/sh
+/usr/bin/bash
+</code></pre>
+<p>常用操作系统的默认shell</p>
+<ol>
+<li>Linux是Bourne Again shell（bash）</li>
+<li>Solaris和FreeBSD缺省的是Bourne shell（sh）</li>
+<li>AIX下是Korn Shell（ksh）</li>
+<li>HP-UX缺省的是POSIX shell（sh）</li>
+</ol>
+<pre><code class="language-shell">[root@ops ~]# echo $SHELL
+/bin/bash
+</code></pre>
+<p><strong>bash版本</strong></p>
+<pre><code class="language-shell">[root@ajie ~]# bash -version           
+GNU bash， 版本 4.2.46(2)-release (x86_64-redhat-linux-gnu)
+Copyright (C) 2011 Free Software Foundation, Inc.
+许可证 GPLv3+: GNU GPL 许可证版本3或者更高 &lt;http://gnu.org/licenses/gpl.html&gt;
+
+这是自由软件，您可以自由地更改和重新发布。
+在法律允许的范围内没有担保.
+</code></pre>
+<p><strong><code>bash</code>破壳漏洞</strong></p>
+<p>使用 命令 <code>env x='() { :;}; echo be careful' bash -c &quot;echo this is a test&quot;</code>，如果返回结果为一行，则为正常</p>
+<pre><code class="language-shell">[root@ops ~]# env x='() { :;}; echo be careful' bash -c &quot;echo this is a test&quot;
+this is a test
+#解决办法 升级当前的bash版本
+yum install update bash
+</code></pre>
+<p><strong><code>sh</code>与<code>bash</code>的关系</strong></p>
+<pre><code class="language-shell">[root@ops ~]# ll /bin/sh
+lrwxrwxrwx. 1 root root 4 12月  9 2021 /bin/sh -&gt; bash
+</code></pre>
+<p><strong><code>/bin</code>与<code>/user/bin</code>的关系</strong></p>
+<pre><code class="language-shell">lrwxrwxrwx. 1 root root 7 12月  9 2021 /bin -&gt; usr/bin
+</code></pre>
+<h2 id="12-脚本书写规范">1.2 脚本书写规范</h2>
+<h3 id="121-脚本统一存放路径">1.2.1 脚本统一存放路径</h3>
+<pre><code class="language-shell">[root@ops ~]# mkdir -p /data/scripts/
+[root@ops ~]# cd /data/scripts/
+</code></pre>
+<h3 id="122-选择解释器">1.2.2 选择解释器</h3>
+<pre><code class="language-shell">[root@ops scripts]# head -1 /etc/init.d/*  
+==&gt; /etc/init.d/functions &lt;==
+# -*-Shell-script-*-
+
+==&gt; /etc/init.d/netconsole &lt;==
+#!/bin/bash
+
+==&gt; /etc/init.d/network &lt;==
+#! /bin/bash
+</code></pre>
+<p>其中开头的<code>#!</code>字符又称为幻数，在执行<code>bash</code>脚本的时候，内核会根据<code>#!</code>后的解释器来确定该用哪个程序解释这个脚本中的内容。</p>
+<h3 id="123-编辑脚本使用vim">1.2.3 编辑脚本使用<code>vim</code></h3>
+<p>使用<code>.vimrc</code>文件，能够快速的生成开头的注释信息</p>
+<pre><code class="language-shell">[root@ops scripts]# cat ~/.vimrc       
+autocmd BufNewFile *.py,*.cc,*.sh,*.java exec &quot;:call SetTitle()&quot;
+
+func SetTitle()
+    if expand(&quot;%:e&quot;) == 'sh'
+        call setline(1,&quot;#!/bin/bash&quot;)
+        call setline(2, &quot;##############################################################&quot;)
+        call setline(3, &quot;# File Name: &quot;.expand(&quot;%&quot;))
+        call setline(4, &quot;# Version: V1.0&quot;)
+        call setline(5, &quot;# Author: ops&quot;)
+        call setline(6, &quot;# Organization: http://blog.znix.top&quot;)
+        call setline(7, &quot;# Created Time : &quot;.strftime(&quot;%F %T&quot;))
+        call setline(8, &quot;# Description:&quot;)
+        call setline(9, &quot;##############################################################&quot;)
+        call setline(10, &quot;&quot;)
+    endif
+endfunc
+</code></pre>
+<p>使用后的效果</p>
+<pre><code class="language-bash">[root@ops scripts]# cat scripts_test.sh
+#!/bin/bash
+##############################################################
+# File Name: scripts_test.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-08-23 12:47:22
+# Description: First scripts file
+##############################################################
+</code></pre>
+<p>在shell脚本中，跟在<code>#</code>后面的内容表示注释。注释部分不会被执行，仅给人看。注释可以自成一行，也可以跟在命令后面，与命令同行。要养成写注释的习惯，方便自己与他人。</p>
+<p>最好不用中文注释，因为在不同字符集的系统会出现乱码。（字符集为<code>zh_CN.UTF-8</code>为中文）。</p>
+<h3 id="124-文件名规范">1.2.4 文件名规范</h3>
+<p>名字要有意义，并且结尾以<code>.sh</code>结束</p>
+<h3 id="125-开发的规范和习惯小结">1.2.5 开发的规范和习惯小结</h3>
+<ol>
+<li>放在统一的目录</li>
+<li>脚本以<code>.sh</code>为扩展名</li>
+<li>开头指定脚本解释器</li>
+<li>开头加版本版权等信息，可以配置<code>~/.vimrc</code>文件自动添加</li>
+<li>脚本不要用中文注释，尽量用英文注释</li>
+<li>代码书写优秀习惯
+<ul>
+<li>成对的内容一次性写出来，防止遗漏，如<code>[]</code>、<code>''</code>，<code>&quot;&quot;</code>等</li>
+<li><code>[]</code>两端要有空格，先输入<code>[]</code>，退格，输入2个空格，再退格写。</li>
+<li>流程控制语句一次书写完，再添加内容。（<code>if 条件;then 内容; fi</code>）</li>
+<li>通过缩进让代码已读。</li>
+<li>脚本中的引号都是英文状态下的引号，其他字符也是英文状态。</li>
+</ul>
+</li>
+</ol>
+<h2 id="13-shell脚本的执行">1.3 shell脚本的执行</h2>
+<h3 id="131-执行脚本的办法">1.3.1 执行脚本的办法</h3>
+<pre><code class="language-shell">sh/bash   scripts.sh 
+chmod +x   ./scripts.sh  &amp;&amp; ./scripts.sh  
+source scripts.sh
+. (空格) scripts.sh
+cat oldboyedu.sh |bash  # 效率较低
+</code></pre>
+<p><code>source</code>与<code>.</code>（点）的作用</p>
+<p><code>source</code>命令</p>
+<pre><code class="language-shell">[root@ops ~]# help source|head -2
+source: source 文件名 [参数]
+    在当前 shell 中执行一个文件中的命令。
+</code></pre>
+<p><code>.</code>（点）</p>
+<pre><code class="language-shell">[root@ops ~]# help .|head -2      
+.: . 文件名 [参数]
+    在当前 shell 中执行一个文件中的命令。
+</code></pre>
+<h3 id="132-sh与source的区别">1.3.2 <code>sh</code>与<code>source</code>的区别</h3>
+<p><code>sh</code>命令会创建一个新的子Shell进程，在子Shell中执行指定的命令或脚本文件，因此它不会对当前Shell环境产生影响。而<code>source</code>命令则是在当前Shell环境中直接执行指定的脚本文件，可以影响当前Shell环境中的变量、函数、别名等定义。</p>
+<pre><code class="language-shell">[root@ops scripts]# sh ops_test.sh 
+[root@ops scripts]# echo $ops
+# sh新建一个Shell窗口（新建一个进程）执行一个文件中的命令。
+
+[root@ops scripts]# source ops_test.sh 
+[root@ops scripts]# echo $ops
+Hello World!
+</code></pre>
+<p><strong>面试题：</strong></p>
+<p>问：<code>sh test.sh</code>后<code>echo $user</code>返回的结果（空）？</p>
+<pre><code class="language-shell">[root@ops scripts]# cat test.sh 
+#!/bin/bash
+user=`whoami`
+</code></pre>
+<h2 id="14-shell的变量">1.4 Shell的变量</h2>
+<h3 id="141-什么是变量">1.4.1 什么是变量</h3>
+<p>变量可以分为两类：环境变量（全局变量）和普通变量（局部变量）</p>
+<p><strong>环境变量</strong>也可称为全局变量，可以在创建他们的shell及其派生出来的任意子进程shell中使用，环境变量又可分为自定义环境变量和bash内置的环境变量。</p>
+<p><strong>普通变量</strong>也可称为局部变量，只能在创建他们的shell函数或shell脚本中使用，普通变量一般是由开发者用户开发脚本程序时创建的。</p>
+<p><strong>特殊变量</strong>：后续会有解释</p>
+<h3 id="142-环境变量">1.4.2 环境变量</h3>
+<p>使用<code>env/declare/set/export -p</code>命令查看系统中的环境变量，这三个命令的输出方式稍有不同。</p>
+<pre><code class="language-shell">[root@ops scripts]# env
+XDG_SESSION_ID=1
+HOSTNAME=clsn
+TERM=linux
+SHELL=/bin/bash
+HISTSIZE=1000
+SSH_CLIENT=10.0.0.1 5537 22
+SSH_TTY=/dev/pts/0
+USER=root
+~~~
+</code></pre>
+<p>输出系统中的环境变量</p>
+<pre><code class="language-shell">[root@ops scripts]# echo $LANG
+zh_CN.UTF-8
+[root@ops scripts]# echo $HISTSIZE
+1000
+</code></pre>
+<h3 id="143-普通变量">1.4.3 普通变量</h3>
+<p>本地变量在用户当前的shell生存期的脚本中使用。例如本地变量<code>OLDBOY</code>取值为<code>bingbing</code>，这个值在用户当前shell生存期中有意义，如果在shell中启动另一个进程或退出，本地变量将无效。</p>
+<p><strong>定义普通变量实践</strong></p>
+<pre><code class="language-shell">[root@ops ~]# a=1
+[root@ops ~]# b='2'
+[root@ops ~]# c=&quot;3&quot;
+[root@ops ~]# echo &quot;$a&quot;
+1
+[root@ops ~]# echo &quot;$b&quot; 
+2
+[root@ops ~]# echo &quot;${c}&quot;
+3
+</code></pre>
+<p>提示：<code>$</code>变量名表示输出变量，可以用<code>$c</code>和<code>${c}</code>两种方法</p>
+<p>小结：连续普通字符串内容赋值给变量，不管用什么引号或者不用引号，它的内容是什么，打印变量就输出什么。</p>
+<h3 id="144-export命令">1.4.4 <code>export</code>命令</h3>
+<pre><code class="language-shell">[root@ops ~]# help export
+export: export [-fn] [名称[=值] ...] 或 export -p
+为 shell 变量设定导出属性。  
+标记每个 NAME 名称为自动导出到后续命令执行的环境。如果提供了 VALUE 则导出前将 VALUE 作为赋值。
+</code></pre>
+<p><strong><code>export</code>命令说明</strong></p>
+<p>当前shell窗口及子shell窗口生效</p>
+<p>在新开的shell窗口不会生效，生效需要写入配置文件</p>
+<p><strong>定义变量</strong></p>
+<pre><code class="language-shell">[root@ops ~]# OPS=ops
+[root@ops ~]# export OPS1=1
+</code></pre>
+<p><strong>当前窗口查看</strong></p>
+<pre><code class="language-shell">[root@ops ~]# echo $OPS
+ops
+[root@ops ~]# echo $OPS1
+1
+</code></pre>
+<p><strong>编写测试脚本</strong></p>
+<pre><code class="language-shell">[root@ops scripts]# cat quanju.sh 
+#!/bin/bash
+echo $OPS
+echo $OPS1
+</code></pre>
+<p><strong>使用<code>sh</code>执行</strong></p>
+<pre><code class="language-shell">[root@ops scripts]# sh quanju.sh 
+
+1
+</code></pre>
+<p><strong>使用<code>source</code>执行</strong></p>
+<pre><code class="language-shell">[root@ops scripts]# source quanju.sh 
+ops
+1
+</code></pre>
+<p><strong>在新开的shell窗口查看</strong></p>
+<pre><code class="language-shell">[root@ops ~]# echo $OPS
+
+[root@ops ~]# echo $OPS1
+
+</code></pre>
+<h3 id="145-环境变量相关配置文件">1.4.5 环境变量相关配置文件</h3>
+<pre><code class="language-shell">/etc/proflie
+/etc/bashrc
+~/.bashrc
+~/.bash_profile
+/etc/proflie.d/ # 目录
+</code></pre>
+<p><strong>四文件读取顺序（<code>centos6</code>和<code>7</code>都一样）</strong></p>
+<pre><code class="language-shell">1） /etc/profile
+2） ~/.bash_profile
+3） ~/.bashrc
+4） /etc/bashrc
+</code></pre>
+<h3 id="146-环境变量的知识小结">1.4.6 环境变量的知识小结</h3>
+<ul>
+<li>变量名通常要大写。</li>
+<li>变量可以在自身的shell及子shell中使用。</li>
+<li>常用<code>export</code>来定义环境变量。</li>
+<li>执行<code>env</code>默认可以显示所有的环境变量名称及对应的值。</li>
+<li>输出时用&quot;<code>$</code>变量名&quot;，取消时用&quot;<code>unset</code>变量名&quot;。</li>
+<li>书写<code>crond</code>定时任务时要注意，脚本要用到的环境变量最好先在所执行的shell脚本中重新定义。</li>
+<li>如果希望环境变量永久生效，则可以将其放在用户环境变量文件或者全局环境变量文件里。</li>
+</ul>
+<h3 id="147-变量中引号的使用">1.4.7 变量中引号的使用</h3>
+<p>只有在变量的值中有空格的时候，会使用引号。</p>
+<p>单引号与双引号的区别在于，是否能够解析特殊符号。</p>
+<pre><code class="language-shell">[root@ops ~]# name=znix
+[root@ops ~]# name2='clsn'
+[root@ops ~]# name3=&quot;http://blog.znix.top&quot;
+[root@ops ~]# echo $name
+znix
+[root@ops ~]# echo $name2
+clsn
+[root@ops ~]# echo $name3
+http://blog.znix.top
+[root@ops ~]# name4='cl sn'
+[root@ops ~]# echo $name4
+cl sn
+[root@ops ~]# name5=&quot;cl sn&quot;
+[root@ops ~]# echo $name5
+cl sn
+[root@ops ~]# name6='cl sn $PWD'
+[root@ops ~]# echo $name6
+cl sn $PWD
+[root@ops ~]# name6=&quot;cl sn $PWD&quot;
+[root@ops ~]# echo $name6       
+cl sn /root
+</code></pre>
+<h3 id="148-普通变量的要求">1.4.8 普通变量的要求</h3>
+<ol>
+<li>内容是纯数字、简单的连续字符（内容中不带任何空格）时，定义时可以不加任何引号，例如：</li>
+</ol>
+<pre><code class="language-shell">a.OpsAge=22
+b.NETWORKING=yes
+</code></pre>
+<ol start="2">
+<li>没有特殊情况时，字符串一律用双引号定义赋值，特别是多个字符串中间有空格时，例如：</li>
+</ol>
+<pre><code class="language-shell">a.NFSD_MODULE=&quot;no load&quot;
+b.MyName=&quot;Oldboy is a handsome boy.&quot;
+</code></pre>
+<ol start="3">
+<li>当变量里的内容需要原样输出时，要用单引号，这样的需求极少，例如：</li>
+</ol>
+<pre><code class="language-shell">OLDBOY_NAME='OLDBOY'
+</code></pre>
+<p><strong>变量使用反引号或<code>$()</code>赋值</strong></p>
+<pre><code class="language-shell">[root@ops ~]# time=`date`
+[root@ops ~]# echo $time
+Thu Aug 24 15:36:50 EDT 2023
+
+[root@ops ~]# file=`ls`
+[root@ops ~]# echo $file
+anaconda-ks.cfg
+
+[root@ops ~]# ops=$(pwd)
+[root@ops ~]# echo $ops
+/root
+</code></pre>
+<p><strong>使用<code>${}</code></strong></p>
+<p>打印变量的时候防止出现&quot;金庸新著&quot;的问题</p>
+<pre><code class="language-shell">[root@ops ~]# time=`date`
+[root@ops ~]# echo $time_day
+
+[root@ops ~]# echo ${time}_day
+Thu Aug 24 15:45:55 EDT 2023_day
+[root@ops ~]# echo $time-day  
+Thu Aug 24 15:45:55 EDT 2023-day
+</code></pre>
+<p><strong>编写脚本测试<code>${}</code></strong></p>
+<pre><code class="language-bash"># 使用脚本测试
+[root@ops scripts]# cat bianliang.sh 
+#!/bin/bash
+##############################################################
+# File Name: bianliang.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-08-24 15:49:56
+# Description:
+##############################################################
+time=`date`
+echo $timeday
+echo ${time}day
+[root@ops scripts]# sh bianliang.sh  
+
+Thu Aug 24 15:51:56 EDT 2023day
+</code></pre>
+<h3 id="149-定义变量名技巧">1.4.9 定义变量名技巧</h3>
+<ol>
+<li>变量名只能为字母、数字或下划线，只能以字母或下划线开头。</li>
+<li>变量名的定义要有一定的规范，并且要见名知意。</li>
+</ol>
+<p>示例：</p>
+<pre><code class="language-shell">ClsnAge=22      #&lt;==每个单词的首字母大写的写法
+clsn_age=22     #&lt;==单词之间用&quot;_&quot;的写法
+clsnAgeSex=man  #&lt;==驼峰语法：首个单词的首字母小写，其余单词首字母大写
+CLSNAGE=22      #&lt;==单词全大写的写法
+</code></pre>
+<ol start="3">
+<li>一般的变量定义、赋值常用双引号；简单连续的字符串可以不加引号；希望原样输出时使用单引号。</li>
+<li>希望变量的内容是命令的解析结果时，要用反引号或者用<code>$()</code>把命令括起来再赋值。</li>
+</ol>
+<h2 id="15-特殊变量">1.5 特殊变量</h2>
+<h3 id="151-位置变量">1.5.1 位置变量</h3>
+<p>常用的特殊位置参数说明</p>
+<table>
+<thead>
+<tr>
+<th>位置变量</th>
+<th>作用说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$0</td>
+<td>获取当前执行的shell脚本的文件名，如果执行脚本带路径那么就包括脚本路径。</td>
+</tr>
+<tr>
+<td>$n</td>
+<td>获取当前执行的shell脚本的第n个参数值，n=1...9，当n为0时表示脚本的文件名，如果n大于9用大括号括起来{10}，参数以空格隔开。</td>
+</tr>
+<tr>
+<td>$#</td>
+<td>获取当前执行的shell脚本后面接的参数总个数。</td>
+</tr>
+<tr>
+<td>$*</td>
+<td>获取当前shell的所有传参的参数，不加引号同<code>$@</code>，如果给<code>$*</code>加上双引号，则表示将所有的参数视为单个字符串，相当于&quot;12$3&quot;。</td>
+</tr>
+<tr>
+<td>$@</td>
+<td>获取当前shell的所有传参的参数，不加引号同<code>$*</code>，如果给<code>$@</code>加上双引号，则表示将所有参数视为独立字符串，相当于&quot;$1&quot; &quot;$2&quot; &quot;$3&quot; &quot;……&quot;，这是将参数传递给它程序的最佳方式，因为它会保留所有内嵌在每个参数里的任何空白。</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>$0</code>，<code>$n</code>参数实践</strong></p>
+<pre><code class="language-bash">[root@ops scripts]# cat canshu.sh 
+#!/bin/bash
+##############################################################
+# File Name: canshu.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-08-24 21:47:45
+# Description:
+##############################################################
+echo $0
+echo &quot;第一个参数：&quot; $1
+echo &quot;第二个参数：&quot; $2
+echo &quot;第11个参数：&quot; ${11}
+[root@ops scripts]# sh canshu.sh 
+canshu.sh
+第一个参数：
+第二个参数：
+第11个参数：
+[root@ops scripts]# sh canshu.sh 1 2 3 4 5 6 7 8 9 10 11 
+canshu.sh
+第一个参数： 1
+第二个参数： 2
+第11个参数： 11
+</code></pre>
+<p><strong><code>$#</code>参数实践</strong></p>
+<pre><code class="language-bash">[root@ops scripts]# cat canshu.sh 
+#!/bin/bash
+##############################################################
+# File Name: canshu.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-08-24 21:47:45
+# Description:
+##############################################################
+echo $0
+echo &quot;第一个参数：&quot; $1
+echo &quot;第二个参数：&quot; $2
+echo &quot;第11个参数：&quot; ${11}
+echo &quot;参数个数：&quot; $#
+[root@ops scripts]# sh canshu.sh 55 2 3 4 5 6 7 8 9 10 11 12
+canshu.sh
+第一个参数： 55
+第二个参数： 2
+第11个参数： 11
+参数个数： 12
+</code></pre>
+<p><strong><code>$*</code>参数实践</strong></p>
+<pre><code class="language-bash">[root@ops scripts]# cat canshu.sh                           
+#!/bin/bash
+##############################################################
+# File Name: canshu.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-08-24 21:47:45
+# Description:
+##############################################################
+echo $0
+echo &quot;第一个参数：&quot; $1
+echo &quot;第二个参数：&quot; $2
+echo &quot;第11个参数：&quot; ${11}
+echo &quot;参数个数：&quot; $#
+echo &quot;参数：&quot;  $*
+[root@ops scripts]# sh canshu.sh 55 2 3 4 5 6 7 8 9 10 11 12
+canshu.sh
+第一个参数： 55
+第二个参数： 2
+第11个参数： 11
+参数个数： 12
+参数： 55 2 3 4 5 6 7 8 9 10 11 12
+</code></pre>
+<p><strong><code>$*</code>与<code>$@</code>对比实践</strong></p>
+<pre><code class="language-shell">[root@ops scripts]# set -- &quot;I am&quot; handsome boy..
+[root@ops scripts]# echo $1
+I am
+[root@ops scripts]# echo $2
+handsome
+[root@ops scripts]# echo $3
+boy..
+[root@ops scripts]# echo $*
+I am handsome boy..
+[root@ops scripts]# echo $@
+I am handsome boy..
+[root@ops scripts]# set -- &quot;I am&quot; handsome boy..
+[root@ops scripts]# echo $1
+I am
+[root@ops scripts]# echo $2
+handsome
+[root@ops scripts]# echo $3
+boy..
+[root@ops scripts]# echo $*
+I am handsome boy..
+[root@ops scripts]# echo $@
+I am handsome boy..
+[root@ops scripts]# for i in $*;do echo $i;done 
+I
+am
+handsome
+boy..
+[root@ops scripts]# for i in $@;do echo $i;done 
+I
+am
+handsome
+boy..
+[root@ops scripts]# for i in &quot;$*&quot;;do echo $i;done
+I am handsome boy..
+[root@ops scripts]# for i in &quot;$@&quot;;do echo $i;done 
+I am
+handsome
+boy..
+</code></pre>
+<h3 id="152-进程状态变量">1.5.2 进程状态变量</h3>
+<p>shell进程的特殊状态变量说明</p>
+<table>
+<thead>
+<tr>
+<th>位置变量</th>
+<th>作用说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$?</td>
+<td>获取上一个指令的执行状态返回值（0为成功，非零为失败），这个变量最常用</td>
+</tr>
+<tr>
+<td>$$</td>
+<td>获取当前执行的shell脚本的进程号（PID），这个变量不常用，了解即可</td>
+</tr>
+<tr>
+<td>$!</td>
+<td>获取上一个在后台工作的进程的进程号（PID），这个变量不常用，了解即可</td>
+</tr>
+<tr>
+<td>$_</td>
+<td>获取在此之前执行的命令或脚本的最后一个参数，这个变量不常用，了解即可</td>
+</tr>
+</tbody>
+</table>
+<p><strong>进程参数实践</strong></p>
+<pre><code class="language-shell">[root@ops scripts]# echo $?
+0
+[root@ops scripts]# echo $$
+14049
+[root@ops scripts]# echo $!
+
+[root@ops scripts]# echo $_
+echo
+</code></pre>
+<h2 id="16-定义变量的方式">1.6 定义变量的方式</h2>
+<h3 id="161-三种定义变量的方式">1.6.1 三种定义变量的方式</h3>
+<ol>
+<li>直接赋值</li>
+<li>传参（传递参数）</li>
+<li>交互式设置变量，使用<code>read</code>命令</li>
+</ol>
+<h3 id="162-read命令说明">1.6.2 <code>read</code>命令说明</h3>
+<p>在命令行中使用</p>
+<pre><code class="language-shell">[root@ops scripts]# read
+132
+[root@ops scripts]# echo $REPLY
+132
+[root@ops scripts]# read ops
+456
+[root@ops scripts]# echo $ops
+456
+[root@ops scripts]# echo $REPLY
+132
+</code></pre>
+<p>在脚本中使用</p>
+<pre><code class="language-shell">[root@ops scripts]# cat ops_test.sh 
+#!/bin/bash
+read -p '请输入：' ops
+echo $ops
+</code></pre>
+<p>执行结果</p>
+<pre><code class="language-shell">[root@ops scripts]# sh ops_test.sh 
+请输入：ops_znix
+ops_znix
+</code></pre>
+<p><code>read</code>命令的帮助说明</p>
+<pre><code class="language-shell">[root@ops scripts]# read --help            
+-bash: read: --: 无效选项
+read: 用法:read [-ers] [-a 数组] [-d 分隔符] [-i 缓冲区文字] [-n 读取字符数] [-N 读取字符数] [-p 提示符] [-t 超时] [-u 文件描述符] [名称 ...]
+</code></pre>
+<h3 id="163-定义方法实践">1.6.3 定义方法实践</h3>
+<p><strong>直接赋值方法</strong></p>
+<pre><code class="language-bash">[root@ops scripts]# cat bianliang.sh 
+#!/bin/bash
+##############################################################
+# File Name: bianliang.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-08-24 15:49:56
+# Description:
+##############################################################
+NAME=OPS
+AGE=22
+SEX=Man
+HOBBY=`ls`
+EthFile=/etc/sysconfig/network-scripts/ifcfg-ens33
+echo $HOBBY
+ls $EthFile
+[root@ops scripts]# sh bianliang.sh 
+bianliang.sh canshu.sh ops_test.sh quanju.sh
+/etc/sysconfig/network-scripts/ifcfg-ens33
+</code></pre>
+<p><strong>传参（传递参数）</strong></p>
+<pre><code class="language-bash">[root@ops scripts]# cat bianliang.sh 
+#!/bin/bash
+##############################################################
+# File Name: bianliang.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-08-24 15:49:56
+# Description:
+##############################################################
+NAME=OPS
+AGE=22
+SEX=Man
+HOBBY=$1
+EthFile=$2
+echo $HOBBY
+ls $EthFile
+[root@ops scripts]# sh bianliang.sh ops /etc/hostname
+ops
+/etc/hostname
+</code></pre>
+<p><strong>交互式设置变量<code>read</code></strong></p>
+<pre><code class="language-bash">[root@ops scripts]# cat yhk.sh 
+#!/bin/bash
+##############################################################
+# File Name: yhk.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-08-25 10:20:27
+# Description:
+##############################################################
+read -p  &quot;请输入你的银行卡号：&quot;  Yhk
+read -s -p  &quot;请输入密码:&quot; miMa
+echo
+echo &quot;你的银行卡号：&quot;  $Yhk
+echo &quot;你的密码为：&quot; $miMa
+
+[root@ops scripts]# sh yhk.sh 
+请输入你的银行卡号：123456
+请输入密码:
+你的银行卡号： 123456
+你的密码为： 123456
+</code></pre>
+<h3 id="164-写一个交互脚本实现能够定义主机名及ip地址">1.6.4 写一个交互脚本，实现能够定义主机名及<code>IP</code>地址</h3>
+<pre><code class="language-bash">[root@ops scripts]# cat xiugaizhuji.sh 
+#!/bin/bash
+##############################################################
+# File Name: xiugaizhuji.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-08-25 10:38:33
+# Description:
+##############################################################
+ethFile=/etc/sysconfig/network-scripts/ifcfg-ens33
+Now_eth=`hostname -I|awk -F &quot;.&quot; '{print $4}'`
+read -p &quot;请输入主机名: &quot; Hostname
+read -p &quot;请输入IP地址的主机位: &quot; HostIP
+hostnamectl set-hostname $Hostname
+sed -i &quot;s#${Now_eth}#${HostIP}#g&quot; $ethFile
+read -p &quot;是否重启服务器: {yes/no}: &quot; REboot
+if [ $REboot == yes ];then
+  echo &quot;系统将在10秒后重启!&quot;
+  shutdown -r -t 10
+else
+  echo &quot;请稍后手动重启系统!&quot;
+fi
+</code></pre>
+<p><strong>脚本测试结果</strong></p>
+<pre><code class="language-shell">[root@ops scripts]# sh xiugaizhuji.sh 
+请输入主机名: ops
+请输入IP地址的主机位: 185
+是否重启服务器: {yes/no}: no
+请稍后手动重启系统!
+[root@ops scripts]# sh xiugaizhuji.sh 
+请输入主机名: ops
+请输入IP地址的主机位: 185
+是否重启服务器: {yes/no}: yes
+系统将在10秒后重启!
+</code></pre>
+<h2 id="17-变量的字串">1.7 变量的字串</h2>
+<h3 id="171-变量子串说明">1.7.1 变量子串说明</h3>
+<table>
+<thead>
+<tr>
+<th>表达式</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>${parameter}</td>
+<td>返回变量$parameter的内容</td>
+</tr>
+<tr>
+<td>${#parameter}</td>
+<td>返回变量内容的长度（按字符），也适用于特殊变量</td>
+</tr>
+<tr>
+<td>${#parameter:offset}</td>
+<td>在变量${parameter}中，从位置offset之后开始提取子串到结尾</td>
+</tr>
+<tr>
+<td>${#parameter:offset:length}</td>
+<td>在变量${parameter}中，从位置offset之后开始提取长度为length的子串</td>
+</tr>
+<tr>
+<td>${parameter#word}</td>
+<td>从变量${parameter}开头开始删除最短匹配的word子串</td>
+</tr>
+<tr>
+<td>${parameter##word}</td>
+<td>从变量${parameter}开头开始删除最长匹配的word子串</td>
+</tr>
+<tr>
+<td>${parameter%word}</td>
+<td>从变量${parameter}结尾开始删除最短匹配的word子串</td>
+</tr>
+<tr>
+<td>${parameter%%word}</td>
+<td>从变量${parameter}结尾开始删除最长匹配的word子串</td>
+</tr>
+<tr>
+<td>${parameter/pattem/string}</td>
+<td>使用string代替第一个匹配的pattern</td>
+</tr>
+<tr>
+<td>${parameter//pattem/string}</td>
+<td>使用string代替所有匹配的pattern</td>
+</tr>
+</tbody>
+</table>
+<p><strong>计算变量赋值的长度</strong></p>
+<pre><code class="language-shell">[root@ops ~]# ops=http://blog.znix.top
+[root@ops ~]# echo ${ops}|wc -L
+20
+[root@ops ~]# echo ${#ops}
+20
+[root@ops ~]# time echo ${ops}|wc -L 
+20
+
+real    0m0.001s
+user    0m0.001s
+sys     0m0.000s
+[root@ops ~]# time echo ${#ops}              
+20
+
+real    0m0.000s
+user    0m0.000s
+sys     0m0.000s
+</code></pre>
+<p><strong>截取变量中的字符</strong></p>
+<pre><code class="language-shell">[root@ops ~]# ops=abcABC123ABCabc     
+[root@ops ~]# echo ${ops:4}
+BC123ABCabc
+[root@ops ~]# echo ${ops:4:3}
+BC1
+[root@ops ~]# echo ${ops#abc}
+ABC123ABCabc
+[root@ops ~]# echo ${ops##abc}
+ABC123ABCabc
+[root@ops ~]# echo ${ops%abc} 
+abcABC123ABC
+[root@ops ~]# echo ${ops%%abc}
+abcABC123ABC
+[root@ops ~]# echo ${ops#a*c} 
+ABC123ABCabc
+[root@ops ~]# echo ${ops##a*c}
+
+[root@ops ~]# echo ${ops%a*c} 
+abcABC123ABC
+[root@ops ~]# echo ${ops%%a*c}
+
+[root@ops ~]# echo ${ops%A*c} 
+abcABC123
+[root@ops ~]# echo ${ops%%A*c}
+abc
+</code></pre>
+<p><strong>替换变量内容</strong></p>
+<pre><code class="language-shell">[root@ops ~]# echo $ops
+abcABC123ABCabc
+[root@ops ~]# echo ${ops/abc/ops}
+opsABC123ABCabc
+[root@ops ~]# echo ${ops//abc/ops}
+opsABC123ABCops
+</code></pre>
+<p><strong>有关上述匹配删除的小结</strong></p>
+<ul>
+<li><code>#</code>表示从开头删除匹配最短。</li>
+<li><code>##</code>表示从开头删除匹配最长。</li>
+<li><code>%</code>表示从结尾删除匹配最短。</li>
+<li><code>%%</code>表示从结尾删除匹配最长。</li>
+<li><code>a*c</code>表示匹配的字符串，<code>*</code>表示匹配所有，<code>a*c</code>匹配开头为<code>a</code>、中间为任意多个字符，结尾为<code>c</code>的字符串。</li>
+</ul>
+<p><strong>有关替换的小结</strong></p>
+<ul>
+<li>一个<code>&quot;/&quot;</code>表示替换匹配的第一个字符串。</li>
+<li>两个<code>&quot;//&quot;</code>表示替换匹配的所有字符串。</li>
+</ul>
+<p><strong>注意</strong>：<strong>对变量做删除和替换，原来的变量并没有发生任何改变</strong></p>
+<pre><code class="language-shell">[root@ops ~]# echo $ops
+abcABC123ABCabc
+[root@ops ~]# a=${ops//abc/ops}
+[root@ops ~]# echo $a          
+opsABC123ABCops
+</code></pre>
+<h3 id="172-shell的特殊扩展变量说明">1.7.2 shell的特殊扩展变量说明</h3>
+<table>
+<thead>
+<tr>
+<th>表达式</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>${parameter:-word}</td>
+<td>如果parameter的值为空或未赋值，则会返回word字符串并代替变量的值，防止变量为空值或未定义而导致异常</td>
+</tr>
+<tr>
+<td>${parameter:=word}</td>
+<td>如果parameter的值为空或未赋值，则设置这个变量值为word，并返回其值，位置变量和特殊变量不适用此用途</td>
+</tr>
+<tr>
+<td>${parameter:?word}</td>
+<td>如果parameter的值为空或未赋值，那么word字符串将被作为标准错误输出，否则输出变量的值，用途：用于捕捉由于变量未定义而导致的错误，并退出程序</td>
+</tr>
+<tr>
+<td>${parameter:+word}</td>
+<td>如果parameter的值为空或未赋值，则什么都不做，否则word字符串将替代变量的值</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-shell">[root@ops ~]# dir=
+[root@ops ~]# echo ${dir:-ops} 
+ops
+[root@ops ~]# echo ${dir}
+
+[root@ops ~]# echo ${dir:=ops}
+ops
+[root@ops ~]# echo ${dir}
+ops
+[root@ops ~]# dir2=
+[root@ops ~]# echo ${dir2:?ops}
+-bash: dir2: ops
+[root@ops ~]# echo ${dir2}
+
+[root@ops ~]# dir2=tmp
+[root@ops ~]# echo ${dir2:?ops}
+tmp
+[root@ops ~]# dir2=
+[root@ops ~]# echo ${dir2:+ops}
+
+[root@ops ~]# dir2=tmp
+[root@ops ~]# echo ${dir2:+ops}
+ops
+</code></pre>
+<h2 id="18-变量的数值计算">1.8 变量的数值计算</h2>
+<h3 id="181-仅支持整数的运算">1.8.1 仅支持整数的运算</h3>
+<p><strong><code>echo</code> $((数学运算表达式))</strong></p>
+<pre><code class="language-shell"># 形式一
+[root@ops ~]# echo $((1 + 1))
+2
+[root@ops ~]# echo $((2*7-3/6+5))
+19
+# 形式二
+[root@ops ~]# ((ops=2*8))
+[root@ops ~]# echo $ops
+16
+# 形式三
+[root@ops ~]# znix=$((2*7-3/6+5))
+[root@ops ~]# echo $znix
+19
+</code></pre>
+<p>延伸产物（重要）</p>
+<ul>
+<li><code>i ++</code> 自增1</li>
+<li><code>i--</code> 自减1</li>
+<li><code>++i</code></li>
+<li><code>--i</code></li>
+</ul>
+<p>示例</p>
+<pre><code class="language-shell">[root@ops ~]# i=1
+[root@ops ~]# echo $((i++))
+1
+[root@ops ~]# echo $((i++))
+2
+[root@ops ~]# echo $((i--))
+3
+[root@ops ~]# echo $((i--))
+2
+[root@ops ~]# echo $((i--))
+1
+[root@ops ~]# echo $((++i))
+1
+[root@ops ~]# echo $((++i))
+2
+[root@ops ~]# echo $((++i))
+3
+[root@ops ~]# echo $((--i))
+2
+[root@ops ~]# echo $((--i))
+1
+[root@ops ~]# echo $((--i))
+0
+</code></pre>
+<p>记忆方法：++，--</p>
+<p>变量<code>i</code>在前，表达式的值为<code>i</code>，然后<code>i</code>自增或自减，变量<code>i</code>在符号后，表达式值自增或自减，然后<code>i</code>值自增或自减。</p>
+<p><strong><code>let</code>命令</strong></p>
+<p><code>let</code>是shell脚本中最常用的方法</p>
+<pre><code class="language-shell">[root@ops ~]# i=1
+[root@ops ~]# i=i+1
+[root@ops ~]# echo $i
+i+1
+
+[root@ops ~]# i=1    
+[root@ops ~]# let i=i+1
+[root@ops ~]# echo $i  
+2
+</code></pre>
+<p><strong><code>expr</code>命令</strong></p>
+<ol>
+<li>整数计算</li>
+<li>判断扩展名</li>
+<li>判断输入是否为整数，非整数返回值为2</li>
+<li>计算变量的长度</li>
+</ol>
+<pre><code class="language-shell">[root@ops ~]# expr 1+1
+1+1
+[root@ops ~]# expr 1 + 1
+2
+[root@ops ~]# expr 1 * 1
+expr: 语法错误
+[root@ops ~]# expr 1 \* 1
+1
+</code></pre>
+<p>非整数返回值为2示例：</p>
+<pre><code class="language-shell">[root@ops ~]# expr 1 + 1 
+2
+[root@ops ~]# echo $?
+0
+[root@ops ~]# expr -1 + 1
+0
+[root@ops ~]# echo $?    
+1
+[root@ops ~]# expr a + 1   
+expr: 非整数参数
+[root@ops ~]# echo $?   
+2
+</code></pre>
+<p><strong><code>$[]</code>运算符</strong></p>
+<pre><code class="language-shell">[root@ops ~]# echo $[1+2]
+3
+[root@ops ~]# echo $[1-2]
+-1
+[root@ops ~]# echo $[1*2]
+2
+[root@ops ~]# echo $[1/2]
+0
+</code></pre>
+<p><strong><code>typeset</code>命令进行运算</strong></p>
+<pre><code class="language-shell">[root@ops ~]# typeset -i A=2017 B=2018
+[root@ops ~]# A=A+B
+[root@ops ~]# echo $A
+4035
+</code></pre>
+<h3 id="182-可以进行小数运算的命令">1.8.2 可以进行小数运算的命令</h3>
+<p><code>bc</code>命令</p>
+<pre><code class="language-shell"># 安装bc 依赖于base源
+[root@ops ~]# yum -y install bc
+</code></pre>
+<p>交互模式测试<code>bc</code>命令</p>
+<pre><code class="language-shell">[root@ops ~]# bc
+bc 1.06.95
+Copyright 1991-1994, 1997, 1998, 2000, 2004, 2006 Free Software Foundation, Inc.
+This is free software with ABSOLUTELY NO WARRANTY.
+For details type `warranty'. 
+1+1
+2
+</code></pre>
+<p>免交互模式测试<code>bc</code>命令</p>
+<pre><code class="language-shell">[root@ops ~]# echo 1+1.1|bc
+2.1
+[root@ops ~]# echo 'scale=6;1/3'|bc
+.333333
+</code></pre>
+<p><strong><code>python</code>命令</strong></p>
+<pre><code class="language-shell">[root@ops ~]# python
+Python 2.7.5 (default, Oct 14 2020, 14:45:30) 
+[GCC 4.8.5 20150623 (Red Hat 4.8.5-44)] on linux2
+Type &quot;help&quot;, &quot;copyright&quot;, &quot;credits&quot; or &quot;license&quot; for more information.
+&gt;&gt;&gt; 1+1.1
+2.1
+&gt;&gt;&gt; exit()
+</code></pre>
+<p><code>awk</code>命令</p>
+<pre><code class="language-shell">[root@ops ~]# echo &quot;7.7 3.8&quot;|awk '{print ($1-$2)}'
+3.9
+[root@ops ~]# echo &quot;358 113&quot;|awk '{print ($1-3)/$2}'
+3.14159
+[root@ops ~]# echo &quot;3 9&quot;|awk '{print ($1+3)*$2}'
+54
+[root@ops ~]# awk BEGIN'{print 1.2+3.3}'
+4.5
+</code></pre>
+<h3 id="183-运算相关练习题">1.8.3 运算相关练习题</h3>
+<p><strong>实现一个加减乘除等功能的计算器</strong></p>
+<p>实现脚本：</p>
+<pre><code class="language-bash">[root@ops scripts]# cat jisuanqi.sh 
+#!/bin/bash
+##############################################################
+# File Name: jisuanqi.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-08-31 01:47:32
+# Description:
+##############################################################
+read -p &quot;请输入第一个参数：&quot; a
+read -p &quot;请输入第二个参数：&quot; b
+
+echo $a + $b = $(($a+$b))
+echo $a - $b = $(($a-$b))
+echo $a \* $b = $(($a*$b))
+echo $a / $b = $(($a/$b))
+</code></pre>
+<p>脚本执行过程：</p>
+<pre><code class="language-shell">[root@ops scripts]# sh jisuanqi.sh  
+请输入第一个参数：12
+请输入第二个参数：6
+12 + 6 = 18
+12 - 6 = 6
+12 * 6 = 72
+12 / 6 = 2
+</code></pre>
+<p>精简方法：</p>
+<pre><code class="language-bash">[root@ops scripts]# cat jisuanqi2.sh 
+#!/bin/bash
+##############################################################
+# File Name: jisuanqi2.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-08-31 01:53:31
+# Description:
+##############################################################
+echo $(($1))
+</code></pre>
+<p>脚本执行过程：</p>
+<pre><code class="language-shell">[root@ops scripts]# sh jisuanqi2.sh 75+15
+90
+[root@ops scripts]# sh jisuanqi2.sh 75*15
+1125
+[root@ops scripts]# sh jisuanqi2.sh 75-15
+60
+[root@ops scripts]# sh jisuanqi2.sh 75/15
+5
+</code></pre>
+<p><strong>打印结果<code>1+2+3+4+5+6+7+8+9+10=55</code></strong></p>
+<p>脚本内容：</p>
+<pre><code class="language-bash">[root@ops scripts]# cat yunsuan.sh 
+#!/bin/bash
+##############################################################
+# File Name: yunsuan.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-08-31 01:58:55
+# Description:
+##############################################################
+# seq：单词sequence序列的缩写，其功能就是输出序列化的一串整数
+# -s: 使用指定字符串分隔数字，默认是换行符
+# 使用格式：seq + 选项 + 首数 + 增量 + 尾数
+Num=$(seq -s + 1 10)
+echo $Num=$(($Num))
+</code></pre>
+<p>脚本执行结果：</p>
+<pre><code class="language-shell">[root@ops scripts]# sh yunsuan.sh 
+1+2+3+4+5+6+7+8+9+10=55
+</code></pre>
+<h2 id="19-补充说明">1.9 补充说明</h2>
+<p>shell脚本批量注释的方法</p>
+<pre><code class="language-shell">&lt;&lt;'EOF'
+文件内容
+EOF
+或
+使用exit可以注释其之后的所有内容（类似注释，实质为不执行后面的内容）
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/an-zhuang-docker-jiao-ben/">
+              <h3 class="post-title">
+                下一篇：安装docker脚本
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

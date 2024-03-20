@@ -1,0 +1,254 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>iptables | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">iptables</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-04-27</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/yQm19DOWMt/">
+                    iptables
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <p>参考链接：https://www.jianshu.com/p/ddba21e35ac1</p>
+<h2 id="1-iptables是什么">1、iptables是什么？</h2>
+<p>iptables是开源的基于数据包过滤的防火墙工具。</p>
+<h2 id="2-iptables企业应用场景">2、iptables企业应用场景</h2>
+<p>1）主机防火墙（filter表的INPUT链）。</p>
+<p>2）局域网共享上网（nat表的POSTROUTING链）。半个路由器，NAT功能。</p>
+<p>3）端口及IP映射（nat表的PREROUTING链），硬件防火墙的NAT功能。</p>
+<p>4）IP一对一映射。</p>
+<h2 id="3-iptables工作流程">3、iptables工作流程</h2>
+<p>iptables是采用数据包过滤机制工作的，所以它会对请求的数据包的包头数据进行分析，并根据我们预先设定的规则进行匹配来决定是否可以进入主机。</p>
+<p>1）防火墙是一层层过滤的。实际是按照配置规则的顺序从上到下，从前到后进行过滤的。</p>
+<p>2）如果匹配上了规则，即明确表明是阻止还是通过，此时数据包就不在向下匹配新规则了。</p>
+<p>3）如果所有规则中没有明确表明是阻止还是通过这个数据包，也就是没有匹配上规则，则采用默认规则得到明确的阻止还是通过。</p>
+<p>4）防火墙的默认规则是对应链的所有规则执行完以后才会执行的（最后执行的规则）。</p>
+<h2 id="4-iptables四表五链">4、iptables四表五链</h2>
+<p>iptables包含4张表和5个链，但主要记住两张表即可filter和nat表即可。</p>
+<p>filter表：主要和主机自身相关，真正负责主机防火墙功能（过滤流入流出主机的数据包），filter表是iptables默认使用的表，这个表定义了三个链（chains）</p>
+<p>INPUT：负责过滤所有目标地址是本机地址的数据包，通俗来说，就是过滤进入主机的数据包</p>
+<p>FORWARD：负责转发流经主机的数据包，起转发的作用，和NAT关系很大，LVS NAT模式：net.ipv4.ip_forward=0</p>
+<p>OUTPUT：负责处理所有源地址是本机地址的数据包，通俗的讲，就是处理从主机发出去的数据包</p>
+<h2 id="5-iptables环境准备">5、iptables环境准备</h2>
+<p>1）安装iptables管理命令</p>
+<pre><code class="language-shell">[root@m01 ~]# yum install iptables-services -y
+</code></pre>
+<p>2）加载防火墙的内核模块</p>
+<pre><code class="language-shell">modprobe ip_tables
+modprobe iptable_filter
+modprobe iptable_nat
+modprobe ip_conntrack
+modprobe ip_conntrack_ftp
+modprobe ip_nat_ftp
+modprobe ipt_state
+</code></pre>
+<p>查看已加载的模块</p>
+<pre><code class="language-shell">[root@m01 ~]# lsmod |egrep 'filter|nat|ipt'
+nf_nat_ftp             12809  0 
+nf_conntrack_ftp       18478  1 nf_nat_ftp
+iptable_nat            12875  0 
+nf_nat_ipv4            14115  1 iptable_nat
+nf_nat                 26583  2 nf_nat_ftp,nf_nat_ipv4
+nf_conntrack          139264  6 nf_nat_ftp,nf_nat,xt_state,nf_nat_ipv4,nf_conntrack_ftp,nf_conntrack_ipv4
+iptable_filter         12810  0 
+ip_tables              27126  2 iptable_filter,iptable_nat
+libcrc32c              12644  3 xfs,nf_nat,nf_conntrack
+</code></pre>
+<p>3）启动防火墙</p>
+<p>首先停止firewalld</p>
+<pre><code class="language-shell">[root@m01 ~]# systemctl stop firewalld
+[root@m01 ~]# systemctl disable firewalld
+</code></pre>
+<p>开启iptables</p>
+<pre><code class="language-shell">[root@m01 ~]# systemctl start iptables
+[root@m01 ~]# systemctl enable iptables
+</code></pre>
+<h2 id="6-iptables基本操作命令">6、iptables基本操作命令</h2>
+<p>1）查看防火墙规则</p>
+<pre><code class="language-shell">[root@m01 ~]# iptables -nL
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain FORWARD (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination
+</code></pre>
+<p>2）清除防火墙规则</p>
+<pre><code class="language-shell">iptables  -F  #清除所有规则，不会处理默认的规则
+iptables  -X  #删除用户自定义的链
+iptables  -Z  #链的计数器清零（数据包计数器与数据包字节计数器）
+</code></pre>
+<p>3）添加防火墙规则</p>
+<pre><code class="language-shell">iptables -t  &lt;--- 指定表（default: filter）。
+iptables -A  &lt;--- 把规则添加到指定的链上，默认添加到最后一行。
+iptables -I  &lt;--- 插入规则，默认插入到第一行（封IP）。
+iptables -D  &lt;--- 删除链上的规则
+</code></pre>
+<p>4）网络连接状态</p>
+<pre><code class="language-shell">NEW：已经或将启动新的连接
+ESTABLISHED：已建立的连接
+RELATED： 正在启动的新连接
+INVALID： 非法或无法识别的
+</code></pre>
+<p>5）删除某个规则</p>
+<pre><code class="language-shell">iptables -nL --line-numbers  查看规则号码
+iptables -D INPUT 1  删除指定链上的指定序号
+
+iptables -A INPUT -p tcp -m state --dport 22 -j DROP
+iptables -nL
+iptables -nL --line-numbers
+iptables -D INPUT 1
+</code></pre>
+<h2 id="7-iptables实战">7、iptables实战</h2>
+<p>1）禁止某个端口访问</p>
+<pre><code class="language-shell">iptables -t filter -A INPUT -p tcp --dport 22 -j DROP
+规则解释：
+-p       #&lt;==指定过滤的协议（tcp，udp，icmp、all）
+--dport  #&lt;==指定目标端口（用户请求的端口）。
+-j       #&lt;==对规则的具体处理方法（ACCEPT，DROP，REJECT，SNAT/DNAT）
+--sport  #&lt;==指定源端口。
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/da-jian-openvpn-jiao-ben/">
+              <h3 class="post-title">
+                下一篇：搭建openVPN脚本
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

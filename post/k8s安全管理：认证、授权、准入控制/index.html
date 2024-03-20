@@ -1,0 +1,684 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>k8s安全管理：认证、授权、准入控制 | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">k8s安全管理：认证、授权、准入控制</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2024-01-15</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/vN0im2GW5W/">
+                    k8s
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="k8s认证-授权-准入控制概述">k8s认证、授权、准入控制概述</h2>
+<p><code>k8s</code>对整个系统的认证、授权、访问控制做了精密的设置，<code>apiserver</code>是整个集群系统的网关，是访问及管理资源对象的唯一入口，它默认监听<code>TCP</code>的6443端口，通过<code>HTTPS</code>协议暴露了一个<code>RESTful</code>风格的接口，所有需要访问集群资源的组件或客户端，包括<code>controller-manager</code>、<code>scheduler</code>、<code>kubelet</code>和<code>proxy</code>等集群基础组件，<code>CoreDNS</code>等集群的附加组件，以及此前使用的<code>kubectl</code>命令等都必须要经此网关请求与集群进行通信，所有客户端均要经过<code>apiserver</code>访问或改变集群状态以及完成数据存储，并且<code>apiserver</code>会对每一次的访问请求进行合法性检验，包括用户身份鉴别、操作权限验证以及操作是否符合全局规范的约束等，所有检查均正常完成且对象配置信息合法性检验无误之后才能访问或存入数据到后端存储系统<code>etcd</code>中，我们在<code>k8s</code>集群之上部署的应用程序，可以通过宿主机暴露的<code>NodePort</code>端口访问里面的程序，用户访问<code>k8s</code>集群需要经历如下认证过程：认证—&gt;授权—&gt;准入控制。</p>
+<p>1、认证(<code>Authenticating</code>)是对客户端的认证，通俗点就是对用户名和密码验证。</p>
+<p>2、授权(<code>Authorization</code>)是对资源的授权，<code>k8s</code>中的资源无非是容器，最终其实就是容器中的计算、网络、存储资源，当一个请求经过认证后，需要访问某一个资源(比如创建一个<code>pod</code>)，授权检查会根据授权规则判断该资源是否是该客户可以访问的。</p>
+<p>3、准入控制(<code>Admission Control</code>)：准入控制是一个准入控制器插件列表，位于<code>apiserver</code>中，它会在请求通过认证和鉴权之后，发送到<code>apiserver</code>的请求都需要经过这个列表中的每个准入控制器插件的检查，如果某一个控制器插件准入失败，就准入失败，准入控制器可以执行验证和变更操作，变更控制器可以根据被其接受的请求更改相关的对象，验证控制器则不行。<br>
+<img src="https://ajie825.github.io/post-images/1705547479542.png" alt="" loading="lazy"><br>
+其中包含两个特殊的控制器：<code>MutatingAdmissionWebhook</code>和<code>ValidatingAdmissionWebhook</code>，它们分别用来执行变更和验证准入控制<code>webhook</code>。</p>
+<p>准入控制器是在<code>API Server</code>的启动参数配置的，一个准入控制器可能属于以上两者中的一种，也可能两者都属于，当请求到达<code>API Server</code>时，首先执行变更准入控制，然后再执行验证准入控制，如果两个阶段之一的任何一个控制器拒绝了某请求，则整个请求将立即被拒绝，并向最终用户返回错误。</p>
+<p>我们在部署<code>k8s</code>集群的时候都会默认开启一系列的准入控制器，如果没有设置这些准入控制器的话，可以说你的<code>k8s</code>集群就是在裸奔，应该只有集群管理员可以修改集群中的准入控制器，例如，我会默认开启如下的准入控制器。</p>
+<pre><code class="language-bash">--admission-control=ServiceAccount,NamespaceLifecycle,NamespaceExists,LimitRanger,ResourceQ uota,MutatingAdmissionWebhook,ValidatingAdmissionWebhook
+</code></pre>
+<pre><code class="language-bash">[root@master1 ~]# kubectl exec -it -n kube-system kube-apiserver-master1 -- kube-apiserver -h|grep enable-admission-plugins
+#默认开启的插件有：
+NamespaceLifecycle, LimitRanger, ServiceAccount, TaintNodesByCondition, Priority, 
+DefaultTolerationSeconds, DefaultStorageClass, StorageObjectInUseProtection, 
+PersistentVolumeClaimResize, RuntimeClass, CertificateApproval, CertificateSigning, 
+CertificateSubjectRestriction, DefaultIngressClass, MutatingAdmissionWebhook, 
+ValidatingAdmissionWebhook, ResourceQuota.
+</code></pre>
+<p><code>AlwaysPullImages</code>：</p>
+<p>该准入控制器会修改新创建的<code>pod</code>，将其镜像拉取策略设置为<code>Always</code>，这样用户就可以放心，他们的私有镜像只能被那些有凭证的人使用，如果没有这个准入控制器，一旦镜像被拉取到节点上，任何用户的<code>pod</code>都可以通过已了解到的镜像名称来使用它，而不需要对镜像进行任何鉴权检查，启用这个准入控制器后，启动容器之前拉取镜像需要有效的凭证。</p>
+<p><code>NamespaceLifecycle</code>：</p>
+<p>该准入控制器禁止在被终止的<code>Namespace</code>中创建新对象，并确保针对不存在的名称空间的请求被拒绝，该准入控制器还会禁止删除三个系统保留的名称空间，即<code>default</code>、<code>kube-system</code>和<code>kube-public</code>。</p>
+<p><code>LimitRanger</code>：</p>
+<p>此准入控制器会监测传入的请求，并且确保请求不会违反<code>Namespace</code>中<code>LimitRange</code>所设置的任何约束，<code>LimitRanger</code>还可以用于将默认资源请求应用到没有设定资源约束的<code>pod</code>，当前，默认的<code>LimitRanger</code>对<code>default</code>名称空间中的所有<code>pod</code>都设置<code>0.1cpu</code>需求。</p>
+<p><code>ServiceAccount</code>：</p>
+<p>用于实现服务账户管控机制的自动化，实现创建<code>pod</code>对象时自动为其附加相关的<code>Service Account</code>对象。</p>
+<p><a href="https://kubernetes.io/zh-cn/docs/reference/access-authn-authz/admission-controllers/">其它的准入控制器介绍可以参考官方文档</a></p>
+<p><code>k8s</code>的整体架构也是一个微服务的架构，所有的请求都是通过一个<code>GateWay</code>，也就是<code>apiserver</code>这个组件(对外提供<code>REST</code>服务)，<code>k8s</code>客户端有两类，一种是普通用户，一种是集群内的<code>pod</code>，这两种客户端的认证机制略有不同，但无论是哪一种，都需要依次经过认证、授权、准入这三个机制。</p>
+<h3 id="认证">认证</h3>
+<p><strong>认证支持多种插件</strong></p>
+<p>1）令牌(<code>token</code>)认证：</p>
+<p>双方有一个共享密钥，服务器上先创建一个密码，客户端登录的时候拿这个密码登录即可，这个就是对称密钥认证方式；<code>k8s</code>提供了一个<code>restful</code>风格的接口，它的所有服务都是通过<code>http</code>协议提供的，因此认证信息只能经由<code>http</code>协议的首部进行传递，这种认证首部进行传递通常叫做令牌。</p>
+<p>2）<code>ssl</code>认证：</p>
+<p>对于<code>k8s</code>访问来讲，<code>ssl</code>认证能让客户端确认服务器的认证身份，客户端在跟服务器通信的时候，需要服务器发过来一个证书，客户端需要确认这个证书是不是<code>ca</code>签署的，如果该证书是客户端认可的<code>ca</code>签署的，里面的<code>subj</code>信息与客户端访问的目标主机信息保持一致，那么客户端就认为服务器的身份得到认证，<code>k8s</code>中最重要的是服务器还需要认证客户端的信息，<code>kubectl</code>也应该有一个证书，这个证书也是服务器所认可的<code>ca</code>签署的证书，双方需要互相认证，实现加密通信，这就是<code>ssl</code>认证。</p>
+<p><strong><code>kubernetes</code>上的账号</strong></p>
+<p>客户端对<code>apiserver</code>发起请求，<code>apiserver</code>要识别这个用户是否有请求的权限，要识别用户本身能否通过<code>apiserver</code>执行相应的操作，那么需要哪些信息才能够识别用户，从而来完成对用户的相关访问控制呢？</p>
+<p><code>kubectl explain pods.spec</code>可以看到有一个字段<code>serviceAccountName</code>(服务账号名称)，这个就是<code>pod</code>连接<code>apiserver</code>时使用的账号，因此整个<code>kubernetes</code>集群中的账号有两类，<code>Service Account </code>(服务账号)，<code>User account</code>(用户账号)。</p>
+<p><code>User account</code>：使用主体是现实中的&quot;人&quot;，客户端想对<code>apiserver</code>发起请求，<code>apiserver</code>要识别这个客户端是否有请求的权限，那么不同的用户就会有不同的权限，靠用户账号表示，叫做<code>username</code>，一般由外部的用户管理系统存储和管理，<code>kubernets</code>本身并不维护这一类的任何用户账户信息，它们不会存储到<code>apiserver</code>中。</p>
+<p><code>ServiceAccount</code>：使用主体是&quot;应用程序&quot;，是<code>k8s</code>中的一种资源，方便<code>pod</code>里面的进程调用<code>k8s API</code>或其它外部服务而设计的。</p>
+<p>1）<code>ServiceAccount</code></p>
+<p><code>Service Account</code>账号是为了方便<code>pod</code>里面的进程调用<code>Kubernetes API</code>或者其它外部服务而设计的，它与<code>User account</code>不同，<code>User account</code>是为现实中的人设计的，是跨名称空间的，而<code>Service Account</code>则是仅局限它所在的名称空间，开启 <code>ServiceAccount Admission Controller</code> 后，每个名称空间都会自动创建一个名称为<code>default</code>的<code>Service Account</code>。</p>
+<ol>
+<li><code>pod</code>创建后都会自动设置<code>spec.serviceAccount</code>为<code>default</code>(除非指定了其它<code>ServiceAccount</code>)。</li>
+<li>验证<code>pod</code>引用的<code>ServiceAccount</code>已经存在，否则拒绝创建。</li>
+</ol>
+<pre><code class="language-bash">[root@master1 ~]# kubectl get pods
+NAME                               READY       STATUS    
+nfs-provisioner-5448d86c75-tqd9z   1/1        Running   
+pod-secret                         1/1        Running  
+pod-secret-volume                  1/1        Running  
+web-0                              1/1        Running   
+web-1                              1/1        Running
+</code></pre>
+<pre><code class="language-bash">[root@master1 ~]# kubectl get pods pod-secret -o yaml|grep &quot;serviceAccountName&quot;
+  serviceAccountName: default
+</code></pre>
+<pre><code class="language-bash">[root@master1 ~]# kubectl describe pods pod-secret|grep &quot;Volume&quot; -A 4
+Volumes:
+  default-token-pjqrk:
+    Type:        Secret (a volume populated by a Secret)
+    SecretName:  default-token-pjqrk
+    Optional:    false
+</code></pre>
+<p>从上面可以看到每个<code>pod</code>无论定义与否都会有一个存储卷，这个存储卷为<code>default-token-***</code>，<code>pod</code>和<code>apiserver</code>的认证信息通过<code>secret</code>进行定义，由于认证信息属于敏感信息，所以需要保存在<code>secret</code>资源当中，并以存储卷的方式挂载到<code>pod</code>当中，从而让<code>pod</code>内运行的应用通过对应的<code>secret</code>中的信息来连接<code>apiserver</code>，并完成认证，每个名称空间中都有一个默认的<code>default</code>的<code>serviceaccount</code>资源，查看名称空间内的<code>secret</code>，也可以看到对应的<code>default-token</code>，让该名称空间中所有的<code>pod</code>在连接<code>apiserver</code>时可以使用的预制认证信息，从而保证<code>pod</code>之间的通信。</p>
+<pre><code class="language-bash">[root@master1 ~]# kubectl get sa
+NAME              SECRETS   AGE
+default           1         44d
+[root@master1 ~]# kubectl get secrets 
+NAME                          TYPE                                  DATA   AGE
+default-token-pjqrk           kubernetes.io/service-account-token   3      44d
+</code></pre>
+<p>默认的<code>serviceAccount</code>仅仅只能获取当前<code>pod</code>自身的相关属性，无法观察到其它名称空间<code>pod</code>的相关属性信息，假设有一个<code>pod</code>需要用于管理其它<code>pod</code>或者资源对象，就需要手动创建一个<code>serviceAccount</code>，并在创建<code>pod</code>时进行定义，那么<code>serviceAccount</code>该如何创建呢？<code>serviceAccount</code>也属于<code>k8s</code>的标准资源，示例如下：</p>
+<pre><code class="language-bash">[root@master1 ~]# kubectl create serviceaccount test
+serviceaccount/test created
+[root@master1 ~]# kubectl get sa|grep test
+test              1         12s
+#可以看到已经创建了名为test的serviceaccount
+[root@master1 ~]# kubectl describe sa test
+Name:                test
+Namespace:           default
+Labels:              &lt;none&gt;
+Annotations:         &lt;none&gt;
+Image pull secrets:  &lt;none&gt;
+Mountable secrets:   test-token-7jc9k
+Tokens:              test-token-7jc9k
+Events:              &lt;none&gt;
+#可以看到生成了一个test-token-7jc9k的secret和test-token-7jc9k的token
+[root@master1 ~]# kubectl get secrets|grep test
+test-token-7jc9k              kubernetes.io/service-account-token   3      8m34s
+[root@master1 ~]# kubectl describe secrets test-token-7jc9k 
+Name:         test-token-7jc9k
+Namespace:    default
+Labels:       &lt;none&gt;
+Annotations:  kubernetes.io/service-account.name: test
+              kubernetes.io/service-account.uid: 393dcbaa-56e1-45b2-8e40-c9a4072cd58b
+
+Type:  kubernetes.io/service-account-token
+
+Data
+====
+ca.crt:     1066 bytes
+namespace:  7 bytes
+token:      
+----
+</code></pre>
+<p>上面可以看到生成了<code>test-token-7jc9k</code>的<code>token</code>详细信息，这个<code>token</code>就是<code>sa</code>连接<code>apiserver</code>的认证信息，这个<code>token</code>也是登录<code>dashboard</code>的<code>token</code>，这些只是一个认证信息，但是不能做别事情，不代表权限，想要做其它事情，还需要授权。</p>
+<p>2）<code>kubeconfig</code>文件</p>
+<p>在<code>kubernetes</code>集群中，每一个客户端对资源的访问都是需要经过<code>apiserver</code>进行通信认证才能进行访问的，那么在此机制当中，对资源的访问可以是<code>token</code>，也可以通过配置文件的方式进行保存和使用认证信息，可以通过<code>kubectl config</code>进行查看配置，如下：</p>
+<pre><code class="language-bash">[root@master1 ~]# kubectl config view
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: DATA+OMITTED
+    server: https://192.168.40.180:6443            #apiserver的地址
+  name: kubernetes                                 #集群的名字
+contexts:
+- context:
+    cluster: kubernetes
+    namespace: default
+    user: kubernetes-admin
+  name: kubernetes-admin@kubernetes                #上下文的名字
+current-context: kubernetes-admin@kubernetes       #当前上下文的名字
+kind: Config
+preferences: {}
+users:
+- name: kubernetes-admin                           #用户
+  user:
+    client-certificate-data: REDACTED
+    client-key-data: REDACTED
+</code></pre>
+<p>在上面的配置文件当中，定义了集群、上下文以及用户，其中<code>Config</code>也是<code>k8s</code>的标准资源之一，在该配置文件当中定义了一个集群列表，指定的集群可以有多个，用户列表也可以有多个，而在上下文列表当中，是进行定义可以使用哪个用户访问哪个集群，以及当前使用的上下文是什么。</p>
+<pre><code class="language-bash">[root@master1 ~]# kubectl get pods --kubeconfig=.kube/config
+NAME                               READY   STATUS    
+nfs-provisioner-5448d86c75-tqd9z   1/1     Running   
+pod-secret                         1/1     Running   
+pod-secret-volume                  1/1     Running   
+web-0                              1/1     Running   
+web-1                              1/1     Running
+</code></pre>
+<h3 id="授权">授权</h3>
+<p>在<code>kubernetes</code>中，所有的资源对象都是通过<code>apiserver</code>进行操作，它们保存在<code>etcd</code>里，如果用户通过认证，什么权限都没有，需要一些后续的授权操作，如对资源的增删改查等，<code>kubernetes 1.6</code>版本之后开始有<code>RBAC</code>(基于角色的访问控制)授权检查机制。</p>
+<p><code>kubernetes</code>的授权是基于插件形成的，其常用的授权插件有以下几种：</p>
+<ol>
+<li><code>Node</code>(节点认证)</li>
+<li><code>ABAC</code>(基于属性的访问控制)</li>
+<li><code>RBAC</code>(基于角色的访问控制)  ******</li>
+<li><code>Webhook</code>(基于<code>http</code>回调机制的访问控制)</li>
+</ol>
+<p>什么是<code>RBAC</code>(基于角色的访问控制)？</p>
+<p>让一个用户(<code>User</code>)属于一个角色(<code>Role</code>)，角色拥有权限，从而让用户拥有这样的权限，随后在授权机制当中，只需要将权限授予某个角色，从而实现角色的访问控制，如图：<br>
+<img src="https://ajie825.github.io/post-images/1705730753813.png" alt="" loading="lazy"><br>
+在<code>k8s</code>的授权机制当中，采用<code>RBAC</code>的方式进行授权，其工作逻辑是，把对象的操作权限定义到一个角色当中，再将用户绑定到该角色，从而使用户得到对应角色的权限，如果通过<code>rolebinding</code>绑定角色，只能对<code>rolebinding</code>所在的名称空间的资源有权限，上图<code>user1</code>这个用户绑定到<code>role1</code>上，只对<code>role1</code>这个名称空间的资源有权限，对其它名称空间资源没有权限，属于名称空间级别的。</p>
+<p>另外，<code>k8s</code>还有一种集群级别的授权机制，就是定义一个集群角色(<code>ClusterRole</code>)，对集群内的所有资源都可操作的权限，从而将<code>User2</code>通过<code>ClusterRoleBinding</code>到集群角色，<code>User2</code>拥有集群的操作权限。</p>
+<p><code>Role</code>、<code>RoleBinding</code>、<code>ClusterRole</code>和<code>ClusterRoleBinding</code>的关系如下图：<br>
+<img src="https://ajie825.github.io/post-images/1705731333948.png" alt="" loading="lazy"></p>
+<p>上图可以看到，可以通过<code>rolebinding</code>绑定角色，<code>rolebinding</code>绑定集群角色，<code>clusterrolebinding</code>绑定集群角色。</p>
+<p>上面说了两个角色绑定：</p>
+<ol>
+<li>用户通过<code>rolebinding</code>绑定角色</li>
+<li>用户通过<code>clusterrolebinding</code>绑定集群角色</li>
+</ol>
+<p>还有一种：<code>rolebinding</code>绑定集群角色，<code>rolebinding</code>绑定集群角色的好处：</p>
+<p>假如有6个名称空间，每个名称空间的用户都需要对自己的名称空间有管理员权限，那么需要定义6个角色和<code>rolebinding</code>，然后依次绑定，如果名称空间更多，我们需要定义更多的角色，这个是很麻烦的，所以我们引入了集群角色，定义一个集群角色，对集群角色授予所有权限，然后用户通过<code>rolebinding</code>绑定集群角色，就会拥有自己名称空间的管理员权限了。</p>
+<p>注意：<code>rolebinding</code>仅仅对当前名称空间有对应的权限。</p>
+<h2 id="serviceaccount介绍">ServiceAccount介绍</h2>
+<p><code>kubernetes</code>中账户区分为：<code>User Accounts</code>(用户账户)和<code>Service Accounts</code>(服务账户)两种。</p>
+<p><code>UserAccount</code>是给<code>kubernetes</code>集群外部用户使用的，例如运维或者集群的管理人员，<code>kubeadm</code>安装的<code>k8s</code>，会在用户家目录下创建一个认证配置文件<code>.kube/config</code>，默认用户账号是<code>kubernetes-admin</code>，这里面保存了客户端访问<code>apiserver</code>的密钥相关信息，当用<code>kubectl</code>访问<code>k8s</code>时，它就会自动读取该配置文件，向<code>apiserver</code>发起认证，然后完成操作请求。</p>
+<pre><code class="language-bash">[root@master1 ~]# cat .kube/config  
+...
+users:
+- name: kubernetes-admin
+  user:
+...
+</code></pre>
+<p><code>ServiceAccount</code>简称<code>sa</code>，是<code>pod</code>使用的账号，<code>pod</code>容器里的进程访问<code>apiserver</code>时使用的就是<code>sa</code>账户，<code>sa</code>仅局限它所在的名称空间，每个名称空间创建时都会有一个<code>default</code>的<code>sa</code>，创建<code>pod</code>时，如果没有指定<code>sa</code>，<code>pod</code>则会使用<code>default</code>的<code>sa</code>。</p>
+<h2 id="rbac认证授权策略">RBAC认证授权策略</h2>
+<p><code>RBAC</code>介绍</p>
+<p>在<code>kubernetes</code>中，所有资源对象都是通过<code>API</code>进行操作，它们保存在<code>etcd</code>里，而对<code>etcd</code>的操作需要通过访问<code>apiserver</code>来实现，<code>ServiceAccount</code>就是<code>apiserver</code>的认证账号，而授权机制是通过<code>RBAC</code>(基于角色的访问控制)来实现。</p>
+<p><code>RBAC</code>有四个资源对象：分别是<code>Role</code>、<code>ClusterRole</code>、<code>RoleBinding</code>、<code>ClusterRoleBinding</code>。</p>
+<h3 id="role角色">Role角色</h3>
+<p><code>RBAC</code>的<code>Role</code>或<code>ClusterRole</code>中包含一组代表相关权限的规则，<code>Role</code>用来在某个名称空间内设置访问权限，在创建<code>Role</code>时，必须指定该<code>Role</code>所在的名称空间，例如：定义一个角色用来读取名称空间内<code>pod</code>的权限。</p>
+<pre><code class="language-bash">apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pod-read
+  namespace: rbac
+rules:
+- apiGroups: [&quot;&quot;]
+  resources: [&quot;pods&quot;]
+  resourceNames: []
+  verbs: [&quot;get&quot;,&quot;watch&quot;,&quot;list&quot;]
+  
+kubectl describe role -n rbac
+Name:         pod-read
+Labels:       &lt;none&gt;
+Annotations:  &lt;none&gt;
+PolicyRule:
+  Resources  Non-Resource URLs  Resource Names  Verbs
+  ---------  -----------------  --------------  -----
+  pods       []                 []              [get watch list]
+</code></pre>
+<p><code>rules</code>中的参数说明：</p>
+<ol>
+<li><code>apiGroups</code>：支持的<code>API</code>组列表，例如<code>apiVersion: batch/v1</code>等。</li>
+<li><code>resources</code>：支持的资源对象列表，例如<code>pods</code>、<code>deployment</code>、<code>jobs</code>等。</li>
+<li><code>resourcesNames</code>：指定<code>resources</code>中具体特定资源对象的名称。</li>
+<li><code>verbs</code>：对资源对象的操作方法列表。</li>
+</ol>
+<h3 id="clusterrole集群角色">ClusterRole集群角色</h3>
+<p><code>ClusterRole</code>是一个集群作用域的资源，它还可以用于以下特殊元素的授权：</p>
+<ol>
+<li>集群范围的资源，例如<code>Node</code>。</li>
+<li>非资源型的路径，例如<code>/healthz</code>。</li>
+<li>包含全部名称空间的资源，例如<code>pods</code>。</li>
+</ol>
+<p>例如：定义一个集群角色可让用户访问任意<code>secrets</code>。</p>
+<pre><code class="language-bash">apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: secret-reader
+  #namespace被忽略
+rules:
+- apiGroups: [&quot;&quot;]
+  resources: [&quot;secrets&quot;]
+  verbs: [&quot;get&quot;,&quot;watch&quot;,&quot;list&quot;]
+  
+kubectl describe clusterrole secret-reader        
+Name:         secret-reader
+Labels:       &lt;none&gt;
+Annotations:  &lt;none&gt;
+PolicyRule:
+  Resources  Non-Resource URLs  Resource Names  Verbs
+  ---------  -----------------  --------------  -----
+  secrets    []                 []              [get watch list]
+</code></pre>
+<h3 id="rolebinding和clusterrolebinding">RoleBinding和ClusterRoleBinding</h3>
+<p><code>RoleBinding</code>是将角色中定义的权限赋予一个或一组用户，它包含若干主体(<code>Subject</code>)，可以是<code>User</code>、<code>Group</code>、<code>ServiceAccount</code>，<code>RoleBinding</code>在指定的名称空间中执行授权，而<code>ClusterRoleBinding</code>在集群范围内执行授权。</p>
+<p>例如：将<code>rbac</code>名称空间的<code>pod-read</code>角色授予用户<code>es</code>。</p>
+<pre><code class="language-bash">apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pod-read-bind
+  namespace: rbac
+subjects:        #可以指定不止一个&quot;subject(主体)&quot;
+- kind: User
+  name: es
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: pod-read #必须与绑定的Role或ClusterRole名称匹配
+  apiGroup: rbac.authorization.k8s.io
+  
+kubectl describe rolebindings.rbac.authorization.k8s.io -n rbac   
+Name:         pod-read-bind
+Labels:       &lt;none&gt;
+Annotations:  &lt;none&gt;
+Role:
+  Kind:  Role
+  Name:  pod-read
+Subjects:
+  Kind  Name  Namespace
+  ----  ----  ---------
+  User  es 
+  
+#注意：如果rolebinding不加名称空间，则是将default名称空间的pod-read角色授予给用户es
+</code></pre>
+<p><code>RoleBinding</code>也可以引用<code>ClusterRole</code>，以将<code>ClusterRole</code>中定义的角色访问权限授予<code>RoleBinding</code>所在名称空间的资源，这种引用使得可以跨整个集群定义一组通用的角色，之后在多个名称空间中复用。</p>
+<p>例如：下面的<code>RoleBinding</code>引用的是一个<code>ClusterRole</code>，<code>es</code>用户只能访问<code>rbac</code>名称空间中的<code>Secret</code>对象，因为<code>RoleBinding</code>所在的名称空间是<code>rbac</code>。</p>
+<pre><code class="language-bash">apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: read-secrets
+  namespace: rbac              #RoleBinding的名称空间决定了访问权限的授予范围
+subjects:  
+- kind: User
+  name: es
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: secrets-clusterrole    #必须与ClusterRole的名称匹配
+  apiGroup: rbac.authorization.k8s.io
+</code></pre>
+<p>要跨整个集群完成访问权限的授予，可以使用<code>ClusterRoleBinding</code>。</p>
+<p>例如：允许<code>manager</code>组的用户读取所有名称空间的<code>secrets</code>。</p>
+<pre><code class="language-bash">apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: read-secret-global
+subjects:  
+- kind: Group
+  name: manager
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: secrets-clusterrole
+  apiGroup: rbac.authorization.k8s.io
+</code></pre>
+<h2 id="资源的引用方式">资源的引用方式</h2>
+<p>在<code>kubernetes API</code>中，大多数资源都是使用对象名称的字符串表示来呈现与访问的，例如，对于<code>pod</code>应使用<code>&quot;pods&quot;</code>，<code>RBAC</code>使用对应<code>API</code>端点的<code>URL</code>中呈现的名字来引用资源，有一些<code>kubernetes API</code>涉及子资源，例如<code>pod</code>的日志，对<code>pod</code>日志的请求看起来像这样：<code>GET /api/v1/namespaces/{namespace}/pods/{podname}/log</code>，</p>
+<p>在这里，<code>pods</code>对应名称空间作用域的<code>pod</code>资源，而<code>log</code>是<code>pods</code>的子资源，<code>RBAC</code>表达子资源时，使用斜线(<code>&quot;/&quot;</code>)来分隔资源和子资源，要允许某主体读取<code>pods</code>同时访问这些<code>pod</code>的<code>log</code>子资源，可以这样写：</p>
+<pre><code class="language-bash">apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: default
+  name: pod-logs-reader
+rules:
+- apiGroups: [&quot;&quot;]
+  resources: [&quot;pods&quot;, &quot;pods/log&quot;]
+  verbs: [&quot;get&quot;, &quot;list&quot;]
+</code></pre>
+<p>对于某些请求，还可以通过资源名称(<code>ResourceName</code>)进行引用，指定资源名称后，使用<code>get</code>、<code>delete</code>、<code>update</code>、<code>patch</code>请求，就会被限制在这个资源实例范围内。</p>
+<p>例如：让一个主体只能对名为<code>my-configmap</code>的<code>Configmap</code>进行<code>get</code>和<code>update</code>操作：</p>
+<pre><code class="language-bash">apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: default
+  name: configmap-updater
+rules:
+- apiGroups: [&quot;&quot;]
+  resources: [&quot;configmaps&quot;]
+  resourceNames: [&quot;my-configmap&quot;]
+  verbs: [&quot;update&quot;, &quot;get&quot;]
+</code></pre>
+<h2 id="常见角色示例">常见角色示例</h2>
+<p>以下示例均从<code>Role</code>或<code>ClusterRole</code>对象中截取出来，仅展示其<code>rules</code>部分。</p>
+<p>1、允许读取核心<code>API</code>组的<code>Pod</code>资源</p>
+<pre><code class="language-bash">rules:
+- apiGroups: [&quot;&quot;]
+  #在HTTP层，用来访问Pod资源的名称为&quot;pods&quot;
+  resources: [&quot;pods&quot;]
+  verbs: [&quot;get&quot;,&quot;list&quot;,&quot;watch&quot;]
+</code></pre>
+<p>2、允许在<code>extensions</code>和<code>apps</code>两个<code>API</code>组中读/写<code>deployment</code>资源</p>
+<pre><code class="language-bash">rules:
+- apiGroups: [&quot;extensions&quot;,&quot;apps&quot;]
+  #在HTTP层面，用来访问Deployment资源的名称为&quot;deployments&quot;
+  resources: [&quot;deployments&quot;]
+  verbs: [&quot;get&quot;,&quot;list&quot;,&quot;watch&quot;,&quot;create&quot;,&quot;update&quot;,&quot;patch&quot;,&quot;delete&quot;]
+</code></pre>
+<p>3、允许读取核心组中的<code>pod</code>和读写<code>extensions</code>和<code>batch</code>两个<code>API</code>组中<code>job</code>资源</p>
+<pre><code class="language-bash">rules:
+- apiGroups: [&quot;&quot;]
+  resources: [&quot;pods&quot;]
+  verbs: [&quot;get&quot;,&quot;list&quot;,&quot;watch&quot;]
+- apiGroups: [&quot;batch&quot;,&quot;extensions&quot;]
+  #在HTTP层面，用来访问Job资源的名称为&quot;jobs&quot;
+  resources: [&quot;jobs&quot;]
+  verbs: [&quot;get&quot;,&quot;list&quot;,&quot;watch&quot;,&quot;create&quot;,&quot;update&quot;,&quot;patch&quot;,&quot;delete&quot;]
+</code></pre>
+<p>4、允许读取名为<code>my-config</code>的<code>ConfigMap</code>(必须通过<code>RoleBinding</code>限制到某个名称空间的<code>ConfigMap</code>)</p>
+<pre><code class="language-bash">rules:
+- apiGroups: [&quot;&quot;]
+  #在HTTP层面，用来访问ConfigMap资源的名称为&quot;configmaps&quot;
+  resources: [&quot;configmaps&quot;]
+  resourceNames: [&quot;my-configmap&quot;]
+  verbs: [&quot;get&quot;]
+</code></pre>
+<p>5、读取核心组的<code>Node</code>资源(<code>Node</code>属于集群级别资源，必须使用<code>ClusterRoleBinding</code>绑定到集群角色）</p>
+<pre><code class="language-bash">rules:
+- apiGroups: [&quot;&quot;]
+  #在HTTP层面，用来访问Node资源的名称为&quot;nodes&quot;
+  resources: [&quot;nodes&quot;]
+  verbs: [&quot;get&quot;,&quot;list&quot;,&quot;watch&quot;]
+</code></pre>
+<p>6、允许对非资源端点<code>/healthz</code>及其子路径进行<code>GET</code>和<code>POST</code>操作(必须使用<code>ClusterRoleBinding</code>绑定到集群角色)</p>
+<pre><code class="language-bash">rules:
+  #nonResourceURL中的'*'是一个全局通配符
+- nonResourceURLs: [&quot;/healthz&quot;,&quot;/healthz/*&quot;]
+  verbs: [&quot;get&quot;,&quot;post&quot;]
+</code></pre>
+<h2 id="常见角色绑定示例">常见角色绑定示例</h2>
+<p><code>RoleBinding</code>或者<code>ClusterRoleBinding</code>可以绑定角色到某主体(<code>Subject</code>)上，主体可以是组、用户或者服务账户，<code>kubernetes</code>用字符串来表示用户名，如<code>&quot;alice&quot;</code>，注意，前缀<code>system:</code>是<code>kubernetes</code>系统保留的，所以要确保配置的用户名或者组名不能出现<code>system:</code>前缀，服务账户(<code>ServiceAccount</code>)的前缀为<code>system:serviceaccount:</code>，属于前缀为 <code>system:serviceaccounts:</code> 的用户组。</p>
+<p>下面的示例是<code>RoleBinding</code>中的片段，仅展示其<code>subjects</code>的部分。</p>
+<p>1、用户名<code>alice</code></p>
+<pre><code class="language-bash">subjects:
+- kind: User
+  name: alice
+  apiGroup: rbac.authorization.k8s.io
+</code></pre>
+<p>2、组名<code>alice</code></p>
+<pre><code class="language-bash">subjects:
+- kind: Group
+  name: alice
+  apiGroup: rbac.authorization.k8s.io
+</code></pre>
+<p>3、<code>kube-system</code>名称空间中默认服务账户<code>default</code></p>
+<pre><code class="language-bash">subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: kube-system
+</code></pre>
+<p>4、<code>qa</code>名称空间中的所有服务账户</p>
+<pre><code class="language-bash">subjects:        
+- kind: Group
+  name: system:serviceaccounts
+  namespace: qa
+  apiGroup: rbac.authorization.k8s.io
+</code></pre>
+<p>5、任何名称空间中的服务账户</p>
+<pre><code class="language-bash">subjects:
+- kind: Group
+  name: system:serviceaccounts
+  apiGroup: rbac.authorization.k8s.io
+</code></pre>
+<p>6、所有已经过身份认证的用户</p>
+<pre><code class="language-bash">subjects:
+- kind: Group
+  name: system:authenticated
+  apiGroup: rbac.authorization.k8s.io
+</code></pre>
+<p>7、所有未通过身份认证的用户</p>
+<pre><code class="language-bash">subjects:
+- kind: Group
+  name: system:unauthenticated
+  apiGroup: rbac.authorization.k8s.io
+</code></pre>
+<p>8、所有用户</p>
+<pre><code class="language-bash">subjects:
+- kind: Group
+  name: system:authenticated
+  apiGroup: rbac.authorization.k8s.io
+- kind: Group
+  name: system:unauthenticated
+  apiGroup: rbac.authorization.k8s.io
+</code></pre>
+<h2 id="服务账户权限">服务账户权限</h2>
+<p><code>ServiceAccount</code>也是一种账户，给运行在<code>pod</code>里面的进程提供了必要的身份证明，需要在创建<code>pod</code>时指明引用的<code>ServiceAccount</code>，这样就可以对<code>pod</code>进行授权操作。</p>
+<p>例如：允许<code>pod</code>内的进程获取<code>rbac</code>名称空间的所有<code>pod</code>资源，<code>pod-reader-sc</code>是绑定了名为<code>pod-read</code>角色的<code>ServiceAccount</code>。</p>
+<pre><code class="language-bash">apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+  namespace: rbac
+spec:
+  serviceAccountName: pod-reader-sc
+  containers:
+  - name: nginx
+    image: nginx
+    imagePullPolicy: IfNotPresent
+    ports:
+    - containerPort: 80
+</code></pre>
+<p>默认的<code>RBAC</code>策略仅对控制面组件、节点和控制器授予了权限，但不会对<code>kube-system</code>名称空间之外的服务账户授予权限，这使得可以根据需要向特定的<code>ServiceAccount</code>授予特定权限，细粒度的角色绑定可带来更好的安全性，但需要更多精力管理，粗粒度的授权可能导致<code>ServiceAccount</code>被授予不必要的<code>API</code>访问权限，但更易于管理，下面按最安全到最不安全的顺序，存在以下方法：</p>
+<p>1、将角色授予名称空间中的特定应用服务账户(最佳实践)</p>
+<p>这要求应用在其<code>pod</code>的<code>spec</code>中指定<code>serviceAccountName</code>，并额外创建服务账户(包括通过<code>API</code>、应用程序清单、<code>kubectl create serviceaccount</code>等)。</p>
+<p>例如：在名称空间<code>my-namespace</code>中授予服务账户<code>my-sa</code>只读权限。</p>
+<pre><code class="language-bash">kubectl create rolebinding my-sa-view \
+  --clusterrole=view \
+  --serviceaccount=my-namespace:my-sa \
+  --namespace=my-namespace
+</code></pre>
+<p>2、将角色授予名称空间中的<code>default</code>服务账户</p>
+<p>如果某应用没有指定<code>serviceAccountName</code>，那么将使用<code>default</code>服务账户，注意，<code>default</code>服务账户所具有的权限会被授予给名称空间中所有未指定<code>serviceAccountName</code>的<code>pod</code>。</p>
+<p>例如：在名称空间<code>my-namespace</code>中授予服务账户<code>default</code>只读权限。</p>
+<pre><code class="language-bash">kubectl create rolebinding default-view \
+  --clusterrole=view \
+  --serviceaccount=my-namespace:default \
+  --namespace=my-namespace
+</code></pre>
+<p>许多插件组件在<code>kube-system</code>名称空间中以<code>default</code>服务账户运行，要允许这些插件组件以超级用户权限运行，需要将集群的<code>cluster-admin</code>权限授予<code>kube-system</code>名称空间中的<code>default</code>服务账户，启用这一配置意味着在<code>kube-system</code>名称空间中包含以超级用户账号来访问集群<code>API</code>的<code>secret</code>。</p>
+<pre><code class="language-bash">kubectl create clusterrolebinding add-on-cluster-admin \
+  --clusterrole=cluster-admin \
+  --serviceaccount=kube-system:default
+</code></pre>
+<p>3、将角色授予名称空间中的所有服务账户</p>
+<p>如果想要名称空间中所有应用都具有某角色，无论它们使用的是什么服务账户，可以将角色授予该名称空间的服务账户组。</p>
+<p>例如：将名称空间<code>my-namespace</code>的只读权限授予该名称空间中的所有服务账户。</p>
+<pre><code class="language-bash">kubectl create rolebinding serviceaccounts-view \
+  --clusterrole=view \
+  --group=system:serviceaccounts:my-namespace \
+  --namespace=my-namespace
+</code></pre>
+<p>4、将一个受限角色授予集群范围内的所有服务账户(不鼓励)</p>
+<pre><code class="language-bash">kubectl create clusterrolebinding serviceaccounts-view \
+  --clusterrole=view \
+  --group=system:serviceaccounts
+</code></pre>
+<p>5、将超级用户访问权限授予集群范围内的所有服务账户(禁止)</p>
+<pre><code class="language-bash">kubectl create clusterrolebinding serviceaccounts-cluster-admin \
+  --clusterrole=cluster-admin \
+  --group=system:serviceaccounts
+</code></pre>
+<h2 id="限制不同的用户操作k8s集群">限制不同的用户操作k8s集群</h2>
+<h3 id="生成证书">生成证书</h3>
+<p>1、生成私钥</p>
+<pre><code class="language-bash"> cd /etc/kubernetes/pki/
+ umask 077;openssl genrsa -out ajie.key 2048
+</code></pre>
+<p>2、生成证书请求</p>
+<pre><code class="language-bash">openssl req -new -key ajie.key -out ajie.csr -subj &quot;/CN=ajie&quot; 
+</code></pre>
+<p>3、生成证书</p>
+<pre><code class="language-bash">openssl x509 -req -in ajie.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out ajie.crt -days 3650 
+</code></pre>
+<h3 id="在kubeconfig新增ajie用户">在kubeconfig新增ajie用户</h3>
+<p>1、将<code>ajie</code>用户添加到<code>kubernetes</code>集群中，用来认证<code>apiserver</code>的连接</p>
+<pre><code class="language-bash">kubectl config set-credentials ajie --client-certificate=./ajie.crt --client-key=./ajie.key --embed-certs=true
+User &quot;ajie&quot; set.
+</code></pre>
+<p>2、配置上下文，使<code>ajie</code>用户可以访问<code>kubernetes</code>集群</p>
+<pre><code class="language-bash">kubectl config set-context ajie@kubernetes --cluster=kubernetes --user=ajie
+Context &quot;ajie@kubernetes&quot; created.
+</code></pre>
+<p>3、配置当前上下文，使用<code>ajie</code>用户访问集群，默认没有任何权限</p>
+<pre><code class="language-bash">kubectl config use-context ajie@kubernetes 
+Switched to context &quot;ajie@kubernetes&quot;.
+kubectl config use-context kubernetes-admin@kubernetes #这个用户是kubernetes集群管理员用户
+</code></pre>
+<h3 id="将ajie用户通过rolebinding绑定到clusterrole上授予ajie名称空间管理员权限">将ajie用户通过rolebinding绑定到clusterrole上，授予ajie名称空间管理员权限</h3>
+<pre><code class="language-bash">1）#将ajie用户通过rolebinding绑定到clusterrole上
+kubectl create ns ajie
+kubectl create rolebinding ajie -n ajie --clusterrole=cluster-admin --user=ajie
+</code></pre>
+<pre><code class="language-bash">2）#切换到ajie用户
+kubectl config use-context ajie@kubernetes 
+Switched to context &quot;ajie@kubernetes&quot;.
+</code></pre>
+<pre><code class="language-bash">3）#测试是否有权限
+#有权限操作ajie名称空间的资源对象
+kubectl get pod -n ajie 
+No resources found in ajie namespace.
+#没有权限操作其它名称空间的资源对象
+kubectl get pod
+User &quot;ajie&quot; cannot list resource &quot;pods&quot; in API group &quot;&quot; in the namespace &quot;default&quot;
+</code></pre>
+<h3 id="添加一下ajie的普通用户">添加一下ajie的普通用户</h3>
+<pre><code class="language-bash">useradd ajie
+cp -ar /root/.kube/ /home/ajie/
+chown -R ajie. /home/ajie/
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/job和cronjob调度pod/">
+              <h3 class="post-title">
+                下一篇：Job&amp;&amp;CronJob调度pod
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

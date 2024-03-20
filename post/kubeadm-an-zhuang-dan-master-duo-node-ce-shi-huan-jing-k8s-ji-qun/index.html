@@ -1,0 +1,856 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>Kubeadm安装单master多node测试环境k8s集群 | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">Kubeadm安装单master多node测试环境k8s集群</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-07-12</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/vN0im2GW5W/">
+                    k8s
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="实验环境规划">实验环境规划</h2>
+<pre><code class="language-bash">操作系统：centos7.6
+配置： 4Gib内存/6vCPU/100G硬盘
+网络：NAT
+podSubnet（pod网段） 10.244.0.0/16
+serviceSubnet（service网段）: 10.10.0.0/16
+开启虚拟机的虚拟化
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1657602519957.png" alt="" loading="lazy"></figure>
+<table>
+<thead>
+<tr>
+<th>K8S集群角色</th>
+<th>IP</th>
+<th>主机名</th>
+<th>安装的组件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>控制节点</td>
+<td>192.168.40.180</td>
+<td>master1</td>
+<td>apiserver、controller-manager、scheduler、etcd、kube-proxy、docker、calico</td>
+</tr>
+<tr>
+<td>工作节点</td>
+<td>192.168.40.181</td>
+<td>node1</td>
+<td>kubelet、kube-proxy、docker、calico、coredns</td>
+</tr>
+<tr>
+<td>工作节点</td>
+<td>192.168.40.182</td>
+<td>node2</td>
+<td>kubelet、kube-proxy、docker、calico、coredns</td>
+</tr>
+</tbody>
+</table>
+<h3 id="kubeadm和二进制安装k8s适用场景分析">kubeadm和二进制安装k8s适用场景分析</h3>
+<p><code>kubeadm</code>是官方提供的开源工具，是一个开源项目，用于快速搭建<code>kubernetes</code>集群，目前是比较方便和推荐使用的。<code>kubeadm init</code>以及<code>kubeadm join</code>这两个命令可以快速创建<code>kubernetes</code>集群。<code>kubeadm</code>初始化<code>k8s</code>，所有的组件都是以<code>pod</code>形式运行的，具备故障自恢复能力。</p>
+<p><code>kubeadm</code>是工具，可以快速搭建集群，相当于用程序脚本帮我们安装好了集群，属于自动部署，简化部署操作，自动部署屏蔽了很多细节，使得对各个模块感知很少，如果对<code>k8s</code>架构组件理解不深的话，遇到问题比较难排查。</p>
+<p><code>kubeadm</code>适合需要经常部署<code>k8s</code>，或者对自动化要求比较高的场景下使用。</p>
+<p>二进制：在官网下载相关组件的二进制包，如果手动安装，对<code>kubernetes</code>理解也会更全面。</p>
+<p><code>kubeadm</code>和二进制都适合生产环境，在生产环境运行都很稳定，具体如何选择，可以根据实际项目进行评估。</p>
+<h2 id="初始化安装k8s集群的实验环境">初始化安装k8s集群的实验环境</h2>
+<h3 id="配置静态ip地址">配置静态IP地址</h3>
+<pre><code class="language-bash">#以master1为例
+vim /etc/sysconfig/network-scripts/ifcfg-ens33 文件
+TYPE=Ethernet
+PROXY_METHOD=none
+BROWSER_ONLY=no
+BOOTPROTO=static
+IPADDR=192.168.40.180
+NETMASK=255.255.255.0
+GATEWAY=192.168.40.100
+DNS1=8.8.8.8
+DEFROUTE=yes
+IPV4_FAILURE_FATAL=no
+IPV6INIT=yes
+IPV6_AUTOCONF=yes
+IPV6_DEFROUTE=yes
+IPV6_FAILURE_FATAL=no
+IPV6_ADDR_GEN_MODE=stable-privacy
+NAME=ens33
+DEVICE=ens33
+ONBOOT=yes
+
+#修改配置文件之后需要重启网络服务才能使配置生效，重启网络服务命令如下：
+systemctl restart network
+
+注：/etc/sysconfig/network-scripts/ifcfg-ens33文件里的配置说明：
+NAME=ens33             #网卡名字，跟DEVICE名字保持一致即可
+DEVICE=ens33           #网卡设备名，大家ip addr可看到自己的这个网卡设备名，每个人的机器可能这个名字不一样，需要写自己的
+BOOTPROTO=static       #static表示静态ip地址
+ONBOOT=yes             #开机自启动网络，必须是yes
+IPADDR=192.168.40.180  #ip地址，需要跟自己电脑所在网段一致
+NETMASK=255.255.255.0  #子网掩码，需要跟自己电脑所在网段一致
+GATEWAY=192.168.40.100 #网关
+DNS1=8.8.8.8           #DNS
+</code></pre>
+<h3 id="配置主机名">配置主机名</h3>
+<pre><code class="language-bash">在192.168.40.180上执行如下：
+hostnamectl set-hostname master1 &amp;&amp; bash 
+在192.168.40.181上执行如下：
+hostnamectl set-hostname node1 &amp;&amp; bash
+在192.168.40.182上执行如下：
+hostnamectl set-hostname node2 &amp;&amp; bash
+</code></pre>
+<h3 id="安装基础软件包">安装基础软件包</h3>
+<pre><code class="language-bash">#三台机器都执行
+yum install -y yum-utils device-mapper-persistent-data lvm2 wget net-tools nfs-utils lrzsz gcc gcc-c++ make cmake libxml2-devel openssl-devel curl curl-devel unzip sudo ntp libaio-devel wget vim ncurses-devel autoconf automake zlib-devel  python-devel epel-release openssh-server socat  ipvsadm conntrack ntpdate lrzsz openssh-clients
+</code></pre>
+<h3 id="配置hosts文件">配置hosts文件</h3>
+<pre><code class="language-bash">#通过主机名互相访问，修改每台机器的/etc/hosts文件，增加如下三行：
+192.168.40.180  master1  
+192.168.40.181  node1  
+192.168.40.182  node2
+</code></pre>
+<h3 id="配置主机之间无密码登录">配置主机之间无密码登录</h3>
+<pre><code class="language-bash">#每台机器都按照如下操作
+#生成密钥对
+ssh-keygen -t rsa    #一路回车，不输入密码
+#把本地生成的密钥文件和私钥文件拷贝到远程主机
+ssh-copy-id -i .ssh/id_rsa.pub master1
+ssh-copy-id -i .ssh/id_rsa.pub node1
+ssh-copy-id -i .ssh/id_rsa.pub node2
+</code></pre>
+<h3 id="关闭交换分区swap">关闭交换分区swap</h3>
+<pre><code class="language-bash">#每台机器都按照如下操作
+#临时关闭
+swapoff -a
+##永久关闭：注释swap挂载，给swap这行开头加一下注释
+vim /etc/fstab
+#/dev/mapper/centos-swap swap      swap    defaults        0 0
+
+#如果是克隆的虚拟机，需要删除UUID
+</code></pre>
+<p>问题：为什么要关闭<code>swap</code>交换分区？</p>
+<p><code>swap</code>是交换分区，如果机器内存不够，会使用<code>swap</code>分区，但是<code>swap</code>分区的性能较低，<code>k8s</code>设计的时候为了提升性能，默认是不允许使用交换分区的，<code>kubeadm</code>初始化时会检测<code>swap</code>分区是否关闭，如果没有关闭，则初始化失败，如果不想关闭交换分区，安装<code>k8s</code>时可以指定<code>--ignore-preflight-errors=Swap</code>来解决。</p>
+<h3 id="修改内核参数">修改内核参数</h3>
+<pre><code class="language-bash">#每台机器都按照如下操作
+#加载br_netfilter模块
+modprobe br_netfilter
+echo &quot;modprobe br_netfilter&quot; &gt;&gt; /etc/profile
+#验证模块是否加载成功
+lsmod |grep br_netfilter
+
+#修改内核参数
+cat &gt; /etc/sysctl.d/k8s.conf &lt;&lt;EOF
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+net.ipv4.ip_forward = 1
+EOF
+#使刚才修改的内核参数生效
+sysctl -p /etc/sysctl.d/k8s.conf
+cat /proc/sys/net/ipv4/ip_forward
+</code></pre>
+<p><code>sysctl -p</code>：从指定的文件加载系统内核参数，如不指定即从<code>/etc/sysctl.conf</code>中加载。</p>
+<p><code>net.ipv4.ip_forward = 1</code>是开启数据包转发功能，出于安全考虑，<code>Linux</code>系统默认是禁止数据包转发的，所谓数据包转发即当主机拥有多于一块网卡时，其中一块收到数据包，根据数据包的目的<code>ip</code>地址将数据包发往本机另一块网卡，该网卡根据路由表继续发送数据包，这通常是路由器所要实现的功能。</p>
+<p><code>net.ipv4.ip_forward</code>其值为0时表示禁止进行<code>IP</code>转发；如果是1，则说明<code>IP</code>转发功能已经打开。</p>
+<h3 id="关闭firewalld防火墙">关闭firewalld防火墙</h3>
+<pre><code class="language-bash">#每台机器都按照如下操作
+systemctl stop firewalld ; systemctl disable firewalld
+</code></pre>
+<h3 id="关闭selinux">关闭selinux</h3>
+<pre><code class="language-bash">#每台机器都按照如下操作
+#临时关闭
+setenforce 0
+#永久关闭
+sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
+#修改selinux配置文件之后，重启机器，selinux配置才能永久生效
+重启之后登录机器验证是否修改成功：
+getenforce
+#显示Disabled说明selinux已经关闭
+</code></pre>
+<h3 id="配置阿里云的repo源">配置阿里云的repo源</h3>
+<pre><code class="language-bash">#备份基础repo源，每台机器都需要操作
+mkdir /root/repo.bak
+mv /etc/yum.repos.d/* /root/repo.bak
+#把CentOS-Base.repo、epel.repo文件上传到master1的/etc/yum.repos.d/目录下，然后再远程拷贝到node1、node2节点
+[root@master1 ~]# scp /etc/yum.repos.d/* node1:/etc/yum.repos.d/  
+[root@master1 ~]# scp /etc/yum.repos.d/* node2:/etc/yum.repos.d/
+#配置阿里云docker的repo源，每台机器都需要操作
+yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
+</code></pre>
+<h3 id="配置阿里云k8s的repo源">配置阿里云k8s的repo源</h3>
+<pre><code class="language-bash">#先在master1执行，然后再远程拷贝到node1、node2节点
+[root@master1 ~]# vim /etc/yum.repos.d/kubernetes.repo 
+[kubernetes]
+name=Kubernetes
+baseurl=https://mirrors.aliyun.com/kubernetes/yum/repos/kubernetes-el7-x86_64/
+enabled=1
+gpgcheck=0
+[root@master1 ~]# scp /etc/yum.repos.d/kubernetes.repo node1:/etc/yum.repos.d/ 
+[root@master1 ~]# scp /etc/yum.repos.d/kubernetes.repo node2:/etc/yum.repos.d/
+</code></pre>
+<h3 id="配置时间同步">配置时间同步</h3>
+<pre><code class="language-bash">#每台机器都按照如下操作
+#安装ntpdate命令
+yum install ntpdate -y
+#跟网络源做同步
+ntpdate cn.pool.ntp.org
+#把时间同步做成计划任务
+crontab -e
+* */1 * * * /usr/sbin/ntpdate   cn.pool.ntp.org
+#重启crond服务
+systemctl restart crond
+</code></pre>
+<h3 id="开启ipvs">开启ipvs</h3>
+<p>不开启<code>ipvs</code>将会使用<code>iptables</code>进行数据包转发，但是效率低，所以官网推荐需要开通<code>ipvs</code>。</p>
+<pre><code class="language-bash">#把ipvs.modules上传到master1机器的/etc/sysconfig/modules/目录下，然后再远程拷贝到node1、node2节点
+[root@master1 modules]# chmod 755 /etc/sysconfig/modules/ipvs.modules &amp;&amp; bash /etc/sysconfig/modules/ipvs.modules &amp;&amp; lsmod | grep ip_vs
+ip_vs_ftp              13079  0 
+nf_nat                 26583  1 ip_vs_ftp
+ip_vs_sed              12519  0 
+ip_vs_nq               12516  0 
+ip_vs_sh               12688  0 
+ip_vs_dh               12688  0 
+[root@master1 ~]# scp /etc/sysconfig/modules/ipvs.modules node1:/etc/sysconfig/modules/  
+[root@master1 ~]# scp /etc/sysconfig/modules/ipvs.modules node2:/etc/sysconfig/modules/
+[root@node1 ~]# chmod 755 /etc/sysconfig/modules/ipvs.modules &amp;&amp; bash /etc/sysconfig/modules/ipvs.modules &amp;&amp; lsmod | grep ip_vs
+ip_vs_ftp              13079  0 
+nf_nat                 26583  1 ip_vs_ftp
+ip_vs_sed              12519  0 
+ip_vs_nq               12516  0 
+ip_vs_sh               12688  0 
+ip_vs_dh               12688  0 
+[root@node2 ~]# chmod 755 /etc/sysconfig/modules/ipvs.modules &amp;&amp; bash /etc/sysconfig/modules/ipvs.modules &amp;&amp; lsmod | grep ip_vs
+ip_vs_ftp              13079  0 
+nf_nat                 26583  1 ip_vs_ftp
+ip_vs_sed              12519  0 
+ip_vs_nq               12516  0 
+ip_vs_sh               12688  0 
+ip_vs_dh               12688  0 
+</code></pre>
+<p><code>ipvs</code>是什么？</p>
+<p><code>ipvs(IP virtual server)</code>实现了传输层负载均衡，也就是我们常说的4层<code>LAN</code>交换，作为<code>Linux</code>内核的一部分，<code>ipvs</code>运行在主机上，在真实服务器集群前充当负载均衡器。<code>ipvs</code>可以将基于<code>TCP</code>和<code>UDP</code>的服务请求转发到真实服务器上，并使真实服务器的服务在单个<code>IP</code>地址上显示为虚拟服务。</p>
+<p><code>ipvs</code>和<code>iptables</code>对比分析</p>
+<p><code>kube-proxy</code>支持<code>iptables</code>和<code>ipvs</code>两种模式，在<code>kubernetes v1.8</code>中引入了<code>ipvs</code>模式，在<code>v1.9</code>中处于<code>beta</code>阶段，在<code>v1.11</code>中已经正式可用了。<code>iptables</code>模式在<code>v1.1</code>中就添加支持了，从<code>v1.2</code>版本开始<code>iptables</code>就是<code>kube-proxy</code>默认的操作模式，<code>ipvs</code>和<code>iptables</code>都是基于<code>netfilter</code>的，但是<code>ipvs</code>采用的是<code>hash</code>表，因此当<code>service</code>数量达到一定规模时，hash查表的速度优势就会显现出来，从而提高<code>service</code>的服务性能。那么<code>ipvs</code>和<code>iptables</code>模式之间有哪些差异呢？</p>
+<ul>
+<li><code>ipvs</code>为大型集群提供了更好的可扩展性和性能</li>
+<li><code>ipvs</code>支持比<code>iptables</code>更复杂的复制均衡算法（最小负载、最少连接、加权等等）</li>
+<li><code>ipvs</code>支持服务健康检查和连接重试等功能</li>
+</ul>
+<h3 id="安装iptables">安装iptables</h3>
+<pre><code class="language-bash">#每台机器都按照如下操作
+yum install iptables-services -y
+#禁用iptables
+systemctl stop iptables  &amp;&amp; systemctl disable iptables
+#清空防火墙规则
+iptables -F
+</code></pre>
+<h3 id="安装docker-ce">安装docker-ce</h3>
+<pre><code class="language-bash">#每台机器都按照如下操作
+yum install docker-ce-20.10.6 docker-ce-cli-20.10.6 containerd.io  -y
+systemctl start docker &amp;&amp; systemctl enable docker.service &amp;&amp; systemctl status docker
+</code></pre>
+<h3 id="配置docker镜像加速器">配置docker镜像加速器</h3>
+<pre><code class="language-bash">#每台机器都按照如下操作
+tee /etc/docker/daemon.json &lt;&lt; 'EOF'
+{
+ &quot;registry-mirrors&quot;:[&quot;https://rsbud4vc.mirror.aliyuncs.com&quot;,&quot;https://registry.docker-cn.com&quot;,&quot;https://docker.mirrors.ustc.edu.cn&quot;,&quot;https://dockerhub.azk8s.cn&quot;,&quot;http://hub-mirror.c.163.com&quot;,&quot;http://qtid6917.mirror.aliyuncs.com&quot;, &quot;https://rncxm540.mirror.aliyuncs.com&quot;],
+  &quot;exec-opts&quot;: [&quot;native.cgroupdriver=systemd&quot;]
+} 
+EOF
+systemctl daemon-reload
+systemctl restart docker &amp;&amp; systemctl status docker
+#修改docker文件驱动为systemd，默认为cgroupfs，kubelet默认使用systemd，两者必须一致才可以。
+</code></pre>
+<h2 id="安装初始化k8s需要的软件包">安装初始化k8s需要的软件包</h2>
+<pre><code class="language-bash">#每台机器都按照如下操作
+yum install -y kubelet-1.20.6 kubeadm-1.20.6 kubectl-1.20.6
+systemctl enable kubelet &amp;&amp; systemctl start kubelet
+systemctl status kubelet
+● kubelet.service - kubelet: The Kubernetes Node Agent
+   Loaded: loaded (/usr/lib/systemd/system/kubelet.service; enabled; vendor preset: disabled)
+  Drop-In: /usr/lib/systemd/system/kubelet.service.d
+           └─10-kubeadm.conf
+   Active: activating (auto-restart) (Result: exit-code)
+ 上面可以看到kubelet状态不是running状态，这个是正常的，不用管，等k8s组件起来这个kubelet就正常了
+ #注：每个软件包的作用
+ kubeadm：kubeadm是一个工具，用来初始化k8s集群的
+ kubelet：安装在集群所有节点上，用于启动pod的
+ kubectl：通过kubectl可以部署和管理应用，查看各种资源，创建、删除和更新各种组件
+</code></pre>
+<h2 id="kubeadm初始化集群">kubeadm初始化集群</h2>
+<pre><code class="language-bash">#把初始化集群需要的离线镜像包k8simage-1-20-6.tar.gz上传到master1、node1、node2机器上，手动解压
+[root@master1 ~]# docker load -i k8simage-1-20-6.tar.gz
+[root@node1 ~]# docker load -i k8simage-1-20-6.tar.gz
+[root@node2 ~]# docker load -i k8simage-1-20-6.tar.gz
+[root@master1 ~]# docker images
+REPOSITORY                                                        TAG        IMAGE ID     
+registry.aliyuncs.com/google_containers/kube-proxy                v1.20.6    9a1ebfd8124d 
+registry.aliyuncs.com/google_containers/kube-scheduler            v1.20.6    b93ab2ec4475 
+registry.aliyuncs.com/google_containers/kube-controller-manager   v1.20.6    560dd11d4550 
+registry.aliyuncs.com/google_containers/kube-apiserver            v1.20.6    b05d611c1af9 
+calico/pod2daemon-flexvol                                         v3.18.0    2a22066e9588 
+calico/node                                                       v3.18.0    5a7c4970fbc2 
+calico/cni                                                        v3.18.0    727de170e4ce 
+calico/kube-controllers                                           v3.18.0    9a154323fbf7 
+registry.aliyuncs.com/google_containers/etcd                      3.4.13-0   0369cf4303ff 
+registry.aliyuncs.com/google_containers/coredns                   1.7.0      bfe3a36ebd25 
+registry.aliyuncs.com/google_containers/pause                     3.2        80d28bedfe5d 
+</code></pre>
+<pre><code class="language-bash">#使用kubeadm初始化k8s集群
+[root@master1 ~]# kubeadm init --kubernetes-version=1.20.6  --apiserver-advertise-address=192.168.40.180  --image-repository registry.aliyuncs.com/google_containers  --pod-network-cidr=10.244.0.0/16 --ignore-preflight-errors=SystemVerification
+
+#注：
+--image-repository registry.aliyuncs.com/google_containers：手动指定仓库地址为registry.aliyuncs.com/google_containers
+kubeadm默认从k8s.grc.io拉取镜像，但是k8s.gcr.io访问不到，所以需要指定从registry.aliyuncs.com/google_containers仓库拉取镜像
+
+显示如下，说明安装完成：
+To start using your cluster, you need to run the following as a regular user:
+
+  mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+Alternatively, if you are the root user, you can run:
+
+  export KUBECONFIG=/etc/kubernetes/admin.conf
+
+You should now deploy a pod network to the cluster.
+Run &quot;kubectl apply -f [podnetwork].yaml&quot; with one of the options listed at:
+  https://kubernetes.io/docs/concepts/cluster-administration/addons/
+
+Then you can join any number of worker nodes by running the following on each as root:
+
+kubeadm join 192.168.40.180:6443 --token hs90dz.ym6s1k3ljvqaqz4o \
+    --discovery-token-ca-cert-hash sha256:31f7e81cb2f4284af6dd2da1de9bdd96b706cc2521a931f82cecfe0c4614d15f 
+
+#上面命令是把node节点加入集群，需要保存下来，每个人的都不一样
+</code></pre>
+<pre><code class="language-bash">#配置kubectl的配置文件，相当于对kubectl进行授权，这样kubectl命令可以使用这个证书对k8s集群进行管理
+[root@master1 ~]# mkdir -p $HOME/.kube
+[root@master1 ~]# sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config 
+[root@master1 ~]# sudo chown $(id -u):$(id -g) $HOME/.kube/config
+[root@master1 ~]# kubectl get nodes
+AME      STATUS     ROLES                  AGE    VERSION
+master1   NotReady   control-plane,master   4m3s   v1.20.6
+
+#此时集群状态还是NotReady状态，因为没有安装网络插件
+</code></pre>
+<h2 id="扩容k8s集群">扩容k8s集群</h2>
+<h3 id="添加第一个工作节点">添加第一个工作节点</h3>
+<pre><code class="language-bash">#在master1查看加入节点的命令
+[root@master1 ~]# kubeadm token create --print-join-command
+#显示如下
+kubeadm join 192.168.40.180:6443 --token nmlbrz.opm5efkvctnnfufw     --discovery-token-ca-cert-hash sha256:31f7e81cb2f4284af6dd2da1de9bdd96b706cc2521a931f82cecfe0c4614d15f
+</code></pre>
+<pre><code class="language-bash">#把node1加入k8s集群
+[root@node1 ~]# kubeadm join 192.168.40.180:6443 --token nmlbrz.opm5efkvctnnfufw     --discovery-token-ca-cert-hash sha256:31f7e81cb2f4284af6dd2da1de9bdd96b706cc2521a931f82cecfe0c4614d15f
+This node has joined the cluster:
+* Certificate signing request was sent to apiserver and a response was received.
+* The Kubelet was informed of the new secure connection details.
+
+Run 'kubectl get nodes' on the control-plane to see this node join the cluster.
+#看到上面说明node1节点已经加入到集群中，充当工作节点
+</code></pre>
+<pre><code class="language-bash">#在master1上查看集群节点状况
+[root@master1 ~]# kubectl get nodes
+NAME      STATUS     ROLES                  AGE     VERSION
+master1   NotReady   control-plane,master   9m22s   v1.20.6
+node1     NotReady   &lt;none&gt;                 103s    v1.20.6
+</code></pre>
+<h3 id="添加第二个工作节点">添加第二个工作节点</h3>
+<pre><code class="language-bash">#在master1查看加入节点的命令
+[root@master1 ~]# kubeadm token create --print-join-command
+#显示如下
+kubeadm join 192.168.40.180:6443 --token mjgr93.fly11wjd36qda450     --discovery-token-ca-cert-hash sha256:31f7e81cb2f4284af6dd2da1de9bdd96b706cc2521a931f82cecfe0c4614d15f
+</code></pre>
+<pre><code class="language-bash">#把node2加入k8s集群
+[root@node2 ~]# kubeadm join 192.168.40.180:6443 --token mjgr93.fly11wjd36qda450     --discovery-token-ca-cert-hash sha256:31f7e81cb2f4284af6dd2da1de9bdd96b706cc2521a931f82cecfe0c4614d15f
+
+This node has joined the cluster:
+* Certificate signing request was sent to apiserver and a response was received.
+* The Kubelet was informed of the new secure connection details.
+
+Run 'kubectl get nodes' on the control-plane to see this node join the cluster.
+#看到上面说明node2节点已经加入到集群中，充当工作节点
+</code></pre>
+<pre><code class="language-bash">#在master1查看集群节点状况
+[root@master1 ~]# kubectl get nodes
+NAME      STATUS     ROLES                  AGE     VERSION
+master1   NotReady   control-plane,master   12m     v1.20.6
+node1     NotReady   &lt;none&gt;                 5m11s   v1.20.6
+node2     NotReady   &lt;none&gt;                 82s     v1.20.6
+</code></pre>
+<pre><code class="language-bash">#可以看到node1、node2de ROLES角色为空，&lt;none&gt;就表示这个节点是工作节点。
+#可以把node1、node2的ROLES变成work，按照如下方法：
+[root@master1 ~]# kubectl label node node1 node-role.kubernetes.io/worker=worker 
+[root@master1 ~]# kubectl label node node2 node-role.kubernetes.io/worker=worker
+[root@master1 ~]# kubectl get nodes
+NAME      STATUS     ROLES                  AGE     VERSION
+master1   NotReady   control-plane,master   15m     v1.20.6
+node1     NotReady   worker                 7m37s   v1.20.6
+node2     NotReady   worker                 3m48s   v1.20.6
+#注意：上面状态都是NotReady状态，说明没有安装网络插件
+</code></pre>
+<h2 id="安装网络组件-calico">安装网络组件-calico</h2>
+<p><code>calico</code>：是一套开源的网络和网络安全方案，主要用于容器、虚拟机、宿主机之间的网络连接，可以用在<code>kubernetes</code>、<code>OpenShift</code>、<code>DockerEE</code>、<code>OpenStrack</code>等<code>PaaS</code>或<code>IaaS</code>平台上。</p>
+<pre><code class="language-bash">#上传calico.yaml到master1上，使用yaml文件安装calico网络插件
+[root@master1 ~]# kubectl apply -f calico.yaml
+
+#注：在线下载配置文件地址是：https://docs.projectcalico.org/manifests/calico.yaml
+</code></pre>
+<pre><code class="language-bash">#再次查看集群状态
+[root@master1 ~]# kubectl get nodes
+NAME      STATUS   ROLES                  AGE   VERSION
+master1   Ready    control-plane,master   15h   v1.20.6
+node1     Ready    worker                 15h   v1.20.6
+node2     Ready    worker                 15h   v1.20.6
+
+root@master1 ~]# kubectl get pods -n kube-system
+NAME                                       READY   STATUS    RESTARTS   AGE
+calico-kube-controllers-6949477b58-h8pr7   1/1     Running   0          93s
+calico-node-bv55j                          1/1     Running   0          92s
+calico-node-jkbpk                          1/1     Running   0          92s
+calico-node-n8glg                          1/1     Running   0          92s
+coredns-7f89b7bc75-5hlhg                   1/1     Running   0          15h
+coredns-7f89b7bc75-c75wr                   1/1     Running   0          15h
+etcd-master1                               1/1     Running   1          15h
+kube-apiserver-master1                     1/1     Running   2          15h
+kube-controller-manager-master1            1/1     Running   1          15h
+kube-proxy-4trc6                           1/1     Running   1          15h
+kube-proxy-7g2lj                           1/1     Running   1          15h
+kube-proxy-ftl94                           1/1     Running   1          15h
+kube-scheduler-master1                     1/1     Running   1          15h
+#STATUS状态是Ready，说明k8s集群正常运行了
+</code></pre>
+<h2 id="测试k8s集群">测试k8s集群</h2>
+<h3 id="配置kubectl子命令补全">配置kubectl子命令补全</h3>
+<pre><code class="language-bash">yum install -y bash-completion
+source /usr/share/bash-completion/bash_completion
+source &lt;(kubectl completion bash)
+kubectl completion bash &gt; ~/.kube/completion.bash.inc
+source '/root/.kube/completion.bash.inc'
+source $HOME/.bash_profile
+
+Kubectl官方备忘单：
+https://kubernetes.io/zh/docs/reference/kubectl/cheatsheet/
+</code></pre>
+<h3 id="创建pod是否可以正常访问网络">创建pod是否可以正常访问网络</h3>
+<pre><code class="language-bash">#把busybox-1-28.tar.gz上传到node1、node2节点，手动解压
+[root@node1 ~]# docker load -i busybox-1-28.tar.gz
+[root@node2 ~]# docker load -i busybox-1-28.tar.gz
+[root@master1 ~]# kubectl run busybox --image busybox:1.28 --restart=Never --rm -it busybox -- sh
+/ # ping baidu.com
+PING baidu.com (220.181.38.251): 56 data bytes
+64 bytes from 220.181.38.251: seq=0 ttl=127 time=359.117 ms
+64 bytes from 220.181.38.251: seq=1 ttl=127 time=358.684 ms
+#通过上面可以看到能访问网络，说明calico网络插件已经被正常安装了
+</code></pre>
+<h3 id="部署tomcat服务">部署tomcat服务</h3>
+<pre><code class="language-bash">#把tomcat.tar.gz上传到node1、node2，手动解压
+[root@node1 ~]# docker load -i tomcat.tar.gz
+[root@node2 ~]# docker load -i tomcat.tar.gz
+#把tomcat.yaml、tomcat-service.yaml上传到master1
+[root@master1 ~]# cat tomcat.yaml 
+apiVersion: v1  #pod属于k8s核心组v1
+kind: Pod  #创建的是一个Pod资源
+metadata:  #元数据
+  name: demo-pod  #pod名字
+  namespace: default  #pod所属的名称空间
+  labels:
+    app: myapp  #pod具有的标签
+    env: dev      #pod具有的标签
+spec:
+  containers:      #定义一个容器，容器是对象列表，下面可以有多个name
+  - name:  tomcat-pod-java  #容器的名字
+    ports:
+    - containerPort: 8080
+    image: tomcat:8.5-jre8-alpine   #容器使用的镜像
+    imagePullPolicy: IfNotPresent
+[root@master1 ~]# kubectl apply -f tomcat.yaml 
+[root@master1 ~]# kubectl get pods
+NAME       READY   STATUS    RESTARTS   AGE
+demo-pod   1/1     Running   0          20s
+</code></pre>
+<pre><code class="language-bash">[root@master1 ~]# cat tomcat-service.yaml 
+apiVersion: v1
+kind: Service
+metadata:
+  name: tomcat
+spec:
+  type: NodePort
+  ports:
+  - port: 8080          #pod端口
+    nodePort: 30080     #映射宿主机端口
+  selector:
+    app: myapp
+    env: dev
+[root@master1 ~]# kubectl apply -f tomcat-service.yaml 
+[root@master1 ~]# kubectl get svc
+NAME         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
+kubernetes   ClusterIP   10.96.0.1       &lt;none&gt;        443/TCP          16h
+tomcat       NodePort    10.98.216.247   &lt;none&gt;        8080:30080/TCP   18s
+
+[root@master1 k8s]# kubectl get pod -o wide
+NAME       READY   STATUS    RESTARTS   AGE     IP             NODE    
+demo-pod   1/1     Running   0          4m49s   10.244.104.4   node1
+</code></pre>
+<p>在浏览器访问任何节点的<code>ip:30080</code>，即可请求到页面<br>
+<img src="https://ajie825.github.io/post-images/1657677868270.png" alt="" loading="lazy"></p>
+<h3 id="测试coredns是否正常">测试coredns是否正常</h3>
+<pre><code class="language-bash">[root@master1 ~]# kubectl run busybox --image busybox:1.28 --restart=Never --rm -it busybox -- sh
+/ # nslookup kubernetes.default.svc.cluster.local
+Server:    10.96.0.10
+Address 1: 10.96.0.10 kube-dns.kube-system.svc.cluster.local
+
+Name:      kubernetes.default.svc.cluster.local
+Address 1: 10.96.0.1 kubernetes.default.svc.cluster.local
+
+/ # nslookup tomcat.default.svc.cluster.local
+Server:    10.96.0.10
+Address 1: 10.96.0.10 kube-dns.kube-system.svc.cluster.local
+
+Name:      tomcat.default.svc.cluster.local
+Address 1: 10.109.11.78 tomcat.default.svc.cluster.local
+
+10.96.0.10就是我们coreDNS的clusterIP，说明coreDNS配置好了，解析内部Service的名称，是通过coreDNS去解析的
+#注意：
+busybox要用指定的1.28版本，不能用最新版本，最新版本，nslookup会解析不到dns和ip 
+</code></pre>
+<h2 id="安装k8s可视化ui界面dashboard">安装k8s可视化UI界面dashboard</h2>
+<h3 id="安装dashboard">安装dashboard</h3>
+<pre><code class="language-bash">#把安装kubernetes-dashboard需要的镜像上传到工作节点node1和node2，手动解压
+[root@node1 ~]# docker load -i dashboard_2_0_0.tar.gz
+[root@node1 ~]# docker load -i metrics-scrapter-1-0-1.tar.gz
+
+[root@node2 ~]# docker load -i dashboard_2_0_0.tar.gz
+[root@node2 ~]# docker load -i metrics-scrapter-1-0-1.tar.gz 
+
+#安装dashboard组件，将kubernetes-dashboard.yaml上传到master1
+[root@master1 ~]# kubectl apply -f kubernetes-dashboard.yaml 
+
+#查看dashboard的状态，显示如下，说明dashboard安装成功了
+[root@master1 ~]# kubectl get pods -n kubernetes-dashboard -o wide
+NAME                                         READY   STATUS    RESTARTS   AGE     IP               NODE    
+dashboard-metrics-scraper-7445d59dfd-zxwkq   1/1     Running   0          3m18s   10.244.166.132   node1
+kubernetes-dashboard-54f5b6dc4b-t5jf7        1/1     Running   0          3m18s   10.244.104.7     node2
+
+#查看dashboard前端的service，显示如下
+[root@master1 ~]# kubectl get svc -n kubernetes-dashboard 
+NAME                        TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+dashboard-metrics-scraper   ClusterIP   10.100.146.23   &lt;none&gt;        8000/TCP   6m8s
+kubernetes-dashboard        ClusterIP   10.111.65.254   &lt;none&gt;        443/TCP    6m8s
+
+#修改service type类型为NodePort，把type: ClusterIP变成 type: NodePort，保存退出即可
+[root@master1 ~]# kubectl edit svc kubernetes-dashboard -n kubernetes-dashboard
+
+[root@master1 ~]# kubectl get svc -n kubernetes-dashboard                       
+NAME                        TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)         AGE
+dashboard-metrics-scraper   ClusterIP   10.100.146.23   &lt;none&gt;        8000/TCP        8m32s
+kubernetes-dashboard        NodePort    10.111.65.254   &lt;none&gt;        443:31796/TCP   8m32s
+</code></pre>
+<p>上面可看到<code>service</code>类型是<code>NodePort</code>，访问任何一个工作节点<code>ip:31796</code>端口即可访问<code>dashboard</code>，在浏览器(使用火狐浏览器低版)访问如下地址：<br>
+<code>https://192.168.40.180:31796/</code></p>
+<figure data-type="image" tabindex="2"><img src="https://ajie825.github.io/post-images/1657681243328.png" alt="" loading="lazy"></figure>
+<p>可看到出现了dashboard界面</p>
+<figure data-type="image" tabindex="3"><img src="https://ajie825.github.io/post-images/1657681265855.png" alt="" loading="lazy"></figure>
+<h3 id="通过token令牌访问dashboard">通过token令牌访问dashboard</h3>
+<pre><code class="language-bash">#通过token登录dashboard，创建管理员token，具有查看任何空间的权限，可以管理所有资源对象
+[root@master1 ~]# kubectl create clusterrolebinding dashboard-cluster-admin --clusterrole=cluster-admin --serviceaccount=kubernetes-dashboard:kubernetes-dashboard
+clusterrolebinding.rbac.authorization.k8s.io/dashboard-cluster-admin created
+
+#查看kubernetes-dashboard名称空间下的secret
+[root@master1 ~]# kubectl get secret -n kubernetes-dashboard
+NAME                               TYPE                                  DATA   AGE
+default-token-nz8hr                kubernetes.io/service-account-token   3      52m
+kubernetes-dashboard-certs         Opaque                                0      52m
+kubernetes-dashboard-csrf          Opaque                                1      52m
+kubernetes-dashboard-key-holder    Opaque                                2      52m
+kubernetes-dashboard-token-sphds   kubernetes.io/service-account-token   3      52m
+
+#找到对应的带有token的kubernetes-dashboard-token-sphds
+[root@master1 ~]# kubectl describe secrets -n kubernetes-dashboard kubernetes-dashboard-token-sphds 
+#显示如下
+token: ...... 
+
+#把token值复制到浏览器token登陆处即可登陆：
+</code></pre>
+<figure data-type="image" tabindex="4"><img src="https://ajie825.github.io/post-images/1657682190181.png" alt="" loading="lazy"></figure>
+<h3 id="通过kubeconfig文件访问dashboard">通过kubeconfig文件访问dashboard</h3>
+<pre><code class="language-bash">[root@master1 ~]# cd /etc/kubernetes/pki/
+1）创建cluster集群
+[root@master1 pki]# kubectl config set-cluster kubernetes --certificate-authority=./ca.crt --server=&quot;https://192.168.40.180:6443&quot; --embed-certs=true --kubeconfig=/root/dashboard-admin.conf
+Cluster &quot;kubernetes&quot; set.
+
+2）创建credentials
+#创建credentials需要使用上面的kubernetes-dashboard-token-sphds对应的token信息
+[root@master1 pki]# DEF_NS_ADMIN_TOKEN=$(kubectl get secret kubernetes-dashboard-token-sphds -n kubernetes-dashboard  -o jsonpath={.data.token}|base64 -d)
+[root@master1 pki]# kubectl config set-credentials dashboard-admin --token=$DEF_NS_ADMIN_TOKEN --kubeconfig=/root/dashboard-admin.conf
+User &quot;dashboard-admin&quot; set.
+
+3）创建context
+[root@master1 pki]# kubectl config set-context dashboard-admin@kubernetes --cluster=kubernetes --user=dashboard-admin --kubeconfig=/root/dashboard-admin.conf
+Context &quot;dashboard-admin@kubernetes&quot; created.
+
+4）切换context的current-context是dashboard-admin@kubernetes
+[root@master1 pki]# kubectl config use-context dashboard-admin@kubernetes --kubeconfig=/root/dashboard-admin.conf
+Switched to context &quot;dashboard-admin@kubernetes&quot;.
+
+5）把刚才的kubeconfig文件dashboard-admin.conf复制到桌面
+浏览器访问时使用kubeconfig认证，把刚才的dashboard-admin.conf导入到web界面，那么就可以登陆了
+</code></pre>
+<figure data-type="image" tabindex="5"><img src="https://ajie825.github.io/post-images/1657683532645.png" alt="" loading="lazy"></figure>
+<h3 id="通过kubernetes-dashboard创建容器">通过kubernetes-dashboard创建容器</h3>
+<pre><code class="language-bash">#把nginx.tar.gz镜像压缩包上传到node1和node2上，手动解压：
+[root@node1 ~]# docker load -i nginx.tar.gz
+[root@node2 ~]# docker load -i nginx.tar.gz
+</code></pre>
+<p>打开<code>dashboard</code>界面(<code>https://192.168.40.180:31796/</code>)，点开右上角红色箭头标注的 <code>&quot;+&quot;</code>，如下图所示：<br>
+<img src="https://ajie825.github.io/post-images/1657689947769.png" alt="" loading="lazy"><br>
+点击<code>&quot;Create from form&quot;</code>出现如下界面：<br>
+<img src="https://ajie825.github.io/post-images/1657689995626.png" alt="" loading="lazy"><br>
+上面箭头标注的地方填写之后点击<code>Deploy</code>即可完成<code>Pod</code>的创建，如下：<br>
+<img src="https://ajie825.github.io/post-images/1657690018398.png" alt="" loading="lazy"><br>
+在<code>dashboard</code>的左侧选择<code>Services</code>：<br>
+<img src="https://ajie825.github.io/post-images/1657690034361.png" alt="" loading="lazy"><br>
+上图可看到刚才创建的<code>nginx</code>的<code>service</code>在宿主机映射的端口是32560，在浏览器访问：192.168.40.180:32560，看到如下界面，说明<code>nginx</code>部署成功了：<br>
+<img src="https://ajie825.github.io/post-images/1657690054948.png" alt="" loading="lazy"></p>
+<pre><code class="language-bash">#注：
+应用名称：nginx
+容器镜像：nginx
+pod数量：2
+service：External 外部网络
+Port：80
+Target port：80
+表单中创建pod时没有创建nodeport选项，会自动创建在30000+以上的端口
+
+关于port、targetport、nodeport的说明：
+nodeport是集群外流量访问集群内服务的端口，比如客户访问nginx、apache
+port是集群内的pod互相通信用的端口类型，比如nginx访问mysql，而mysql是不需要让客户访问到的，port是service的端口
+targetport是目标端口，也就是最终端口，也就是pod的端口
+</code></pre>
+<h2 id="安装metrics-server组件">安装metrics-server组件</h2>
+<p><code>metrics-server</code>是一个集群范围内的资源数据集和工具，同样的，<code>metrics-server</code>也只是显示数据，并不提供数据存储服务，主要关注的是资源度量<code>API</code>的实现，如果<code>CPU</code>、文件描述符、内存、请求延时等指标，<code>metrics-server</code>收集数据给<code>k8s</code>集群内使用，如<code>kubectl</code>、<code>HPA</code>、<code>scheduler</code>等。</p>
+<h3 id="部署metrics-server组件">部署metrics-server组件</h3>
+<pre><code class="language-bash">#把离线镜像压缩包metrics-server-amd64-0-3-6.tar.gz上传到k8s的各个节点，按如下方法手动解压
+[root@master1 ~]# docker load -i metrics-server-amd64-0-3-6.tar.gz
+[root@master1 ~]# docker load -i addon.tar.gz
+[root@node1 ~]# docker load -i metrics-server-amd64-0-3-6.tar.gz
+[root@node1 ~]# docker load -i addon.tar.gz
+[root@node2 ~]# docker load -i metrics-server-amd64-0-3-6.tar.gz
+[root@node2 ~]# docker load -i addon.tar.gz
+
+#部署metrics-server服务
+#在/etc/kubernetes/manifests里面改一下apiserver的配置
+[root@master1 ~]# vim /etc/kubernetes/manifests/kube-apiserver.yaml
+增加如下内容：
+- --enable-aggregator-routing=true
+#注意：这个是k8s在1.17的新特性，如果是1.16版本的可以不用添加，1.17以后要添加，这个参数的作用是Aggregation允许在不修改Kubernetes核心代码的同时扩展Kubernetes API
+
+#重新更新apiserver配置：
+[root@master1 ~]# kubectl apply -f /etc/kubernetes/manifests/kube-apiserver.yaml 
+
+#把CrashLoopBackOff/error状态的pod删除
+[root@master1 ~]# kubectl delete pods kube-apiserver -n kube-system
+[root@master1 ~]# kubectl apply -f metrics.yaml 
+[root@master1 ~]# kubectl get pods -n kube-system|grep metrics
+metrics-server-6595f875d6-srk8j            2/2     Running   0          21s
+</code></pre>
+<figure data-type="image" tabindex="6"><img src="https://ajie825.github.io/post-images/1701846333112.png" alt="" loading="lazy"></figure>
+<h3 id="测试kubectl-top命令">测试kubectl top命令</h3>
+<pre><code class="language-bash">[root@master1 ~]# kubectl top pods -n kube-system
+NAME                                       CPU(cores)   MEMORY(bytes)   
+calico-kube-controllers-6949477b58-h8pr7   2m           32Mi            
+calico-node-bv55j                          69m          112Mi           
+calico-node-jkbpk                          71m          123Mi           
+calico-node-n8glg                          66m          82Mi            
+coredns-7f89b7bc75-5hlhg                   8m           27Mi            
+coredns-7f89b7bc75-c75wr                   6m           27Mi            
+etcd-master1                               32m          56Mi            
+kube-apiserver-master1                     131m         441Mi           
+kube-controller-manager-master1            36m          61Mi            
+kube-proxy-4trc6                           2m           32Mi            
+kube-proxy-7g2lj                           1m           29Mi            
+kube-proxy-ftl94                           1m           25Mi            
+kube-scheduler-master1                     7m           22Mi            
+metrics-server-6595f875d6-srk8j            3m           34Mi 
+
+[root@master1 ~]# kubectl top nodes
+NAME      CPU(cores)   CPU%   MEMORY(bytes)   MEMORY%   
+master1   396m         19%    1241Mi          72%       
+node1     201m         10%    955Mi           55%       
+node2     205m         10%    934Mi           54%    
+</code></pre>
+<h3 id="把scheduler-controller-manager端口变成物理机可以监听的端口">把scheduler、controller-manager端口变成物理机可以监听的端口</h3>
+<pre><code class="language-bash">[root@master1 ~]# kubectl get cs
+Warning: v1 ComponentStatus is deprecated in v1.19+
+NAME                 STATUS      MESSAGE                                                                                       ERROR
+scheduler            Unhealthy   Get &quot;http://127.0.0.1:10251/healthz&quot;: dial tcp 127.0.0.1:10251: connect: connection refused   
+controller-manager   Unhealthy   Get &quot;http://127.0.0.1:10252/healthz&quot;: dial tcp 127.0.0.1:10252: connect: connection refused   
+etcd-0               Healthy     {&quot;health&quot;:&quot;true&quot;} 
+
+#默认在1.19之后10252和10251都是绑定在127的，如果想要通过prometheus监控，会采集不到数据，所以可以把端口绑定到物理机，可按如下方法处理：
+vim /etc/kubernetes/manifests/kube-scheduler.yaml
+修改如下内容：
+把--bind-address=127.0.0.1变成--bind-address=192.168.40.180
+把httpGet:字段下的hosts由127.0.0.1变成192.168.40.180
+把—port=0删除
+#注意：192.168.40.180是k8s的控制节点master1的ip
+
+vim /etc/kubernetes/manifests/kube-controller-manager.yaml
+把--bind-address=127.0.0.1变成--bind-address=192.168.40.180
+把httpGet:字段下的hosts由127.0.0.1变成192.168.40.180
+把—port=0删除
+
+#修改之后在k8s各个节点重启下kubelet
+systemctl restart kubelet
+
+[root@master1 ~]# kubectl get cs
+Warning: v1 ComponentStatus is deprecated in v1.19+
+NAME                 STATUS    MESSAGE             ERROR
+controller-manager   Healthy   ok                  
+scheduler            Healthy   ok                  
+etcd-0               Healthy   {&quot;health&quot;:&quot;true&quot;}  
+ss -antulp | grep :10251
+ss -antulp | grep :10252
+可以看到相应的端口已经被物理机监听了
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/yi-jian-huo-qu-linux-nei-cun-cpuci-pan-io-deng-xin-xi/">
+              <h3 class="post-title">
+                下一篇：一键获取linux内存、cpu、磁盘IO等信息
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

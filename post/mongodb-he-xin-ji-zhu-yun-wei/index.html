@@ -1,0 +1,1138 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>mongodb核心技术 | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">mongodb核心技术</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-06-28</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/Myohy9aJDf/">
+                    mongodb
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h3 id="官方文档">官方文档</h3>
+<pre><code class="language-bash">https://www.mongodb.com/docs/
+</code></pre>
+<h3 id="逻辑结构">逻辑结构</h3>
+<pre><code class="language-bash">mongodb逻辑结构             mysql逻辑结构
+库(database)                   库
+集合(collection)               表
+文档(document)                 数据行
+选择之所以称之为选择，肯定是痛苦的！
+</code></pre>
+<h3 id="安装部署">安装部署</h3>
+<p>1、系统准备</p>
+<pre><code class="language-bash">1）redhat或centos6.2以上系统
+2）系统开发包完整
+3）ip地址和hosts文件解析正常
+4）iptables防火墙和selinux关闭
+5）关闭大页内存机制
+#################################################################################
+root用户下
+在vim /etc/rc.local最后添加如下代码
+if test -f /sys/kernel/mm/transparent_hugepage/enabled; then
+  echo never &gt; /sys/kernel/mm/transparent_hugepage/enabled
+fi
+if test -f /sys/kernel/mm/transparent_hugepage/defrag; then
+   echo never &gt; /sys/kernel/mm/transparent_hugepage/defrag
+fi
+        
+cat  /sys/kernel/mm/transparent_hugepage/enabled        
+cat /sys/kernel/mm/transparent_hugepage/defrag 
+其他系统关闭参照官方文档：   
+https://docs.mongodb.com/manual/tutorial/transparent-huge-pages/
+为什么需要关闭大页内存？
+Transparent Huge Pages (THP) is a Linux memory management system 
+that reduces the overhead of Translation Lookaside Buffer (TLB) 
+lookups on machines with large amounts of memory by using larger memory pages.
+However, database workloads often perform poorly with THP, 
+because they tend to have sparse rather than contiguous memory access patterns. 
+You should disable THP on Linux machines to ensure best performance with MongoDB
+#################################################################################
+</code></pre>
+<p>2、mongodb安装</p>
+<p>创建所需用户和组</p>
+<pre><code class="language-bash">useradd mongod
+passwd mongod
+</code></pre>
+<p>创建mongodb所需目录结构</p>
+<pre><code class="language-bash">#配置文件目录
+mkdir -p /mongodb/conf
+#日志目录
+mkdir -p /mongodb/log
+#数据目录
+mkdir -p /mongodb/data
+</code></pre>
+<p>上传并解压软件到指定位置</p>
+<pre><code class="language-bash">[root@db01 ~]# mkdir /server/tools/ -p
+[root@db01 ~]# cd /server/tools/
+[root@db01 /server/tools]# tar xf mongodb-linux-x86_64-rhel70-5.0.3.tgz
+[root@db01 /server/tools]# cp -r mongodb-linux-x86_64-rhel70-5.0.3/bin/ /mongodb/
+</code></pre>
+<p>设置目录结构权限</p>
+<pre><code class="language-bash">[root@db01 ~]# chown -R mongod:mongod /mongodb
+</code></pre>
+<p>设置用户环境变量</p>
+<pre><code class="language-bash">su - mongod
+vim .bash_profile
+export PATH=/mongodb/bin:$PATH
+source .bash_profile
+</code></pre>
+<p>启动mongodb</p>
+<pre><code class="language-bash">mongod --dbpath=/mongodb/data --logpath=/mongodb/log/mongodb.log --port=27017 --logappend --fork 
+</code></pre>
+<p>登录mongodb</p>
+<pre><code class="language-bash">[mongod@db01 ~]$ mongo
+</code></pre>
+<p>使用配置文件</p>
+<pre><code class="language-bash">YAML模式
+NOTE：
+YAML does not support tab characters for indentation: use spaces instead.
+
+--系统日志有关  
+systemLog:
+   destination: file        
+   path: &quot;/mongodb/log/mongodb.log&quot;    --日志位置
+   logAppend: true                     --日志以追加模式记录
+  
+--数据存储有关   
+storage:
+   journal:
+      enabled: true
+   dbPath: &quot;/mongodb/data&quot;            --数据路径的位置
+
+-- 进程控制  
+processManagement:
+   fork: true                         --后台守护进程
+   pidFilePath: &lt;string&gt;              --pid文件的位置，一般不用配置，可以去掉这行，自动生成到data中
+    
+--网络配置有关   
+net:            
+   bindIp: &lt;ip&gt;                       -- 监听地址
+   port: &lt;port&gt;                       -- 端口号,默认不配置端口号，是27017
+   
+-- 安全验证有关配置      
+security:
+  authorization: enabled              --是否打开用户名密码验证
+  
+------------------以下是复制集与分片集群有关----------------------  
+replication:
+ oplogSizeMB: &lt;NUM&gt;
+ replSetName: &quot;&lt;REPSETNAME&gt;&quot;
+ secondaryIndexPrefetch: &quot;all&quot;
+ 
+sharding:
+   clusterRole: &lt;string&gt;
+   archiveMovedChunks: &lt;boolean&gt;
+      
+---for mongos only
+replication:
+   localPingThresholdMs: &lt;int&gt;
+
+sharding:
+   configDB: &lt;string&gt;
+---
+++++++++++++++++++++++
+YAML例子
+cat &gt;  /mongodb/conf/mongo.conf &lt;&lt;EOF
+systemLog:
+   destination: file
+   path: &quot;/mongodb/log/mongodb.log&quot;
+   logAppend: true
+storage:
+   journal:
+      enabled: true
+   dbPath: &quot;/mongodb/data/&quot;
+processManagement:
+   fork: true
+net:
+   port: 27017
+   bindIp: 10.0.0.51,127.0.0.1
+EOF
+</code></pre>
+<p>配置文件方式启动关闭mongodb</p>
+<pre><code class="language-bash">pkill mongod
+mongod -f /mongodb/conf/mongo.conf  
+mongod -f /mongodb/conf/mongo.conf --shutdown
+</code></pre>
+<p>mongodb使用sysemd管理</p>
+<pre><code class="language-bash">[root@db01 ~]# cat &gt; /etc/systemd/system/mongod.service &lt;&lt;EOF
+[Unit]
+Description=mongodb 
+After=network.target remote-fs.target nss-lookup.target
+[Service]
+User=mongod
+Type=forking
+ExecStart=/mongodb/bin/mongod --config /mongodb/conf/mongo.conf
+ExecReload=/bin/kill -s HUP $MAINPID
+ExecStop=/mongodb/bin/mongod --config /mongodb/conf/mongo.conf --shutdown
+PrivateTmp=true  
+[Install]
+WantedBy=multi-user.target
+EOF
+[root@db01 ~]# systemctl restart mongod
+[root@db01 ~]# systemctl stop mongod
+[root@db01 ~]# systemctl start mongod
+</code></pre>
+<h3 id="mongodb常用基本操作">mongodb常用基本操作</h3>
+<p>1、mongodb默认存在的库</p>
+<pre><code class="language-bash">test库：登录时默认存在的库，管理mongodb有关的系统库
+admin库：系统预留库，mongodb系统管理库
+local库：本地预留库，存储关键日志
+config库：mongodb配置库
+</code></pre>
+<p>2、命令种类</p>
+<pre><code class="language-bash">1）db 对象相关的命令
+db                   当前使用的库
+db.[TAB][TAB]        类似于Linux中的tab功能
+db.help()            db级别的命令使用帮助
+
+2）rs 复制集有关(replication set)
+rs.[TAB][TAB]
+rs.help()
+
+3）sh 分片集群(sharding cluster)
+sh.[TAB][TAB]
+sh.help()
+</code></pre>
+<h3 id="mongodb对象操作">mongodb对象操作</h3>
+<p>1、库的操作</p>
+<pre><code class="language-bash">---查看当前数据库版本
+&gt; db.version()
+5.0.3
+---显示当前数据库
+&gt; db
+或者
+&gt; db.getName()
+---查询所有数据库
+&gt; show dbs
+---切换数据库
+&gt; use local
+---显示当前数据库状态
+&gt; db.stats()
+---查看当前数据库的连接机器地址
+&gt; db.getMongo()
+connection to 127.0.0.1:27017
+---创建数据库
+当use的时候，系统就会自动创建一个数据库，如果use之后没有创建任何集合，系统就会删除这个数据库
+---删除数据库
+如果没有选择任何数据库，会删除默认的test数据库
+&gt; use test
+&gt; db.dropDatabase()
+{ &quot;ok&quot; : 1 }
+</code></pre>
+<p>2、集合的操作</p>
+<pre><code class="language-bash">---创建集合
+方法一：
+&gt; use app
+switched to db app
+&gt; db.createCollection('a')
+{ &quot;ok&quot; : 1 }
+&gt; db.createCollection('b')
+{ &quot;ok&quot; : 1 }
+&gt; show collections   #查看当前数据库下的所有集合
+a
+b
+或者
+&gt; db.getCollectionNames()
+[ &quot;a&quot;, &quot;b&quot; ]
+方法二：当插入一个文档的时候，一个集合就会自动创建
+&gt; db.oldguo.insert({id : &quot;101&quot; ,name : &quot;zs&quot; ,age : &quot;22&quot; ,gender : &quot;female&quot;,address : &quot;sz&quot;})
+WriteResult({ &quot;nInserted&quot; : 1 })
+&gt; db.oldguo.find({id:&quot;101&quot;}).pretty()
+{
+        &quot;_id&quot; : ObjectId(&quot;62bacc16d5be5f6b40d2ff4f&quot;),
+        &quot;id&quot; : &quot;101&quot;,
+        &quot;name&quot; : &quot;zs&quot;,
+        &quot;age&quot; : &quot;22&quot;,
+        &quot;gender&quot; : &quot;female&quot;,
+        &quot;address&quot; : &quot;sz&quot;
+}
+&gt; db.oldguo.find({id:&quot;101&quot;})  #查看集合中的数据
+{ &quot;_id&quot; : ObjectId(&quot;62bacc16d5be5f6b40d2ff4f&quot;), &quot;id&quot; : &quot;101&quot;, &quot;name&quot; : &quot;zs&quot;, &quot;age&quot; : &quot;22&quot;, &quot;gender&quot; : &quot;female&quot;, &quot;address&quot; : &quot;sz&quot; }
+&gt; db.oldguo.find({id:&quot;101&quot;}).pretty()  #以标准的json格式显示数据
+{
+        &quot;_id&quot; : ObjectId(&quot;62bacc16d5be5f6b40d2ff4f&quot;),
+        &quot;id&quot; : &quot;101&quot;,
+        &quot;name&quot; : &quot;zs&quot;,
+        &quot;age&quot; : &quot;22&quot;,
+        &quot;gender&quot; : &quot;female&quot;,
+        &quot;address&quot; : &quot;sz&quot;
+}
+---删除集合
+&gt; use app
+&gt; show collections
+a
+b
+&gt; db.a.drop()
+true
+&gt; show collections
+b
+</code></pre>
+<p>3、文档操作</p>
+<pre><code class="language-bash">---批量插入数据
+for(i=0;i&lt;10000;i++){db.log.insert({&quot;uid&quot;:i,&quot;name&quot;:&quot;mongodb&quot;,&quot;age&quot;:6,&quot;date&quot;:new Date()})}
+---查询所有记录
+&gt; db.log.find()
+#默认每页显示20条记录，当显示不下的情况下，可以用it迭代命令查询下一页数据
+---设置每页显示50条记录
+&gt; DBQuery.shellBatchSize=50;
+---查看第1条记录
+&gt; db.log.findOne()
+{
+        &quot;_id&quot; : ObjectId(&quot;62bbae0f49a6b834e8be0999&quot;),
+        &quot;uid&quot; : 0,
+        &quot;name&quot; : &quot;mongodb&quot;,
+        &quot;age&quot; : 6,
+        &quot;date&quot; : ISODate(&quot;2022-06-29T01:42:39.564Z&quot;)
+}
+---查询总的记录数
+&gt; db.log.count()
+10000
+---按照条件查询
+&gt;  db.log.find({uid:999})
+{ &quot;_id&quot; : ObjectId(&quot;62bbae0f49a6b834e8be0d80&quot;), &quot;uid&quot; : 999, &quot;name&quot; : &quot;mongodb&quot;, &quot;age&quot; : 6, &quot;date&quot; : ISODate(&quot;2022-06-29T01:42:39.865Z&quot;) }
+&gt; db.log.find({uid:999}).pretty()  #以标准的json格式显示数据
+{
+        &quot;_id&quot; : ObjectId(&quot;62bbae0f49a6b834e8be0d80&quot;),
+        &quot;uid&quot; : 999,
+        &quot;name&quot; : &quot;mongodb&quot;,
+        &quot;age&quot; : 6,
+        &quot;date&quot; : ISODate(&quot;2022-06-29T01:42:39.865Z&quot;)
+}
+---查询去掉当前集合中某列的重复数据
+&gt; db.log.distinct(&quot;name&quot;)
+[ &quot;mongodb&quot; ]
+---删除集合中的记录数
+&gt; db.log.remove({})
+WriteResult({ &quot;nRemoved&quot; : 10000 })
+---查看集合存储信息
+&gt; db.log.stats()
+&gt; db.log.dataSize()         #集合中数据的原始大小
+0
+&gt; db.log.totalIndexSize()   #集合中索引数据的原始大小
+122880
+&gt; db.log.totalSize()        #集合中索引+数据存储后的大小   *****
+294912
+&gt; db.log.storageSize()      #集合中数据压缩存储的大小  
+172032
+</code></pre>
+<h3 id="用户及权限管理">用户及权限管理</h3>
+<p>1、注意</p>
+<pre><code class="language-bash">验证库：建立用户时use到的库，在使用用户时，要加上验证库才能登录
+
+对于管理员用户，必须在admin下创建
+1）建用户时，use到的库，就是此用户的验证库
+2）登录时，必须明确指定验证库才能登录
+3）通常，管理员用的验证库是admin，普通用户的验证库一般是所管理的库设置为验证库
+4）如果直接登录到数据库，不进行use，默认的验证库是test，不是我们生产建议的
+5）从3.6版本开始，不添加bindIp参数，默认不让远程登录，只能本地管理员登录
+</code></pre>
+<p>2、用户创建语法</p>
+<pre><code class="language-bash">use admin 
+db.createUser
+{
+    user: &quot;&lt;name&gt;&quot;,
+    pwd: &quot;&lt;cleartext password&gt;&quot;,
+    roles: [
+       { role: &quot;&lt;role&gt;&quot;,
+     db: &quot;&lt;database&gt;&quot; } | &quot;&lt;role&gt;&quot;,
+    ...
+    ]
+}
+#基本语法说明
+use：用户名
+pwd：密码
+roles：
+   role：角色名
+   db： 作用对象
+role：root，readWrite，read
+验证数据库
+mongo -u oldboy -p 123 10.0.0.53/oldboy
+</code></pre>
+<p>3、用户管理例子</p>
+<p>3.1、开启用户授权</p>
+<pre><code class="language-bash">#在没有开启用户管理授权，默认可以执行任何操作，非常不安全
+1）在配置文件中加入以下配置
+security:
+  authorization: enabled
+2）重启mongodb
+mongod -f /mongodb/conf/mongo.conf --shutdown 
+mongod -f /mongodb/conf/mongo.conf 
+或者
+sysemctl restart mongod
+</code></pre>
+<p>3.2、创建超级管理员：管理所有数据库（必须use admin再去创建）</p>
+<pre><code class="language-bash">#首先创建管理员用户，否则没有权限执行任何操作
+$ mongo
+use admin
+db.createUser(
+{
+    user: &quot;root&quot;,
+    pwd: &quot;root123&quot;,
+    roles: [ { role: &quot;root&quot;, db: &quot;admin&quot; } ]
+}
+)
+</code></pre>
+<p>3.3、登录验证</p>
+<pre><code class="language-bash">mongo -uroot -proot123  admin
+mongo -uroot -proot123  10.0.0.53/admin
+或者
+mongo
+use admin
+db.auth('root','root123')
+#查看用户
+&gt; use admin
+&gt; db.auth('root','root123')
+&gt; db.system.users.find().pretty()
+{
+        &quot;_id&quot; : &quot;admin.root&quot;,
+        &quot;userId&quot; : UUID(&quot;e8a2e64c-026d-4e54-a4f2-7632e876d73e&quot;),
+        &quot;user&quot; : &quot;root&quot;,
+        &quot;db&quot; : &quot;admin&quot;,
+        &quot;credentials&quot; : {
+                &quot;SCRAM-SHA-1&quot; : {
+                        &quot;iterationCount&quot; : 10000,
+                        &quot;salt&quot; : &quot;kv2DY8HrXMDVX+dgjVQTKQ==&quot;,
+                        &quot;storedKey&quot; : &quot;18LXRfaFaq+1wWFt2H349R1uHdI=&quot;,
+                        &quot;serverKey&quot; : &quot;LHNPa1jJE5nBFLkC+ffL9hIpm2I=&quot;
+                },
+                &quot;SCRAM-SHA-256&quot; : {
+                        &quot;iterationCount&quot; : 15000,
+                        &quot;salt&quot; : &quot;SjGdRJfH95iT783DYG8xhgaRgSS06FllTAijgg==&quot;,
+                        &quot;storedKey&quot; : &quot;HH/K8qM+lPzMqTT0CWTpZGM2ardh2N0lovo0KploLIg=&quot;,
+                        &quot;serverKey&quot; : &quot;3LXrdvRtFd2yWP0z54IESoXeRMbVewp8EutInr57mIw=&quot;
+                }
+        },
+        &quot;roles&quot; : [
+                {
+                        &quot;role&quot; : &quot;root&quot;,
+                        &quot;db&quot; : &quot;admin&quot;
+                }
+        ]
+}
+</code></pre>
+<p>3.4、创建应用app用户</p>
+<pre><code class="language-bash">use app
+db.createUser(
+{
+user: &quot;app01&quot;,
+pwd: &quot;app01&quot;,
+roles: [ { role: &quot;dbAdmin&quot;, db: &quot;app&quot; } ]
+}
+)
+#登录测试
+mongo -uapp01 -papp01 app
+或者 
+mongo -uapp01 -papp01 10.0.0.51/app
+</code></pre>
+<p>3.5、删除用户（root身份登录，use到验证库）</p>
+<pre><code class="language-bash"># mongo -uroot -proot123 10.0.0.51/admin
+use app
+db.dropUser(&quot;app01&quot;)
+</code></pre>
+<p>3.6、用户管理注意事项</p>
+<pre><code class="language-bash">1）建用户要有验证库，管理员admin，普通用户是要管理的库
+2）登录时，注意验证库
+mongo -uapp01 -papp01 10.0.0.51/app
+3）重点参数
+net:
+   port: 27017
+   bindIp: 10.0.0.51,127.0.0.1
+security:
+   authorization: enabled
+</code></pre>
+<h3 id="mongodb复制集rsreplicationset">mongodb复制集RS(ReplicationSet)</h3>
+<p>1、基本原理</p>
+<pre><code class="language-bash">1）基本构成是1主2从的结构，自带互相监控投票机制(Raft MongoDB)，Paxos(MySQL MGR用的是变种)
+2）如果发生主库宕机，复制集内部会进行投票选举，选择一个新的主库替代原有主库对外提供服务，同时复制集会自动
+通知客户端程序，主库已经发生切换，应用就会连接到新的主库
+</code></pre>
+<p>2、Replication Set配置过程详解</p>
+<p>2.1、规划</p>
+<pre><code class="language-bash">三个以上的mongodb节点（或多实例）
+</code></pre>
+<p>2.2、环境准备</p>
+<p>多个端口</p>
+<pre><code class="language-bash">28017、28018、28019、28020
+</code></pre>
+<p>多套目录</p>
+<pre><code class="language-bash">mkdir -p /mongodb/28017/conf /mongodb/28017/data /mongodb/28017/log
+mkdir -p /mongodb/28018/conf /mongodb/28018/data /mongodb/28018/log
+mkdir -p /mongodb/28019/conf /mongodb/28019/data /mongodb/28019/log
+mkdir -p /mongodb/28020/conf /mongodb/28020/data /mongodb/28020/log
+</code></pre>
+<p>多套配置文件</p>
+<pre><code class="language-bash">cat &gt; /mongodb/28017/conf/mongod.conf &lt;&lt;EOF
+systemLog:
+  destination: file
+  path: /mongodb/28017/log/mongodb.log
+  logAppend: true
+storage:
+  journal:
+    enabled: true
+  dbPath: /mongodb/28017/data
+  directoryPerDB: true
+  #engine: wiredTiger
+  wiredTiger:
+    engineConfig:
+      cacheSizeGB: 1
+      directoryForIndexes: true
+    collectionConfig:
+      blockCompressor: zlib
+    indexConfig:
+      prefixCompression: true
+processManagement:
+  fork: true
+net:
+  bindIp: 10.0.0.51,127.0.0.1
+  port: 28017
+replication:
+  oplogSizeMB: 2048
+  replSetName: my_repl
+EOF
+
+\cp  /mongodb/28017/conf/mongod.conf  /mongodb/28018/conf/
+\cp  /mongodb/28017/conf/mongod.conf  /mongodb/28019/conf/
+\cp  /mongodb/28017/conf/mongod.conf  /mongodb/28020/conf/
+
+sed -i 's#28017#28018#g' /mongodb/28018/conf/mongod.conf
+sed -i 's#28017#28019#g' /mongodb/28019/conf/mongod.conf
+sed -i 's#28017#28020#g' /mongodb/28020/conf/mongod.conf
+</code></pre>
+<p>启动多个实例</p>
+<pre><code class="language-bash">mongod -f /mongodb/28017/conf/mongod.conf
+mongod -f /mongodb/28018/conf/mongod.conf
+mongod -f /mongodb/28019/conf/mongod.conf
+mongod -f /mongodb/28020/conf/mongod.conf
+netstat -lnp|grep 280
+</code></pre>
+<p>2.3、配置普通复制集</p>
+<pre><code class="language-bash">1主2从，普通从库
+mongo --port 28017 admin
+config = {_id: 'my_repl', members: [
+                          {_id: 0, host: '10.0.0.51:28017'},
+                          {_id: 1, host: '10.0.0.51:28018'},
+                          {_id: 2, host: '10.0.0.51:28019'}]
+          }                   
+rs.initiate(config) 
+{ &quot;ok&quot; : 1 }
+查询复制集状态
+rs.status();
+</code></pre>
+<p>2.4、1主1从1个arbiter</p>
+<pre><code class="language-bash">arbiter的作用是维持与复制集中所有的节点的心跳以保证选举需要的节点数，它不是一个数据存储集，也不提供任何服务
+mongo -port 28017 admin
+config = {_id: 'my_repl', members: [
+                          {_id: 0, host: '10.0.0.51:28017'},
+                          {_id: 1, host: '10.0.0.51:28018'},
+                          {_id: 2, host: '10.0.0.51:28019',&quot;arbiterOnly&quot;:true}]
+          }                
+rs.initiate(config) 
+</code></pre>
+<p>2.5、复制集管理操作</p>
+<p>查看复制集状态</p>
+<pre><code class="language-bash">rs.status();    #查看整体复制集状态
+rs.isMaster();  #查看当前是否是主节点
+ rs.conf();     #查看复制集配置信息
+</code></pre>
+<p>添加删除节点</p>
+<pre><code class="language-bash">rs.remove(&quot;ip:port&quot;);  #删除一个节点
+rs.add(&quot;ip:port&quot;);     #新增从节点
+rs.addArb(&quot;ip:port&quot;);  #新增仲裁节点
+例子：
+---添加arbiter节点
+1）连接到主节点
+mongo -port 28017 admin
+db.adminCommand({
+  &quot;setDefaultRWConcern&quot; : 1,
+  &quot;defaultWriteConcern&quot; : {
+    &quot;w&quot; : 2
+  }
+})
+2）添加仲裁节点
+my_repl:PRIMARY&gt; rs.addArb(&quot;10.0.0.51:28020&quot;)
+3）查看节点状态
+my_repl:PRIMARY&gt; rs.isMaster();
+{
+        &quot;topologyVersion&quot; : {
+                &quot;processId&quot; : ObjectId(&quot;62bbf99f8bbe53b995b40725&quot;),
+                &quot;counter&quot; : NumberLong(13)
+        },
+        &quot;hosts&quot; : [
+                &quot;10.0.0.51:28017&quot;,
+                &quot;10.0.0.51:28018&quot;,
+                &quot;10.0.0.51:28019&quot;
+        ],
+        &quot;arbiters&quot; : [
+                &quot;10.0.0.51:28020&quot;
+        ],
+---删除一个节点
+my_repl:PRIMARY&gt; rs.remove(&quot;10.0.0.51:28019&quot;)
+{
+        &quot;ok&quot; : 1,
+        &quot;$clusterTime&quot; : {
+                &quot;clusterTime&quot; : Timestamp(1656491712, 1),
+                &quot;signature&quot; : {
+                        &quot;hash&quot; : BinData(0,&quot;AAAAAAAAAAAAAAAAAAAAAAAAAAA=&quot;),
+                        &quot;keyId&quot; : NumberLong(0)
+                }
+        },
+        &quot;operationTime&quot; : Timestamp(1656491712, 1)
+}
+my_repl:PRIMARY&gt; rs.isMaster();
+---新增从节点
+my_repl:PRIMARY&gt; rs.add(&quot;10.0.0.51:28019&quot;)
+my_repl:PRIMARY&gt; rs.isMaster();
+</code></pre>
+<p>2.6、特殊从节点</p>
+<p>介绍</p>
+<pre><code class="language-bash">1）arbiter节点：主要负责选主过程种的投票，但是不存储任何数据，也不提供任何服务
+2）hidden节点：隐藏节点，不参与选主，也不对外提供服务
+3）delay节点：延时节点，数据落后于主库一段时间，因为数据是延时的，也不应该提供服务或参与选主
+一般情况下会将delay+hidden一起配置使用
+</code></pre>
+<p>注意</p>
+<pre><code class="language-bash">1）可以在搭建过程中设置特殊从节点
+2）可以通过修改配置的方式将普通从节点设置为特殊从节点
+3）关键是找到需要改为延迟性同步的数组号
+</code></pre>
+<p>配置延时节点（一般延时节点也配置成hidden）</p>
+<pre><code class="language-bash">参考文档
+https://www.mongodb.com/docs/manual/tutorial/configure-a-delayed-replica-set-member/
+cfg = rs.conf()
+cfg.members[0].priority = 0
+cfg.members[0].hidden = true
+cfg.members[0].secondaryDelaySecs = 3600
+rs.reconfig(cfg)    
+-------------目前复制状态-------------
+我的需求是：把28019设置为hidden和delay
+my_repl:PRIMARY&gt; rs.status()
+{
+
+&quot;members&quot; : [
+{
+&quot;_id&quot; : 0,
+&quot;name&quot; : &quot;10.0.0.200:28017&quot;,
+},
+{
+&quot;_id&quot; : 1,
+&quot;name&quot; : &quot;10.0.0.200:28018&quot;,
+
+},
+{
+&quot;_id&quot; : 3,
+&quot;name&quot; : &quot;10.0.0.200:28020&quot;,
+
+},
+{
+&quot;_id&quot; : 4,
+&quot;name&quot; : &quot;10.0.0.200:28019&quot;,
+
+}
+cfg = rs.conf()
+cfg.members[3].priority = 0
+cfg.members[3].hidden = true
+cfg.members[3].secondaryDelaySecs = 3600
+rs.reconfig(cfg)
+-------------------------------------
+取消以上配置
+cfg=rs.conf() 
+cfg.members[3].priority=1
+cfg.members[3].hidden=false
+cfg.members[3].secondaryDelaySecs=0
+rs.reconfig(cfg)    
+配置成功后，通过以下命令查询配置后的属性
+my_repl:PRIMARY&gt; rs.conf()
+                {
+                        &quot;_id&quot; : 4,
+                        &quot;host&quot; : &quot;10.0.0.51:28019&quot;,
+                        &quot;arbiterOnly&quot; : false,
+                        &quot;buildIndexes&quot; : true,
+                        &quot;hidden&quot; : true,
+                        &quot;priority&quot; : 0,
+                        &quot;tags&quot; : {
+
+                        },
+                        &quot;secondaryDelaySecs&quot; : NumberLong(3600),
+                        &quot;votes&quot; : 1
+                }
+</code></pre>
+<p>2.7、副本集其他操作命令</p>
+<pre><code class="language-bash">---查看副本集的配置信息
+my_repl:PRIMARY&gt; rs.conf()
+---查看副本集各成员的状态
+my_repl:PRIMARY&gt; rs.status()
+---副本集角色切换（不要人为随便操作）
+my_repl:PRIMARY&gt; rs.stepDown()
+注：
+my_repl:PRIMARY&gt; rs.freeze(300) #锁定从，使其不会转变成主库
+freeze()和stepDown单位都是秒
+---设置副本节点可读：在副本节点执行
+报错信息： &quot;errmsg&quot; : &quot;not master and slaveOk=false&quot;
+my_repl:SECONDARY&gt; rs.secondaryOk()
+例子：
+my_repl:SECONDARY&gt; use app
+switched to db app
+my_repl:SECONDARY&gt; db.createCollection('a')
+{ &quot;ok&quot; : 0, &quot;errmsg&quot; : &quot;not master&quot;, &quot;code&quot; : 10107 }
+---查看副本节点（监控主从延时）
+my_repl:PRIMARY&gt; rs.printSecondaryReplicationInfo();
+source: 10.0.0.51:28018
+        syncedTo: Wed Jun 29 2022 22:29:48 GMT-0400 (EDT)
+        0 secs (0 hrs) behind the primary 
+source: 10.0.0.51:28019
+        syncedTo: Wed Jun 29 2022 21:45:40 GMT-0400 (EDT)
+        2648 secs (0.74 hrs) behind the primary 
+        
+OPlog日志 （备份恢复章节）
+</code></pre>
+<h3 id="mongodb-sharding-cluster-分片集群">MongoDB Sharding Cluster 分片集群</h3>
+<p>1、规划</p>
+<pre><code class="language-bash">10个实例
+1）configserver：38018-38020
+3台构成复制集（1主2从，不支持arbiter），复制集名字configsvr
+2）shard节点
+sh1：38021-38023 （1主2从，其中一个节点为arbiter，复制集名字sh1）
+sh2：38024-38026 （1主2从，其中一个节点为arbiter，复制集名字sh2）
+3）mongos：38017
+</code></pre>
+<p>2、shard节点配置过程</p>
+<p>2.1、目录创建</p>
+<pre><code class="language-bash">mkdir -p /mongodb/38021/conf  /mongodb/38021/log  /mongodb/38021/data
+mkdir -p /mongodb/38022/conf  /mongodb/38022/log  /mongodb/38022/data
+mkdir -p /mongodb/38023/conf  /mongodb/38023/log  /mongodb/38023/data
+mkdir -p /mongodb/38024/conf  /mongodb/38024/log  /mongodb/38024/data
+mkdir -p /mongodb/38025/conf  /mongodb/38025/log  /mongodb/38025/data
+mkdir -p /mongodb/38026/conf  /mongodb/38026/log  /mongodb/38026/data
+</code></pre>
+<p>2.2、修改配置文件</p>
+<p>第一组复制集搭建：21-23（1主1从1arbiter）</p>
+<pre><code class="language-bash">cat &gt;  /mongodb/38021/conf/mongodb.conf  &lt;&lt;EOF
+systemLog:
+  destination: file
+  path: /mongodb/38021/log/mongodb.log   
+  logAppend: true
+storage:
+  journal:
+    enabled: true
+  dbPath: /mongodb/38021/data
+  directoryPerDB: true
+  #engine: wiredTiger
+  wiredTiger:
+    engineConfig:
+      cacheSizeGB: 1
+      directoryForIndexes: true
+    collectionConfig:
+      blockCompressor: zlib
+    indexConfig:
+      prefixCompression: true
+net:
+  bindIp: 10.0.0.51,127.0.0.1
+  port: 38021
+replication:
+  oplogSizeMB: 2048
+  replSetName: sh1
+sharding:
+  clusterRole: shardsvr
+processManagement: 
+  fork: true
+EOF
+\cp  /mongodb/38021/conf/mongodb.conf  /mongodb/38022/conf/
+\cp  /mongodb/38021/conf/mongodb.conf  /mongodb/38023/conf/
+sed -i 's#38021#38022#g' /mongodb/38022/conf/mongodb.conf
+sed -i 's#38021#38023#g' /mongodb/38023/conf/mongodb.conf
+</code></pre>
+<p>第二组节点：24-26（1主1从1arbiter）</p>
+<pre><code class="language-bash">cat &gt; /mongodb/38024/conf/mongodb.conf &lt;&lt;EOF
+systemLog:
+  destination: file
+  path: /mongodb/38024/log/mongodb.log   
+  logAppend: true
+storage:
+  journal:
+    enabled: true
+  dbPath: /mongodb/38024/data
+  directoryPerDB: true
+  wiredTiger:
+    engineConfig:
+      cacheSizeGB: 1
+      directoryForIndexes: true
+    collectionConfig:
+      blockCompressor: zlib
+    indexConfig:
+      prefixCompression: true
+net:
+  bindIp: 10.0.0.51,127.0.0.1
+  port: 38024
+replication:
+  oplogSizeMB: 2048
+  replSetName: sh2
+sharding:
+  clusterRole: shardsvr
+processManagement: 
+  fork: true
+EOF
+\cp  /mongodb/38024/conf/mongodb.conf  /mongodb/38025/conf/
+\cp  /mongodb/38024/conf/mongodb.conf  /mongodb/38026/conf/
+sed -i 's#38024#38025#g' /mongodb/38025/conf/mongodb.conf
+sed -i 's#38024#38026#g' /mongodb/38026/conf/mongodb.conf
+</code></pre>
+<p>2.3、启动所有节点，并搭建复制集</p>
+<pre><code class="language-bash">mongod -f  /mongodb/38021/conf/mongodb.conf 
+mongod -f  /mongodb/38022/conf/mongodb.conf 
+mongod -f  /mongodb/38023/conf/mongodb.conf 
+mongod -f  /mongodb/38024/conf/mongodb.conf 
+mongod -f  /mongodb/38025/conf/mongodb.conf 
+mongod -f  /mongodb/38026/conf/mongodb.conf  
+ps -ef |grep mongod
+
+mongo --port 38021
+use  admin
+config = {_id: 'sh1', members: [
+                          {_id: 0, host: '10.0.0.51:38021'},
+                          {_id: 1, host: '10.0.0.51:38022'},
+                          {_id: 2, host: '10.0.0.51:38023',&quot;arbiterOnly&quot;:true}]
+           }
+
+rs.initiate(config)
+
+mongo --port 38024 
+ use admin
+config = {_id: 'sh2', members: [
+                          {_id: 0, host: '10.0.0.51:38024'},
+                          {_id: 1, host: '10.0.0.51:38025'},
+                          {_id: 2, host: '10.0.0.51:38026',&quot;arbiterOnly&quot;:true}]
+           }
+  
+rs.initiate(config)
+</code></pre>
+<p>2.4、config节点配置</p>
+<p>目录创建</p>
+<pre><code class="language-bash">mkdir -p /mongodb/38018/conf  /mongodb/38018/log  /mongodb/38018/data
+mkdir -p /mongodb/38019/conf  /mongodb/38019/log  /mongodb/38019/data
+mkdir -p /mongodb/38020/conf  /mongodb/38020/log  /mongodb/38020/data
+</code></pre>
+<p>修改配置文件</p>
+<pre><code class="language-bash">cat &gt; /mongodb/38018/conf/mongodb.conf &lt;&lt;EOF
+systemLog:
+  destination: file
+  path: /mongodb/38018/log/mongodb.conf
+  logAppend: true
+storage:
+  journal:
+    enabled: true
+  dbPath: /mongodb/38018/data
+  directoryPerDB: true
+  #engine: wiredTiger
+  wiredTiger:
+    engineConfig:
+      cacheSizeGB: 1
+      directoryForIndexes: true
+    collectionConfig:
+      blockCompressor: zlib
+    indexConfig:
+      prefixCompression: true
+net:
+  bindIp: 10.0.0.51,127.0.0.1
+  port: 38018
+replication:
+  oplogSizeMB: 2048
+  replSetName: configReplSet
+sharding:
+  clusterRole: configsvr
+processManagement: 
+  fork: true
+EOF
+
+\cp /mongodb/38018/conf/mongodb.conf /mongodb/38019/conf/
+\cp /mongodb/38018/conf/mongodb.conf /mongodb/38020/conf/
+sed -i 's#38018#38019#g' /mongodb/38019/conf/mongodb.conf
+sed -i 's#38018#38020#g' /mongodb/38020/conf/mongodb.conf
+</code></pre>
+<p>启动节点，并配置复制集</p>
+<pre><code class="language-bash">mongod -f /mongodb/38018/conf/mongodb.conf 
+mongod -f /mongodb/38019/conf/mongodb.conf 
+mongod -f /mongodb/38020/conf/mongodb.conf 
+
+mongo --port 38018
+use  admin
+ config = {_id: 'configReplSet', members: [
+                          {_id: 0, host: '10.0.0.51:38018'},
+                          {_id: 1, host: '10.0.0.51:38019'},
+                          {_id: 2, host: '10.0.0.51:38020'}]
+           }
+rs.initiate(config) 
+注：configserver可以是一个节点，官方建议复制集，configserver不能有arbiter
+新版本中，要求必须是复制集
+注：mongodb3.4之后，虽然要求config server为replica set，但是不支持arbiter
+</code></pre>
+<p>2.5、mongos节点配置</p>
+<p>创建目录</p>
+<pre><code class="language-bash">mkdir -p /mongodb/38017/conf  /mongodb/38017/log 
+</code></pre>
+<p>配置文件</p>
+<pre><code class="language-bash">cat &gt; /mongodb/38017/conf/mongos.conf &lt;&lt;EOF
+systemLog:
+  destination: file
+  path: /mongodb/38017/log/mongos.log
+  logAppend: true
+net:
+  bindIp: 10.0.0.51,127.0.0.1
+  port: 38017
+sharding:
+  configDB: configReplSet/10.0.0.51:38018,10.0.0.51:38019,10.0.0.51:38020
+processManagement: 
+  fork: true
+EOF
+</code></pre>
+<p>启动mongos</p>
+<pre><code class="language-bash"> mongos -f /mongodb/38017/conf/mongos.conf 
+</code></pre>
+<p>2.6、分片集群添加节点</p>
+<pre><code class="language-bash">连接到其中一个mongos（10.0.0.51），做以下配置
+1）连接到mongos的admin数据库
+mongo 10.0.0.51:38017/admin
+2）添加分片
+db.runCommand( { addshard : &quot;sh1/10.0.0.51:38021,10.0.0.51:38022,10.0.0.51:38023&quot;,name:&quot;shard1&quot;} )
+db.runCommand( { addshard : &quot;sh2/10.0.0.51:38024,10.0.0.51:38025,10.0.0.51:38026&quot;,name:&quot;shard2&quot;} )
+3）列出分片
+mongos&gt; db.runCommand({listshards:1})
+{
+        &quot;shards&quot; : [
+                {
+                        &quot;_id&quot; : &quot;shard1&quot;,
+                        &quot;host&quot; : &quot;sh1/10.0.0.51:38021,10.0.0.51:38022&quot;,
+                        &quot;state&quot; : 1,
+                        &quot;topologyTime&quot; : Timestamp(1656565765, 2)
+                },
+                {
+                        &quot;_id&quot; : &quot;shard2&quot;,
+                        &quot;host&quot; : &quot;sh2/10.0.0.51:38024,10.0.0.51:38025&quot;,
+                        &quot;state&quot; : 1,
+                        &quot;topologyTime&quot; : Timestamp(1656565776, 2)
+                }
+        ],
+        &quot;ok&quot; : 1,
+        &quot;$clusterTime&quot; : {
+                &quot;clusterTime&quot; : Timestamp(1656565864, 4),
+                &quot;signature&quot; : {
+                        &quot;hash&quot; : BinData(0,&quot;AAAAAAAAAAAAAAAAAAAAAAAAAAA=&quot;),
+                        &quot;keyId&quot; : NumberLong(0)
+                }
+        },
+        &quot;operationTime&quot; : Timestamp(1656565864, 4)
+}
+4）整体状态查看
+mongos&gt; sh.status();
+</code></pre>
+<p>2.7、使用分片集群</p>
+<p>RANGE分片配置及测试</p>
+<pre><code class="language-bash">以范围为基础的分片
+Sharded Cluster支持将单个集合的数据分散存储在多个shard上，用户可以指定根据集合内文档的某个字段及shard key来进行范围分片（range sharding）
+在使用片键做范围划分的系统中，拥有“相近”片键的文档很可能存储在同一个数据块中，因此也会存储在同一个分片中
+</code></pre>
+<pre><code class="language-bash">---激活数据库分片功能
+mongo --port 38017 admin
+mongos&gt; db.runCommand( { enablesharding : &quot;数据库名称&quot; } )
+eg：
+mongos&gt; db.runCommand( { enablesharding : &quot;test&quot; } )
+</code></pre>
+<pre><code class="language-bash">---指定分片键对集合分片
+1）创建索引
+mongos&gt; use test
+mongos&gt; db.vast.createIndex({ id: 1 }) #开启vast表索引，分片键为id，1代表排序方式
+{
+        &quot;raw&quot; : {
+                &quot;sh2/10.0.0.51:38024,10.0.0.51:38025&quot; : {
+                        &quot;numIndexesBefore&quot; : 1,
+                        &quot;numIndexesAfter&quot; : 2,
+                        &quot;createdCollectionAutomatically&quot; : true,
+                        &quot;commitQuorum&quot; : &quot;votingMembers&quot;,
+                        &quot;ok&quot; : 1
+                }
+        },
+        &quot;ok&quot; : 1,
+        &quot;$clusterTime&quot; : {
+                &quot;clusterTime&quot; : Timestamp(1656568388, 2),
+                &quot;signature&quot; : {
+                        &quot;hash&quot; : BinData(0,&quot;AAAAAAAAAAAAAAAAAAAAAAAAAAA=&quot;),
+                        &quot;keyId&quot; : NumberLong(0)
+                }
+        },
+        &quot;operationTime&quot; : Timestamp(1656568388, 2)
+}
+2）开启分片
+mongos&gt; use admin
+mongos&gt; db.runCommand( { shardcollection : &quot;test.vast&quot;,key : {id: 1} } )
+{
+        &quot;collectionsharded&quot; : &quot;test.vast&quot;,
+        &quot;ok&quot; : 1,
+        &quot;$clusterTime&quot; : {
+                &quot;clusterTime&quot; : Timestamp(1656569101, 19),
+                &quot;signature&quot; : {
+                        &quot;hash&quot; : BinData(0,&quot;AAAAAAAAAAAAAAAAAAAAAAAAAAA=&quot;),
+                        &quot;keyId&quot; : NumberLong(0)
+                }
+        },
+        &quot;operationTime&quot; : Timestamp(1656569101, 15)
+}
+</code></pre>
+<pre><code class="language-bash">---集合分片验证
+mongos&gt; use test
+mongos&gt; for(i=1;i&lt;1000000;i++){ db.vast.insert({&quot;id&quot;:i,&quot;name&quot;:&quot;shenzheng&quot;,&quot;age&quot;:70,&quot;date&quot;:new Date()}); }
+WriteResult({ &quot;nInserted&quot; : 1 })
+mongos&gt; db.vast.stats()
+</code></pre>
+<pre><code class="language-bash">---分片结果测试
+shard1:
+mongo --port 38021
+db.vast.count();
+500001
+
+shard2:
+mongo --port 38024
+db.vast.count();
+499998
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/du-xie-fen-chi-jia-gou-atlas/">
+              <h3 class="post-title">
+                下一篇：读写分离架构-Atlas
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

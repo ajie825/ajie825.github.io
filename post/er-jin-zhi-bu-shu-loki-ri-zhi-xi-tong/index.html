@@ -1,0 +1,368 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>二进制部署loki日志系统 | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">二进制部署loki日志系统</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-10-14</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/VTxoTNG5M/">
+                    EFK
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="前言">前言</h2>
+<pre><code class="language-bash">提及日志搜索框架，最常看到的解决方案是ELK。虽然现在有docker、k8s帮助我们简化了部署流程，但ELK对硬件的要求
+却很高，光是es官网就提及需要8GB内存以上的机器部署，可见占据的资源之多，为了能够降低成本，grafana团队提出了
+日志框架：loki。
+</code></pre>
+<h2 id="简介">简介</h2>
+<pre><code class="language-bash">loki是grafana团队开源的一款高可用、高扩展、多租户的日志聚合系统，和ELK的组件功能一样，loki有负责日志存储
+查询的主服务，有在客户端负责收集日志并推送的代理服务，还有grafana的可视化面板展示。
+开发语言：google go。
+不同的是，loki不再根据日志内容去建立大量的索引，而是借鉴了prometheus核心的思想，使用标签去对日志进行特征
+标记，然后归集统计。这样的话，能避免大量的内存资源占用，转向廉价的硬盘存储。当然loki会对日志进行分块存储并
+压缩，保留少量的元数据索引，兼顾硬盘的查询效率。
+</code></pre>
+<pre><code class="language-bash">除此之外，loki还有以下特性：
+一个loki实例允许面向多个租户，不同租户的数据完全与其他租户隔离。
+logQL：loki有自己的查询语言，很容易上手使用的。
+高扩展性，loki的所有组件可以跑在同一个程序里，也可以按微服务的方式去部署它们。
+总之，loki吸引人的地方就在于拥有和prometheus类似机制的时序数据库以及方便扩展的硬盘资源。
+</code></pre>
+<h2 id="loki架构">loki架构</h2>
+<pre><code>系统架构十分简单，由以下3个部分组成：
+loki是主服务器，负责存储收集到的日志以及对日志查询解析。
+agent client：日志代理客户端，负责收集日志发送到主服务loki，目前官方有自己的client：promtail，也支持
+主流的组件，如fluentd、logstash、fluent bit等。
+grafana用于UI展示。
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1665798519647.png" alt="" loading="lazy"></figure>
+<pre><code>可以看到，核心的组件其实是loki主服务，关于它的内部组成，其实还可以细分为几部分：
+promtail收集并将日志发送给loki的distributor组件。
+distributor会对接收到的日志流进行正确性校验，并将验证后的日志分批并行发送到ingester。
+ingester接收日志流并构建数据块，压缩后存放到所连接的后端存储。
+querier收到http查询请求，并将请求发送至ingester用以获取内存数据，ingester收到请求后返回符合条件的
+数据。
+如果ingester没有返回数据，querier会从后端存储加载数据并遍历去重执行查询，通过http返回查询结果。
+</code></pre>
+<figure data-type="image" tabindex="2"><img src="https://ajie825.github.io/post-images/1665715404247.webp" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">loki文档网址：https://grafana.com/docs/loki/latest/
+下载网址：https://github.com/grafana/loki/releases
+</code></pre>
+<h2 id="安装部署loki日志系统">安装部署loki日志系统</h2>
+<h3 id="下载所需要软件">下载所需要软件</h3>
+<pre><code class="language-bash">[root@loki ~]# mkdir /server/tools -p
+[root@loki ~]# cd /server/tools/
+[root@loki tools]# curl -O -L &quot;https://github.com/grafana/loki/releases/download/v1.5.0/loki-linux-amd64.zip&quot;
+[root@loki tools]# curl -O -L &quot;https://github.com/grafana/loki/releases/download/v1.5.0/promtail-linux-amd64.zip&quot;
+#如果已安装grafana，可省略
+[root@loki tools]# wget https://dl.grafana.com/oss/release/grafana-7.1.0-1.x86_64.rpm
+</code></pre>
+<h3 id="服务端安装loki和grafana">服务端安装loki和grafana</h3>
+<pre><code class="language-bash">#安装loki
+[root@loki tools]# mkdir  /data/loki/{chunks,index} -p
+[root@loki tools]# mkdir /usr/local/loki
+[root@loki tools]# unzip loki-linux-amd64.zip
+[root@loki tools]# mv loki-linux-amd64 /usr/local/loki/loki
+[root@loki tools]# cd /usr/local/loki/
+[root@loki loki]# cat config.yaml 
+auth_enabled: false
+server:
+  http_listen_port: 3100
+ingester:
+  lifecycler:
+    address: 192.168.40.183
+    ring:
+      kvstore:
+        store: inmemory
+      replication_factor: 1
+    final_sleep: 0s
+  chunk_idle_period: 5m
+  chunk_retain_period: 30s
+
+schema_config:
+  configs:
+  - from: 2021-07-01
+    store: boltdb
+    object_store: filesystem
+    schema: v11
+    index:
+      prefix: index_
+      period: 168h   #每张表的时间范围7天
+
+storage_config:
+  boltdb:
+    directory: /data/loki/index   #索引文件存储地址
+  filesystem:
+    directory: /data/loki/chunks  #块存储地址
+
+limits_config:
+  enforce_metric_name: false
+  reject_old_samples: true
+  reject_old_samples_max_age: 168h
+
+chunk_store_config:
+# 最大可查询历史日期 28天,这个时间必须是schema_config中的period的倍数，否则报错。
+  max_look_back_period: 672h
+# 表的保留期28天
+table_manager:
+  retention_deletes_enabled: true
+  retention_period: 672h
+
+#启动loki
+cat &gt; /usr/lib/systemd/system/loki.service &lt;&lt;EOF
+[Unit]
+Description=loki
+Documentation=https://github.com/grafana/loki/tree/master
+After=network.target
+ 
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/loki/loki -config.file=/usr/local/loki/config.yaml
+Restart=on-failure
+ 
+[Install]
+WantedBy=multi-user.target
+EOF
+[root@loki loki]# systemctl enable loki
+[root@loki loki]# systemctl start loki
+[root@loki loki]# systemctl status loki
+[root@loki loki]# netstat -lnpt|grep loki
+tcp6       0      0 :::9095                 :::*                    LISTEN      1626/loki           
+tcp6       0      0 :::3100                 :::*                    LISTEN      1626/loki
+</code></pre>
+<pre><code class="language-bash">#安装grafana
+[root@loki loki]# cd /server/tools/
+[root@loki tools]# rpm -ivh grafana-7.1.0-1.x86_64.rpm 
+#报错
+error: Failed dependencies:
+        fontconfig is needed by grafana-7.1.0-1.x86_64
+        urw-fonts is needed by grafana-7.1.0-1.x86_64
+[root@loki tools]# yum install fontconfig urw-fonts -y
+#重新安装
+[root@loki tools]# rpm -ivh grafana-7.1.0-1.x86_64.rpm
+#启动grafana
+systemctl daemon-reload
+systemctl enable grafana-server.service
+systemctl start grafana-server.service
+systemctl status grafana-server.service
+● grafana-server.service - Grafana instance
+   Loaded: loaded (/usr/lib/systemd/system/grafana-server.service; enabled; vendor preset: disabled)
+   Active: active (running)
+</code></pre>
+<h3 id="客户端安装pormtail">客户端安装pormtail</h3>
+<pre><code class="language-bash">[root@loki tools]# mkdir /usr/local/promtail
+[root@loki tools]# unzip promtail-linux-amd64.zip 
+[root@loki tools]# mv promtail-linux-amd64 /usr/local/promtail/promtail
+[root@loki tools]# cd /usr/local/promtail/
+[root@loki promtail]# cat promtail.yaml 
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: ./positions.yaml
+
+clients:
+  - url: http://192.168.40.183:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: system
+    static_configs:
+    - targets:
+        - 192.168.40.183
+    - labels:
+        job: varlogs
+        host: 192.168.40.183
+        __path__:  /var/log/*.log
+#启动promtail
+cat &gt; /usr/lib/systemd/system/promtail.service &lt;&lt;EOF
+[Unit]
+Description=promtail
+Documentation=https://github.com/grafana/loki/tree/master
+After=network.target
+ 
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/promtail/promtail -config.file=/usr/local/promtail/promtail.yaml
+Restart=on-failure
+ 
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl enable promtail
+systemctl start promtail
+systemctl status promtail
+● promtail.service - promtail
+   Loaded: loaded (/usr/lib/systemd/system/promtail.service; enabled; vendor preset: disabled)
+   Active: active (running) 
+</code></pre>
+<h2 id="grafana显示和过滤日志">Grafana显示和过滤日志</h2>
+<h3 id="添加data-sources然后选择loki">添加Data Sources，然后选择loki</h3>
+<figure data-type="image" tabindex="3"><img src="https://ajie825.github.io/post-images/1665732233768.png" alt="" loading="lazy"></figure>
+<h3 id="输入loki-服务的参数然后点save-test即可">输入loki 服务的参数然后点Save &amp; Test即可</h3>
+<figure data-type="image" tabindex="4"><img src="https://ajie825.github.io/post-images/1665732497092.png" alt="" loading="lazy"></figure>
+<h3 id="查看过滤日志">查看过滤日志</h3>
+<pre><code class="language-bash">左侧菜单栏选择Explore，label里有对应选项可以选择
+也可以选择时间段查询，或者关键字查询 |~ &quot;keyword&quot;
+</code></pre>
+<figure data-type="image" tabindex="5"><img src="https://ajie825.github.io/post-images/1665734599572.png" alt="" loading="lazy"></figure>
+<h2 id="grafana升级">grafana升级</h2>
+<pre><code class="language-bash">cd /server/tools/
+wget https://dl.grafana.com/oss/release/grafana-9.1.4-1.x86_64.rpm
+rpm -Uvh grafana-9.1.4-1.x86_64.rpm  
+warning: grafana-9.1.4-1.x86_64.rpm: Header V4 RSA/SHA256 Signature, key ID 24098cb6: NOKEY
+Preparing...                          ################################# [100%]
+Updating / installing...
+   1:grafana-9.1.4-1                  ################################# [ 50%]
+Cleaning up / removing...
+   2:grafana-7.1.0-1                  ################################# [100%]
+POSTTRANS: Running script
+systemctl daemon-reload
+systemctl restart grafana-server.service
+</code></pre>
+<pre><code class="language-bash">参考：https://developer.aliyun.com/article/873081
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/openresty-an-zhuang-jiao-ben/">
+              <h3 class="post-title">
+                下一篇：openresty安装脚本
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

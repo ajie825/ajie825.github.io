@@ -1,0 +1,623 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>nginx基础 | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">nginx基础</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-07-27</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/YBDfkYHYeR/">
+                    nginx
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <pre><code class="language-bash">#开源的web服务器
+静态资源：nginx、apache、IIS、lighttpd、tengine、openresty
+动态资源：tomcat
+</code></pre>
+<h2 id="nginx基本简述">nginx基本简述</h2>
+<pre><code class="language-bash">nginx是一个开源且高性能、可靠的http web服务、代理服务
+开源：  直接获取源代码，C语言编写
+高性能：支持海量并发
+可靠：  服务稳定
+</code></pre>
+<h3 id="为什么选择nginx服务">为什么选择nginx服务</h3>
+<pre><code class="language-bash">nginx非常轻量
+功能模块少（源代码仅保留http与核心模块代码，其余不够核心代码会作为插件来安装）
+代码模块化（易读、便于二次开发，对于开发人员非常友好）
+</code></pre>
+<pre><code class="language-bash">nginx技术成熟，具备的功能是企业最常使用而且最需要的
+适合当前主流架构趋势，微服务、云架构、中间层
+统一技术栈，降低维护成本，降低技术更新成本
+</code></pre>
+<pre><code class="language-bash">nginx采用epool模型，apache采用select模型
+select（串行）：当用户发起请求，select模型就会进行一次遍历扫描，从而导致性能低下
+epool （并行）：当用户发起请求，epool模型会直接进行处理，效率高效，并无连接限制
+</code></pre>
+<h3 id="nginx典型应用场景">nginx典型应用场景</h3>
+<pre><code class="language-bash">静态服务：浏览器缓存、防资源盗用、资源分类、资源压缩、资源缓存、跨域访问
+代理服务：协议类型、正向代理、反向代理、负载均衡、代理缓存、动静分离
+安全服务：访问控制、访问限制、流量限制、拦截攻击、拦截异常请求、拦截SQL注入（配合LUA脚本）
+流行架构：Nginx+PHP(Fastcgi_pass)LNMP、Nginx+Java(Proxy_pass)LNMT、Nginx+Python(uwsgi_pass)
+</code></pre>
+<h2 id="nginx安装">nginx安装</h2>
+<h3 id="yum方式官方">yum方式（官方）</h3>
+<pre><code class="language-bash">[root@web01 ~]# vim /etc/yum.repos.d/nginx.repo
+[nginx]
+name=nginx repo
+baseurl=http://nginx.org/packages/centos/7/$basearch/
+gpgcheck=0
+enabled=1
+</code></pre>
+<pre><code class="language-bash">[root@web01 ~]# yum install nginx
+ Package     Arch    Version             Repository  Size
+=========================================================
+Installing:                             
+ nginx       x86_64  1:1.22.0-1.el7.ngx  nginx      796 k
+ Total download size: 796 k
+Installed size: 2.8 M
+Is this ok [y/d/N]: y
+</code></pre>
+<pre><code class="language-bash">#查看版本
+[root@web01 ~]# nginx -v
+nginx version: nginx/1.22.0
+#查看编译参数
+[root@web01 ~]# nginx -V
+</code></pre>
+<h3 id="源码编译安装">源码编译安装</h3>
+<pre><code class="language-bash">[root@web01 ~]# wget http://nginx.org/download/nginx-1.14.2.tar.gz
+[root@web01 ~]# tar xf nginx-1.14.2.tar.gz
+[root@web01 ~]# cd nginx-1.14.2/
+[root@web01 nginx-1.14.2]# ./configure --prefix=/etc/nginx --sbin-path=/usr/sbin/nginx --modules-path=/usr/lib64/nginx/modules --conf-path=/etc/nginx/nginx.conf --error-log-path=/var/log/nginx/error.log --http-log-path=/var/log/nginx/access.log --pid-path=/var/run/nginx.pid --lock-path=/var/run/nginx.lock --http-client-body-temp-path=/var/cache/nginx/client_temp --http-proxy-temp-path=/var/cache/nginx/proxy_temp --http-fastcgi-temp-path=/var/cache/nginx/fastcgi_temp --http-uwsgi-temp-path=/var/cache/nginx/uwsgi_temp --http-scgi-temp-path=/var/cache/nginx/scgi_temp --user=nginx --group=nginx --with-compat --with-file-aio --with-threads --with-http_addition_module --with-http_auth_request_module --with-http_dav_module --with-http_flv_module --with-http_gunzip_module --with-http_gzip_static_module --with-http_mp4_module --with-http_random_index_module --with-http_realip_module --with-http_secure_link_module --with-http_slice_module --with-http_ssl_module --with-http_stub_status_module --with-http_sub_module --with-http_v2_module --with-mail --with-mail_ssl_module --with-stream --with-stream_realip_module --with-stream_ssl_module --with-stream_ssl_preread_module --with-cc-opt='-O2 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector-strong --param=ssp-buffer-size=4 -grecord-gcc-switches -m64 -mtune=generic -fPIC' --with-ld-opt='-Wl,-z,relro -Wl,-z,now -pie'
+[root@web01 nginx-1.14.2]# make &amp;&amp; make install
+</code></pre>
+<h3 id="nginx目录结构">nginx目录结构</h3>
+<pre><code class="language-bash">[root@web01 ~]# rpm -ql nginx
+/etc/logrotate.d/nginx          #定时做日志切割
+/etc/nginx
+/etc/nginx/conf.d
+/etc/nginx/conf.d/default.conf
+/etc/nginx/fastcgi_params
+/etc/nginx/mime.types           #媒体类型
+/etc/nginx/modules
+/etc/nginx/nginx.conf           #主配置文件
+/etc/nginx/scgi_params
+/etc/nginx/uwsgi_params
+/usr/lib/systemd/system/nginx-debug.service
+/usr/lib/systemd/system/nginx.service
+/usr/lib64/nginx
+/usr/lib64/nginx/modules
+/usr/libexec/initscripts/legacy-actions/nginx
+/usr/libexec/initscripts/legacy-actions/nginx/check-reload
+/usr/libexec/initscripts/legacy-actions/nginx/upgrade
+/usr/sbin/nginx
+/usr/sbin/nginx-debug
+/usr/share/doc/nginx-1.22.0
+/usr/share/doc/nginx-1.22.0/COPYRIGHT
+/usr/share/man/man8/nginx.8.gz
+/usr/share/nginx
+/usr/share/nginx/html
+/usr/share/nginx/html/50x.html
+/usr/share/nginx/html/index.html
+/var/cache/nginx
+/var/log/nginx
+</code></pre>
+<h2 id="启动nginx">启动nginx</h2>
+<pre><code class="language-bash">#启动方式有两种
+nginx                    启动
+nginx -s stop            停止
+nginx -s reload |restart 重载服务
+
+systemctl start nginx
+systemctl restart nginx
+systemctl stop nginx 
+[root@web01 ~]# systemctl status nginx
+● nginx.service - nginx - high performance web server
+   Loaded: loaded (/usr/lib/systemd/system/nginx.service; enabled; vendor preset: disabled)
+   Active: active (running)
+ #Active处于running状态，说明nginx服务启动成功了。
+ [root@web01 ~]# netstat -lnpt|grep 80
+tcp        0      0 0.0.0.0:80              0.0.0.0:*               LISTEN      1482/nginx: master 
+</code></pre>
+<h2 id="nginx配置文件">nginx配置文件</h2>
+<pre><code class="language-bash">nginx主配置文件/etc/nginx/nginx.conf是一个纯文本类型的文件，整个配置文件是以区块的形式组织的；
+一般，每个区块以一对大括号{}来表示开始与结束；
+nginx主配置文件整体分为三块进行学习，分别是CoreModule（核心模块）、EventModule(事件驱动模块)、
+HttpCoreModule(http内核模块)
+</code></pre>
+<pre><code class="language-bash">[root@web01 ~]# cat /etc/nginx/nginx.conf 
+---------------核心模块-----------------
+user  nginx;                                     #nginx进程运行的用户
+worker_processes  auto;                          #nginx工作的进程数量（与CPU的核心数一致）
+
+error_log  /var/log/nginx/error.log notice;      #nginx的错误日志[警告及其警告以上的都记录]
+pid        /var/run/nginx.pid;                   #nginx进程运行后的进程id
+---------------------------------------
+---------------事件驱动模块-------------
+events {
+    worker_connections  1024;                    #一个work进程的最大连接数(最多调整25535)
+    use epool;	                                 #使用epool网络模型
+}
+---------------------------------------
+-------------http核心层模块-------------
+http {
+    include       /etc/nginx/mime.types;         #包含资源类型文件
+    default_type  application/octet-stream;      #默认以下载方式传输给浏览器（前提是该资源在mime.types中无法找到）
+    #日志格式定义
+    log_format  main  '$remote_addr - $remote_user [$time_local] &quot;$request&quot; '
+                      '$status $body_bytes_sent &quot;$http_referer&quot; '
+                      '&quot;$http_user_agent&quot; &quot;$http_x_forwarded_for&quot;';
+
+    access_log  /var/log/nginx/access.log  main; #访问日志
+ 
+    sendfile        on;                          #开启高效传输
+    #tcp_nopush     on;
+
+    keepalive_timeout  65;                       #长连接超时时间
+
+    #gzip  on;                                   #是否开启压缩功能
+
+    include /etc/nginx/conf.d/*.conf;            #包含哪个目录下面的*.conf文件
+}
+</code></pre>
+<pre><code class="language-bash">cat /etc/nginx/conf.d/default.conf
+server {                                 #定义一个网站
+	listen       80;			         #监听端口
+	server_name  localhost;		         #域名
+
+	#charset koi8-r;			         #字符集
+
+	location / {	 			         #位置
+		root   /usr/share/nginx/html;	 #代码的主文件位置
+		index  index.html index.htm;	 #服务端默认返回给用户的文件
+	}
+	location /test {	 			     #位置
+		root   /code/test/123/;	         #代码的主文件位置
+		index  index.html index.htm;	 #服务端默认返回给用户的文件
+	}
+}
+#特别注意：当用户访问/test时，服务器响应的是/code/test/123/test/index.html文件
+&quot;/&quot;代表的是主目录    *****
+</code></pre>
+<pre><code class="language-bash">http server location扩展了解项
+http{}层下允许有多个Server{}层，一个Server{}层下又允许有多个Location
+http{}     标签主要用来解决用户的请求与响应。
+server{}   标签主要用来响应具体的某一个网站。
+location{} 标签主要用于匹配网站具体URL路径。
+</code></pre>
+<h2 id="nginx搭建一个静态资源web服务器">nginx搭建一个静态资源web服务器</h2>
+<h3 id="编写nginx配置文件">编写nginx配置文件</h3>
+<pre><code class="language-bash">server {
+        listen 80;
+        server_name game.oldboy.com;
+
+        location / {
+                root /code;
+                index index.html;
+        }
+}
+</code></pre>
+<h3 id="根据配置文件创建目录上传代码">根据配置文件，创建目录，上传代码</h3>
+<pre><code class="language-bash">[root@web01 conf.d]# mkdir /code
+[root@web01 conf.d]# cd /code/
+[root@web01 code]# rz html5.zip
+[root@web01 code]# unzip html5.zip
+</code></pre>
+<h3 id="重载nginx服务">重载nginx服务</h3>
+<pre><code class="language-bash">[root@web01 code]# nginx -t
+[root@web01 code]# systemctl reload nginx
+</code></pre>
+<h3 id="配置域名解析">配置域名解析</h3>
+<pre><code class="language-bash">Windows:  C:\Windows\System32\drivers\etc
+10.0.0.7      game.oldboy.com
+Mac   sudo vim /etc/hosts
+10.0.0.7      game.oldboy.com
+C:\Users\Administrator&gt;ping game.oldboy.com		      #检查解析的是否是10.0.0.7
+正在 Ping game.oldboy.com [10.0.0.7] 具有 32 字节的数据:
+来自 10.0.0.7 的回复: 字节=32 时间=9ms TTL=64
+来自 10.0.0.7 的回复: 字节=32 时间&lt;1ms TTL=64
+来自 10.0.0.7 的回复: 字节=32 时间&lt;1ms TTL=64
+来自 10.0.0.7 的回复: 字节=32 时间&lt;1ms TTL=64
+</code></pre>
+<h3 id="通过浏览器访问对应的项目">通过浏览器访问对应的项目</h3>
+<pre><code class="language-bash">http://game.oldboy.com/
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1658984007064.png" alt="" loading="lazy"></figure>
+<h2 id="nginx虚拟主机">nginx虚拟主机</h2>
+<pre><code class="language-bash">nginx配置虚拟主机有如下三种方式：
+</code></pre>
+<h3 id="方式一基于主机多ip的配置方式">方式一：基于主机多IP的配置方式</h3>
+<pre><code class="language-bash">1）配置多网卡多IP的虚拟主机配置文件
+[root@web01 conf.d]# cd /etc/nginx/conf.d/
+[root@web01 conf.d]# cat ip.conf 
+server {
+        listen 10.0.0.7:80;
+        server_name _;
+
+        location / {
+                root /code_ip_ens33;
+                index index.html;
+        }
+}
+
+server {
+        listen 172.16.1.7:80;
+        server_name _;
+
+        location / {
+                root /code_ip_ens36;
+                index index.html;
+        }
+}
+
+2）根据配置文件创建对应的目录
+[root@web01 conf.d]# mkdir /code_ip_ens33
+[root@web01 conf.d]# echo &quot;ens33&quot; &gt; /code_ip_ens33/index.html
+[root@web01 conf.d]# mkdir /code_ip_ens36 
+[root@web01 conf.d]# echo &quot;ens36&quot; &gt; /code_ip_ens36/index.html
+
+3）检查语法并重启nginx服务
+[root@web01 conf.d]# nginx -t
+[root@web01 conf.d]# systemctl reload nginx
+
+4）使用curl命令测试
+[root@web01 conf.d]# curl 10.0.0.7
+ens33
+[root@web01 conf.d]# curl 172.16.1.7
+ens36
+</code></pre>
+<h3 id="方式二-基于多端口的配置方式">方式二、基于多端口的配置方式</h3>
+<pre><code class="language-bash">#在公司内部用的比较多
+1）配置多端口的虚拟主机配置文件
+[root@web01 conf.d]# cat port.conf 
+server {
+        listen 81;
+        location / { 
+                root /code_81;
+                index index.html;
+        }
+}
+server {
+        listen 82;
+        location / { 
+                root /code_82;
+                index index.html;
+        }
+}
+
+2）根据配置文件创建对应的目录
+[root@web01 conf.d]# mkdir /code_8{1..2}
+[root@web01 conf.d]# echo &quot;81&quot; &gt; /code_81/index.html
+[root@web01 conf.d]# echo &quot;82&quot; &gt; /code_82/index.html
+
+3）检查语法并重启nginx服务
+[root@web01 conf.d]# nginx -t
+[root@web01 conf.d]# systemctl reload nginx
+
+4）使用curl命令测试
+[root@web01 conf.d]# curl 10.0.0.7:81
+81
+[root@web01 conf.d]# curl 10.0.0.7:82
+82
+</code></pre>
+<h3 id="方式三基于多域名的配置方式">方式三：基于多域名的配置方式</h3>
+<pre><code class="language-bash">#生产中最常用
+1）准备多域名的虚拟主机配置文件
+[root@web01 conf.d]# cat test1.oldboy.com.conf
+server {
+        listen 80;
+        server_name test1.oldboy.com;
+
+        location / {
+                root /code/test1;
+                index index.html;
+        }
+}
+[root@web01 conf.d]# cat test2.oldboy.com.conf 
+server {
+        listen 80;
+        server_name test2.oldboy.com;
+
+        location / {
+                root /code/test2;
+                index index.html;
+        }
+}
+
+2）根据配置文件创建对应的目录
+[root@web01 conf.d]# mkdir /code/test{1..2} -p
+[root@web01 conf.d]# echo &quot;test1_server&quot; &gt; /code/test1/index.html 
+[root@web01 conf.d]# echo &quot;test2_server&quot; &gt; /code/test2/index.html 
+
+3）检查语法并重启nginx服务
+[root@web01 conf.d]# nginx -t
+[root@web01 conf.d]# systemctl reload nginx
+
+4）配置域名解析
+[root@web01 conf.d]# vim /etc/hosts
+10.0.0.7      test1.oldboy.com
+10.0.0.7      test2.oldboy.com
+
+5）通过浏览器访问网站成功
+</code></pre>
+<p><img src="https://ajie825.github.io/post-images/1658991847006.png" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1658991860993.png" alt="" loading="lazy"></p>
+<pre><code class="language-bash">特别注意：
+1）在访问域名前，必须先将ip.conf文件gzip；
+2）在host文件中当用户输入的域名错误，比如test2.oldboy.com错输入为test3.oldboy.com
+服务器会默认将最前面的网站回应给浏览器。
+</code></pre>
+<h2 id="nginx日志管理">nginx日志管理</h2>
+<pre><code class="language-bash">nginx有非常灵活的日志记录模式，每个级别的配置可以有各自独立的访问日志；
+日志格式通过log_format命令定义格式.
+</code></pre>
+<pre><code class="language-bash">1）log_format定义日志格式语法：
+# 配置语法 包括 error.Log access.Log
+Syntax：log_format name [escape=default|json] string ...;
+Default：log_format combined &quot;...&quot;;
+Context：http
+
+2）默认Nginx定义语法格式如下：
+log_format  main  '$remote_addr - $remote_user [$time_local] &quot;$request&quot; '
+                      '$status $body_bytes_sent &quot;$http_referer&quot; '
+                      '&quot;$http_user_agent&quot; &quot;$http_x_forwarded_for&quot;';
+                     
+3）nginx日志格式允许包含的内置变量：
+$remote_addr：             #表示客户端IP地址
+$remote_user：             #http客户端请求nginx认证用户名
+$time_local：              #nginx的时间
+$request：                 #request请求行，GET等方法、http协议版本
+$status：                  #reponse返回状态码
+$body_bytes_sent：         #从服务端响应给客户端boby信息大小
+$http_referer：            #http上一级页面，防盗链、用户行为分析
+$http_user_agent：         #http头部信息，客户端访问设备
+$http_x_forwarded_for：    #http请求携带的http信息
+</code></pre>
+<pre><code class="language-bash">remote_addr与http_x_forwarded_for的区别：
+remote_addr：是服务端根据请求TCP包的ip指定的，假设从client到server中间没有任何代理，那么web服务器就会把client
+的ip设定为remote_addr，如果存在代理转发http请求，web服务器会把最后一次代理服务器的IP设置为remote_addr。
+http_x_forwarded_for：当使用代理时，web服务器无法通过tcp数据包获得发起请求的client真实IP，因此代理服务器
+通常会在http请求头增加一个叫做x_forwarded_for的字段，用来记录请求发起者的真实IP。
+</code></pre>
+<pre><code class="language-bash">#access_log日志配置语法
+Syntax：access_log path [format [buffer=size] [gzip=level] [flush=time] [if=condition]];
+access_log off;
+Default：access_log logs/access.log combined;
+Context：http, server, location, if in locaton, limit_except
+</code></pre>
+<h3 id="access日志配置实践">access日志配置实践</h3>
+<pre><code class="language-bash">[root@web01 conf.d]# cat test1.oldboy.com.conf 
+server {
+        listen 80;
+        server_name test1.oldboy.com;
+
+        #将当前的server网站的访问日志记录至对应的目录，使用main格式
+        access_log /var/log/nginx/test1.oldboy.com.log main;
+        location / {
+                root /code/test1;
+                index index.html;
+        }
+
+       #当有人请求改favicon.ico时，不记录日志
+       location /favicon.ico {
+          access_log off;
+          return 200;
+    }
+}
+[root@web01 conf.d]# nginx -t
+[root@web01 conf.d]# systemctl reload nginx 
+[root@web01 conf.d]# tail -f /var/log/nginx/test1.oldboy.com.log 
+10.0.0.1 - - [28/Jul/2022:04:40:12 -0400] &quot;GET / HTTP/1.1&quot; 304 0 &quot;-&quot; &quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36&quot; &quot;-&quot;
+10.0.0.1 - - [28/Jul/2022:04:40:14 -0400] &quot;GET / HTTP/1.1&quot; 304 0 &quot;-&quot; &quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36&quot; &quot;-&quot;
+</code></pre>
+<pre><code class="language-bash">#作用域
+Locaton层 &lt; Server层 &lt; Http层
+</code></pre>
+<pre><code class="language-bash">#错误日志
+tail -f /var/log/nginx/error.log
+</code></pre>
+<pre><code class="language-bash">#日志切割
+[root@web01 conf.d]# cat /etc/logrotate.d/nginx 
+/var/log/nginx/*.log {
+        daily                      #每天切割日志
+        missingok                  #日志丢失忽略
+        rotate 52                  #日志保留52天
+        compress                   #日志文件压缩
+        delaycompress              #延迟压缩日志
+        notifempty                 #不切割空文件
+        create 640 nginx adm       #日志文件权限
+        sharedscripts
+        postrotate                 #切割日志执行的命令
+                if [ -f /var/run/nginx.pid ]; then
+                        kill -USR1 `cat /var/run/nginx.pid`
+                fi
+        endscript
+}
+</code></pre>
+<pre><code class="language-bash">#nginx访问日志按天切割
+#!/bin/bash 
+LOG_DIR=/usr/local/nginx/logs 
+YESTERDAY_TIME=$(date -d &quot;yesterday&quot; +%F) 
+LOG_MONTH_DIR=$LOG_DIR/$(date +&quot;%Y-%m&quot;) 
+LOG_FILE_LIST=&quot;default.access.log&quot; 
+for LOG_FILE in $LOG_FILE_LIST; do 
+    [ ! -d $LOG_MONTH_DIR ] &amp;&amp; mkdir -p $LOG_MONTH_DIR 
+    mv $LOG_DIR/$LOG_FILE $LOG_MONTH_DIR/${LOG_FILE}_${YESTERDAY_TIME} 
+done 
+kill -USR1 $(cat /var/run/nginx.pid)
+</code></pre>
+<pre><code class="language-bash">#生产实践
+#!/bin/bash
+#nginx access log segmentation shell script
+#日志目录
+log_dir=&quot;/data/logs/&quot;
+backup_dir=&quot;/data/logs/backup/&quot;
+weblog_dir=&quot;/data/logs/weblog/&quot;
+time=`date +%Y-%m-%d --date=&quot;-1 day&quot;`
+#日志保存天数
+save_days=15
+
+cd $weblog_dir
+
+filename1=`ls $weblog_dir*.log | xargs -n 1 | cut -f 5 -d &quot;/&quot; | rev| cut -f 2-$n -d &quot;.&quot; | rev`
+for i in $filename1
+do
+    cp $weblog_dir$i.log $backup_dir$i-$time.log
+    true&gt;$weblog_dir$i.log
+done
+
+cd $log_dir
+
+#此处待优化（取得文件不带后缀的文件名）
+filenames=`ls $log_dir*.log | xargs -n 1 | cut -f 1 -d &quot;.&quot; | cut -f 4 -d &quot;/&quot;`
+
+#日志目录下所有的日志文件为文件夹，循环新建对应的时间文件
+for i in $filenames
+do
+    cp $log_dir$i.log $backup_dir$i-$time.log
+    true&gt;$log_dir$i.log
+done
+
+#删除backup中设置天数前的数据
+find $backup_dir -mtime +$save_days -type f -exec rm -f {} \;
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/web-ji-chu-zhi-http/">
+              <h3 class="post-title">
+                下一篇：web基础之Http
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

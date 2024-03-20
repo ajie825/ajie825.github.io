@@ -1,0 +1,481 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>Ingress和 Ingress Controller | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">Ingress和 Ingress Controller</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-08-29</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/vN0im2GW5W/">
+                    k8s
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="回顾下四层负载均衡器service">回顾下四层负载均衡器service</h2>
+<p>从前面的学习，可以了解到<code>k8s</code>暴露服务的方式目前有<code>LoadBlancer</code>、<code>NodePort</code>；而将集群内服务提供给外界访问就会产生下面几个问题。</p>
+<h3 id="pod漂移问题">pod漂移问题</h3>
+<p><code>k8s</code>具有强大的副本控制能力，能够保证在任意副本<code>pod</code>挂掉时自动启动一个新的副本，还可以动态扩容等，通俗地说，这个<code>pod</code>可能在任何时刻出现在任何节点上，也可能在任何时刻消失在任何节点上；那么随着<code>pod</code>的创建和销毁，<code>pod IP</code>肯定会动态变化，那么如何把动态的<code>pod IP</code>暴露出去呢？这里借助于<code>k8s</code>的<code>service</code>机制，<code>service</code>可以以标签的形式选定一组带有指定标签的<code>pod</code>，并监控和自动负载他们的<code>pod IP</code>，那么向外只暴露<code>service IP</code>就可以了，这就是<code>NodePort</code>模式，即在每个节点开启一个端口，然后转发到内部<code>pod IP</code>上，如下图所示：</p>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1661741729497.png" alt="" loading="lazy"></figure>
+<p>此时的访问方式是：<code>http://nodeip:nodeport/</code>，即数据包流向如下：</p>
+<p>客户端请求---&gt;<code>nodeip:nodeport</code>---&gt;<code>serviceip:port</code>---&gt;<code>podip:port</code>，其实它的调用链是多了一层。</p>
+<h3 id="端口管理问题">端口管理问题</h3>
+<p>采用<code>NodePort</code>方式暴露服务面临的问题是，服务一旦多起来，<code>NodePort</code>在每个节点上开启的端口会及其庞大，而且难以维护，这时可以使用<code>nginx</code>直接对内进行转发呢？众所周知的是，<code>pod</code>与<code>pod</code>之间是可以互相通信的，而<code>pod</code>是可以共享宿主机的网络名称空间的，也就是说当<code>pod</code>共享宿主机网络名称空间时，<code>pod</code>监听的就是<code>Node</code>上的端口，这该如何实现呢？简单的实现就是使用<code>DaemonSet</code>在每个<code>Node</code>节点上监听80端口，然后写好规则，因为<code>nginx</code>外面绑定了宿主机80端口(就像<code>NodePort</code>)，本身又在集群内，那么向后直接转发到相应<code>Service IP</code>就可以了，如下图所示：</p>
+<figure data-type="image" tabindex="2"><img src="https://ajie825.github.io/post-images/1661743809813.png" alt="" loading="lazy"></figure>
+<h3 id="域名分配及动态更新问题">域名分配及动态更新问题</h3>
+<p>从上面的方法，采用<code>nginx pod</code>似乎已经解决了问题，但是其实里面有一个很大缺陷：当每次有新服务加入又该如何修改<code>nginx</code>配置呢？我们知道使用<code>nginx</code>可以通过虚拟主机域名进行区分不同的服务，而每个服务通过<code>upstream</code>进行定义不同的负载均衡池，再加上<code>location</code>进行负载均衡的反向代理，在日常使用中只需要修改<code>nginx.conf</code>即可实现，那在<code>k8s</code>中又该如何实现这种方式的调度呢？</p>
+<p>假设后端的服务只有<code>ecshop</code>，后面又增加了<code>bbs</code>和<code>member</code>服务，该如何将这2个服务加入到<code>nginx pod</code>进行调度呢？总不能每次手动更改或者滚动更新前端<code>nginx pod</code>吧！此时<code>Ingress</code>出现了，如果不算上面的<code>nginx</code>，ingress包含两大组件：<code>Ingress Controller</code>和<code>Ingress</code>。</p>
+<figure data-type="image" tabindex="3"><img src="https://ajie825.github.io/post-images/1661750486478.png" alt="" loading="lazy"></figure>
+<h2 id="ingress介绍">Ingress介绍</h2>
+<p><code>Ingress</code>官网定义：<code>Ingress</code>可以把进入到集群内部的请求转发到集群中的一些服务上，从而可以把服务映射到集群外部，<code>Ingress</code>能把集群内<code>service</code>配置成外网能够访问的<code>URL</code>，流量负载均衡，提供基于域名访问的虚拟主机等。</p>
+<p><code>Ingress</code>简单的理解就是你原来需要修改<code>nginx</code>配置，然后配置各种域名对应哪个<code>service</code>，现在把这个动作抽象出来，变成一个<code>Ingress</code>对象，你可以用<code>yaml</code>创建，每次不要去改<code>nginx</code>了，直接改<code>yaml</code>然后创建/更新就行了，那么问题来了：&quot;<code>nginx</code>该怎么处理？&quot;</p>
+<p><code>Ingress Controller</code>这东西就是解决&quot;<code>nginx</code>的处理方式&quot;的，<code>Ingress Controller</code>通过与<code>k8s API</code>交互，动态的去感知集群中<code>Ingress</code>规则变化，然后读取它，按照他自己的模板生成一段<code>nginx</code>配置，再写到<code>nginx pod</code>里，最后<code>reload</code>一下，工作流程如下图：</p>
+<figure data-type="image" tabindex="4"><img src="https://ajie825.github.io/post-images/1661751708271.png" alt="" loading="lazy"></figure>
+<p>实际上<code>Ingress</code>也是<code>k8s API</code>的标准资源类型之一，它其实就是一组基于域名或者<code>URL</code>路径把请求转发到指定<code>service</code>资源的规则，用于将集群外部的请求流量转发到集群内部完成的服务发现，需要明白的是，<code>Ingress</code>资源自身不能进行&quot;流量穿透&quot;，仅仅是一组规则的集合，这些集合规则还需要其他功能的辅助，比如监听某套接字，然后根据这些规则的匹配进行路由转发，这些能够为<code>Ingress</code>资源监听套接字并将流量转发的组件就是<code>Ingress Controller</code>。</p>
+<p>注：<code>Ingress</code>控制器不同于<code>Deployment</code>控制器，<code>Ingress</code>控制器不直接运行为<code>controller-manager</code>的一部分，它仅仅是<code>k8s</code>集群的一个附件，类似<code>CoreDNS</code>，需要在集群上单独部署。</p>
+<h3 id="如何创建ingress资源">如何创建Ingress资源</h3>
+<pre><code class="language-bash">[root@master1 ingress]# kubectl explain ingress.spec
+KIND:     Ingress
+VERSION:  networking.k8s.io/v1
+RESOURCE: spec &lt;Object&gt;
+DESCRIPTION:
+        #spec是ingress所需的状态
+
+FIELDS:
+   defaultBackend       &lt;Object&gt;
+        #defaultBackend是应处理与任何规则不匹配的请求的后端(可省略)
+   ingressClassName     &lt;string&gt;
+        #ingressClassName是IngressClass群集资源的名称(可省略)
+   rules                &lt;[]Object&gt;
+        #定义规则
+   tls  &lt;[]Object&gt;
+        #https服务配置
+</code></pre>
+<h2 id="ingress-controller介绍">Ingress Controller介绍</h2>
+<p><code>Ingress Controller</code>是一个七层负载均衡调度器，客户端的请求先到达这个七层负载均衡调度器，由七层负载均衡器再反向代理到后端<code>pod</code>，常见的七层负载均衡器有<code>nginx</code>、<code>traefik</code>。以熟悉的<code>nginx</code>为例，假如请求到达<code>nginx</code>，会通过<code>upstream</code>反向代理到后端<code>pod</code>应用，但是后端<code>pod</code>的<code>ip</code>地址是一直在变化的，因此在后端<code>pod</code>前需要加一个<code>service</code>，这个<code>service</code>只是起到分组的作用，<code>upstream</code>只需要填写<code>service</code>地址即可。</p>
+<figure data-type="image" tabindex="5"><img src="https://ajie825.github.io/post-images/1661758077316.png" alt="" loading="lazy"></figure>
+<h3 id="ingress和ingress-controller总结">Ingress和Ingress Controller总结</h3>
+<ol>
+<li><code>Ingress Controller</code>可以理解为控制器，它通过不断地跟<code>k8s API</code>交互，实时获取后端<code>Service</code>、<code>Pod</code>的变化，比如新增、删除等，结合<code>Ingress</code>定义的规则生成配置，然后动态更新上边的<code>nginx</code>或者<code>trafik</code>负载均衡器，并刷新使配置生效，来达到服务自动发现的作用。</li>
+<li><code>Ingress</code>则是定义规则，通过它定义某个域名请求过来之后转发到集群中指定的<code>Service</code>，它可以通过<code>yaml</code>文件定义，可以给一个或多个<code>Service</code>定义一个或多个<code>Ingress</code>规则。</li>
+<li><code>Ingress Controller</code>将新加入的<code>Ingress</code>转化成<code>Nginx</code>的配置文件并使之生效，<code>Ingress</code>服务将<code>Nginx</code>的配置抽象成一个<code>Ingress</code>对象，每添加一个新的服务只需写一个新的<code>Ingress</code>的<code>yaml</code>文件即可。</li>
+</ol>
+<h2 id="使用ingress-controller代理k8s内部应用的流程">使用Ingress Controller代理k8s内部应用的流程</h2>
+<ol>
+<li>部署使用<code>Ingress Controller</code>，我们<code>Ingress Controller</code>使用的是<code>nginx</code></li>
+<li>创建<code>Service</code>，用来分组<code>Pod</code></li>
+<li>创建<code>Pod</code>应用，可以通过控制器创建<code>pod</code></li>
+<li>创建<code>Ingress http</code>，测试通过<code>http</code>访问应用</li>
+<li>创建<code>Ingress https</code>，测试通过<code>https</code>访问应用</li>
+</ol>
+<p>客户端通过七层调度器访问后端<code>pod</code>的方式：</p>
+<p>使用七层负载均衡调度器<code>Ingress Controller</code>时，当客户端访问<code>kubernetes</code>集群内部的应用时，数据包走向如下图流程所示：</p>
+<figure data-type="image" tabindex="6"><img src="https://ajie825.github.io/post-images/1661765079239.png" alt="" loading="lazy"></figure>
+<h2 id="安装nginx-ingress-controller">安装Nginx Ingress Controller</h2>
+<pre><code class="language-bash">#把3个yaml文件上传到master1节点上，把defaultbackend.tar.gz和nginx-ingress-controller.tar.gz镜像
+#上传到node1节点，手动解压镜像
+[root@node1 ~]# docker load -i defaultbackend.tar.gz
+[root@node1 ~]# docker load -i nginx-ingress-controller.tar.gz
+
+#更新yaml文件：
+[root@master1 ~]# kubectl apply -f nginx-ingress-controller-rbac.yml
+serviceaccount/nginx-ingress-serviceaccount created
+clusterrole.rbac.authorization.k8s.io/nginx-ingress-clusterrole created
+role.rbac.authorization.k8s.io/nginx-ingress-role created
+rolebinding.rbac.authorization.k8s.io/nginx-ingress-role-nisa-binding created
+clusterrolebinding.rbac.authorization.k8s.io/nginx-ingress-clusterrole-nisa-binding created
+
+[root@master1 ~]# kubectl apply -f default-backend.yaml
+deployment.apps/default-http-backend created
+service/default-http-backend created
+[root@master1 ingress]# kubectl get pods,svc -n kube-system -o wide|grep backend
+pod/default-http-backend-d868478df-s5749       1/1     Running   0       37s    10.244.166.189   node1    
+service/default-http-backend   ClusterIP   10.99.146.215   &lt;none&gt;        80/TCP    37s   k8s-app=default-http-backend
+#default-http-backend默认的后端，当集群外部的请求通过ingress进入到集群内部时，如果无法负载到相关后端的Service上
+#这种未知的请求将会被负载到这个默认的后端上
+
+[root@master1 ~]# kubectl apply -f nginx-ingress-controller.yaml
+deployment.apps/nginx-ingress-controller created
+#显示如下，说明nginx-ingress-controller部署成功了
+[root@master1 ingress]# kubectl get pods -n kube-system -o wide|grep ingress
+pod/nginx-ingress-controller-74cf657846-jcqbj   1/1     Running   0     9s   192.168.40.181   node1
+
+#注意：
+#default-backend.yaml和nginx-ingress-controller.yaml文件指定了nodeName：node1
+#如果主机名不是node1，需要自行修改成自己的主机名，这样才会调度成功
+#一定要让default-http-backend和nginx-ingress-controller这两个pod在一个节点上
+#nginx ingress controller容器使用和宿主机相同的网络
+</code></pre>
+<h3 id="测试ingress-http代理tomcat">测试Ingress HTTP代理tomcat</h3>
+<pre><code class="language-bash">1）#部署后端tomcat服务
+[root@master1 ~]# cat deploy-demo.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tomcat-deploy
+  namespace: default
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: tomcat
+      release: canary
+  template:
+    metadata:
+      labels:
+        app: tomcat
+        release: canary
+    spec:
+      containers:
+      - name: tomcat
+        image: tomcat:8.5-jre8-alpine
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tomcat
+  namespace: default
+spec:
+  selector:
+    app: tomcat
+    release: canary
+  ports:
+  - port: 8080
+
+#更新yaml文件
+[root@master1 ~]# kubectl apply -f deploy-demo.yaml
+
+#查看pod和service是否部署成功
+[root@master1 ~]# kubectl get pod,svc|grep tomcat 
+pod/tomcat-deploy-5484c8c5fc-g92p2   1/1     Running   0          7h17m
+pod/tomcat-deploy-5484c8c5fc-ls4h6   1/1     Running   0          7h17m
+service/tomcat       ClusterIP   10.96.69.3   &lt;none&gt;        8080/TCP,8009/TCP   7h18m
+</code></pre>
+<pre><code class="language-bash">2）#编写ingress的配置清单
+[root@master1 ~]# cat ingress-myapp.yaml 
+apiVersion: extensions/v1beta1            #api版本
+kind: Ingress                             #清单类型
+metadata:                                 #元数据
+  name: ingress-myapp                     #ingress的名称
+  namespace: default                      #所属名称空间
+  annotations:                            #注解信息
+    kubernetes.io/ingress.class: &quot;nginx&quot;
+spec:                         #规格
+  rules:                      #定义后端转发的规则
+  - host: tomcat.lucky.com    #通过域名进行转发
+    http:
+      paths:       
+      - path:                 #配置访问路径，如果通过url进行转发，需要修改；空默认为访问的路径为&quot;/&quot;
+        backend:              #配置后端服务
+          serviceName: tomcat
+          servicePort: 8080
+          
+#更新yaml文件
+[root@master1 ~]# kubectl apply -f ingress-myapp.yaml
+ingress.extensions/ingress-myapp created
+[root@master1 ~]# kubectl get ingress
+NAME            CLASS    HOSTS              ADDRESS   PORTS   AGE
+ingress-myapp   &lt;none&gt;   tomcat.lucky.com             80      36s
+
+#查看ingress-myapp的详细信息
+[root@master1 ~]# kubectl describe ingress ingress-myapp 
+Name:             ingress-myapp
+Namespace:        default
+Address:          
+Default backend:  default-http-backend:80 (10.244.166.180:8080)
+Rules:
+  Host              Path  Backends
+  ----              ----  --------
+  tomcat.lucky.com  
+                       tomcat:8080 (10.244.104.43:8080,10.244.166.182:8080)
+Annotations:        kubernetes.io/ingress.class: nginx
+</code></pre>
+<pre><code class="language-bash">#创建完成的Ingress对象会被Ingress控制器转换为对应的nginx配置，因为Ingress资源是名称空间级别的
+#在Ingress配置中，只能重定向到同一名称空间的服务
+[root@master1 ingress]# kubectl exec -it -n kube-system nginx-ingress-controller-74cf657846-jcqbj -- /bin/bash
+www-data@node1:/etc/nginx$ cat nginx.conf
+server {
+                server_name tomcat.lucky.com ;
+                listen 80;
+                location / {
+                        set $namespace      &quot;default&quot;;
+                        set $ingress_name   &quot;ingress-myapp&quot;;
+                        set $service_name   &quot;tomcat&quot;;
+                        set $service_port   &quot;8080&quot;;
+                        set $location_path  &quot;/&quot;;
+                        }
+</code></pre>
+<pre><code class="language-bash">3）#修改电脑本地的host文件，增加如下一行，下面的ip是k8s的node1节点ip
+192.168.40.181  tomcat.lucky.com
+</code></pre>
+<p>浏览器访问<code>tomcat.lucky.com</code>，出现如下：</p>
+<figure data-type="image" tabindex="7"><img src="https://ajie825.github.io/post-images/1661827481798.png" alt="" loading="lazy"></figure>
+<h3 id="测试ingress-https代理tomcat">测试Ingress HTTPS代理tomcat</h3>
+<pre><code class="language-bash">1）#准备证书，在k8s的master1节点操作
+[root@master1 ~]# openssl genrsa -out tls.key 2048
+[root@master1 ~]# openssl req -new -x509 -key tls.key -out tls.crt -subj /C=CN/ST=Beijing/L=Beijing/O=DevOps/CN=tomcat.lucky.com
+#生成secret，在k8s的master1节点操作
+[root@master1 ~]# kubectl create secret tls tomcat-ingress-secret --cert=tls.crt --key=tls.key
+secret/tomcat-ingress-secret created
+#查看secret
+[root@master1 ~]# kubectl get secrets|grep tomcat
+tomcat-ingress-secret   kubernetes.io/tls                     2      64s
+#查看tomcat-ingress-secret详细信息
+[root@master1 ~]# kubectl describe secrets tomcat-ingress-secret 
+Name:         tomcat-ingress-secret
+Namespace:    default
+Labels:       &lt;none&gt;
+Annotations:  &lt;none&gt;
+
+Type:  kubernetes.io/tls
+
+Data
+====
+tls.crt:  1294 bytes
+tls.key:  1675 bytes
+</code></pre>
+<pre><code class="language-bash">2）#创建Ingress
+[root@master1 ~]# cat ingress-tomcat-tls.yaml 
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: ingress-tomcat-tls
+  namespace: default
+  annotations:
+    kubernetes.io/ingress.class: &quot;nginx&quot;
+spec:
+  tls:
+  - hosts:
+    - tomcat.lucky.com
+    secretName: tomcat-ingress-secret
+  rules:
+  - host: tomcat.lucky.com
+    http:
+      paths:
+      - path:
+        backend:
+          serviceName: tomcat
+          servicePort: 8080
+#更新yaml文件
+[root@master1 ~]# kubectl apply -f ingress-tomcat-tls.yaml
+[root@master1 ~]# kubectl get ingress|grep tomcat
+ingress-myapp        &lt;none&gt;   tomcat.lucky.com             80        25m
+ingress-tomcat-tls   &lt;none&gt;   tomcat.lucky.com             80, 443   55s
+</code></pre>
+<pre><code class="language-bash">[root@master1 ingress]# kubectl exec -it -n kube-system nginx-ingress-controller-74cf657846-rzfjp -- /bin/bash
+www-data@node1:/etc/nginx$ cat nginx.conf
+        ## start server tomcat.lucky.com
+        server {
+                server_name tomcat.lucky.com ;
+                listen 80;
+                listen [::]:80;
+                set $proxy_upstream_name &quot;-&quot;;
+                listen 443  ssl http2;
+                listen [::]:443  ssl http2;
+                # PEM sha: 7c0313913d89db3ab1dcf6f27c6a4f7abac4caf7
+                ssl_certificate                         /etc/ingress-controller/ssl/default-tomcat-ingress-secret.pem;
+                ssl_certificate_key                     /etc/ingress-controller/ssl/default-tomcat-ingress-secret.pem;
+                ssl_trusted_certificate                 /etc/ingress-controller/ssl/default-tomcat-ingress-secret-full-chain.pem;
+                ssl_stapling                            on;
+                ssl_stapling_verify                     on;
+
+                location / {
+                        set $namespace      &quot;default&quot;;
+                        set $ingress_name   &quot;ingress-myapp&quot;;
+                        set $service_name   &quot;tomcat&quot;;
+                        set $service_port   &quot;8080&quot;;
+                        set $location_path  &quot;/&quot;;
+                        }
+</code></pre>
+<p>浏览器访问<code>https://tomcat.lucky.com</code>，选择接受风险并继续即可，出现如下：</p>
+<figure data-type="image" tabindex="8"><img src="https://ajie825.github.io/post-images/1661828525533.png" alt="" loading="lazy"></figure>
+<h2 id="nginx-ingress优化">nginx-ingress优化</h2>
+<pre><code class="language-bash">[root@master1 ingress]# kubectl get cm -n kube-system |grep ingress
+ingress-controller-leader-nginx      0      18h
+
+cat &lt;&lt;'EOF' | kubectl apply -f -
+apiVersion: v1
+kind: ConfigMap
+metadata:
+#查看ingress pod中对应的configmap名称
+#- --configmap=kube-system/ingress-controller-leader-nginx
+  name: ingress-controller-leader-nginx
+  namespace: kube-system
+  labels:
+data:
+  http-redirect-code: '301'
+  multi_accept: on;
+  use: epoll;
+  user: www;
+  worker_connections: 65535;
+  worker_cpu_affinity: auto;
+  worker_processes: auto;
+  worker_rlimit_nofile: 300000;
+#把真实IP地址传给后端
+  compute-full-forwarded-for: &quot;true&quot;
+  forwarded-for-header: &quot;X-Forwarded-For&quot;
+  use-forwarded-headers: &quot;true&quot;
+#关闭版本显示
+  server-tokens: &quot;false&quot;
+#客户端请求头的缓冲区大小 
+  client-header-buffer-size: &quot;512k&quot;
+#设置用于读取大型客户端请求标头的最大值number和size缓冲区
+  large-client-header-buffers: &quot;16 512k&quot;
+#读取客户端请求body的缓冲区大小
+  client-body-buffer-size: &quot;968k&quot;
+#代理缓冲区大小
+  proxy-buffer-size: &quot;1024k&quot;
+#代理body大小
+  proxy-body-size: &quot;50m&quot;
+#服务器名称哈希大小
+  server-name-hash-bucket-size: &quot;128&quot;
+#map哈希大小
+  map-hash-bucket-size: &quot;128&quot;
+#SSL加密套件
+  ssl-ciphers: &quot;ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-DSS-AES128-GCM-SHA256:kEDH+AESGCM:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-DSS-AES128-SHA256:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA:DHE-RSA-AES256-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:AES:CAMELLIA:DES-CBC3-SHA:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!aECDH:!EDH-DSS-DES-CBC3-SHA:!EDH-RSA-DES-CBC3-SHA:!KRB5-DES-CBC3-SHA&quot;
+#ssl 协议
+  ssl-protocols: &quot;TLSv1 TLSv1.1 TLSv1.2&quot;
+EOF
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/nginx-dai-li-huan-cun/">
+              <h3 class="post-title">
+                下一篇：nginx代理缓存
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

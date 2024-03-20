@@ -1,0 +1,451 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>备份恢复（二） | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">备份恢复（二）</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-06-15</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/eb_lZhnX62/">
+                    mysql
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="上节回顾">上节回顾</h2>
+<p>1、mysqldump核心参数</p>
+<pre><code class="language-mysql">-A：   全库备份
+-B：   多库备份
+库 表： 库表备份
+
+--master-data=2 *****
+1）以注释的形式记录二进制日志信息：二进制日志文件名、起点
+2）自动开启锁表的功能，会进行锁表操作
+
+---single-transaction *****
+针对InnoDB的表进行快照（针对某一时刻）的备份，不锁表
+
+-R：        #备份存储过程及函数（类似Linux系统中的shell脚本，性能比较差）
+-E：        #备份事件（相当于Linux系统中的crontab）
+-triggers： #备份触发器
+
+--set-gtid-purged=AUTO/ON/OFF（此参数可以不用记）
+默认是auto，主从复制忽略此参数
+普通备份，可以OFF，不记录GTID信息
+
+-F：在备份开始时，刷新一个新的binlog日志（不推荐使用）
+
+--max-allowed-packet=128M
+向服务器发送或从服务器接收的最大数据包长度
+</code></pre>
+<p>2、XBK物理备份</p>
+<pre><code class="language-mysql">1）备份过程
+非InnoDB表，进行短暂的锁表，然后copy数据文件
+InnoDB表，立即触发CKPT（将脏页数据刷写到磁盘），并且记录一个LSN号，copy数据文件
+将备份过程中产生的redo和undo日志一起备份，也就是CKPT LSN之后的日志
+2）恢复过程
+模拟CSR（自动故障恢复）的过程，将数据的LSN号和redo的LSN号追平，然后进行一致性恢复，
+恢复方法就是直接cp回去文件即可
+3）全备体验
+innobackupex --user=root --password=123 --no-timestamp /backup/full 
+#将redo进行重做，已提交的写到数据文件，未提交的undo回滚，模拟CSR过程
+innobackupex --apply-log /backup/full
+</code></pre>
+<h2 id="备份产生的文件介绍">备份产生的文件介绍   *****</h2>
+<pre><code class="language-mysql">-rw-r----- 1 root root       62 Jun 14 21:54 xtrabackup_binlog_info
+-rw-r----- 1 root root      117 Jun 14 21:58 xtrabackup_checkpoints
+-rw-r----- 1 root root      572 Jun 14 21:54 xtrabackup_info
+-rw-r----- 1 root root  8388608 Jun 14 21:58 xtrabackup_logfile
+
+xtrabackup_binlog_info（备份时刻的binlog位置）  *****
+[root@mysqld full]# cat xtrabackup_binlog_info 
+mysql-bin.000005        481     923a6d2c-9dc4-11ec-922c-000c299152c6:1-8
+记录的是备份时刻，binlog的文件名字和当时结束的positon，可以用来作为截取binlog时的起点
+
+xtrabackup_checkpoints
+[root@mysqld full]# cat xtrabackup_checkpoints 
+backup_type = full-prepared  #full代表全备，prepared代表已经做完CSR
+from_lsn = 0                 #对于全备从0开始，对于增量又其他显示方法
+to_lsn = 250882878           #备份开始时（CKPT点）数据页的LSN      
+last_lsn = 250882887         #备份结束后，redo日志最终的LSN
+因为备份过程中没有产生新的事务，所以与CKPT时一致，相差9个是redo预留号码
+compact = 0
+recover_binlog_info = 0
+
+from： 备份中包含的LSN号的起点，全备是0，增量是上次备份的结束位置
+to： CKPT（脏页数据刷写到磁盘）时的LSN
+last-9： 备份结束时的LSN，下次增量备份时的起始位置
+
+1）备份时，立即将已经commit过的内存中的数据页刷新到磁盘（CKPT），开始备份数据，
+数据文件的LSN会停留在to_lsn位置
+2）在备份过程中，会一直监控着redo的undo，如果一旦有变化会将日志也一起备份，并记录LSN到last_lsn
+3）从to_lsn ---&gt; last_lsn，就是备份过程中产生的数据变化
+4）last_lsn-9： 备份结束时的LSN，下次增量备份的起始位置
+</code></pre>
+<h2 id="增量备份incremental">增量备份（incremental）</h2>
+<pre><code class="language-mysql">1）增量备份的方式，是基于上一次全备进行增量
+2）增量备份无法单独恢复，必须基于全备进行恢复
+3）所有增量必须要按照顺序合并到全备中
+</code></pre>
+<h3 id="增量备份示例">增量备份示例</h3>
+<p>1、清空备份路径</p>
+<pre><code class="language-mysql"> \rm -rf /backup/*
+</code></pre>
+<p>3、进行周日的全备</p>
+<pre><code class="language-mysql">innobackupex --user=root --password=123 --socket=/tmp/mysql.sock --no-timestamp /backup/full
+</code></pre>
+<p>4、模拟周一的数据变化</p>
+<pre><code class="language-mysql">create database cs charset utf8;
+use cs
+create table t1 (id int);
+insert into t1 values(1),(2),(3);
+commit;
+</code></pre>
+<p>5、进行周一的增量备份</p>
+<pre><code class="language-mysql">innobackupex --user=root --password=123 --socket=/tmp/mysql.sock --no-timestamp --incremental 
+--incremental-basedir=/backup/full /backup/inc1
+说明：--incremental： 开关
+     --incremental-basedir=/backup/full： 基于哪个备份进行增量
+     /backup/inc1： 增量备份的位置点
+</code></pre>
+<p>6、检查备份的LSN</p>
+<pre><code class="language-mysql">[root@mysqld ~]# cat /backup/full/xtrabackup_checkpoints 
+backup_type = full-backuped
+from_lsn = 0
+to_lsn = 250906041
+last_lsn = 250906050
+compact = 0
+recover_binlog_info = 0
+[root@mysqld ~]# cat /backup/inc1/xtrabackup_checkpoints 
+backup_type = incremental
+from_lsn = 250906041
+to_lsn = 250912432
+last_lsn = 250912441
+compact = 0
+recover_binlog_info = 0
+</code></pre>
+<p>7、模拟周二的数据变化</p>
+<pre><code class="language-mysql">create table t2 (id int);
+insert into t2 values(1),(2),(3);
+commit;
+</code></pre>
+<p>8、进行周二的增量备份</p>
+<pre><code class="language-mysql">innobackupex --user=root --password=123 --socket=/tmp/mysql.sock --no-timestamp --incremental 
+--incremental-basedir=/backup/inc1 /backup/inc2
+</code></pre>
+<p>9、模拟周三的数据变化</p>
+<pre><code class="language-mysql">create table t3 (id int);
+insert into t3 values(1),(2),(3);
+commit;
+drop database cs;
+</code></pre>
+<p>10、恢复到周三误drop之前的数据状态</p>
+<pre><code class="language-mysql">1）挂出维护页，停止当天的自动备份脚本
+2）检查备份：周日full---周一inc1---周二inc2，周三的完整二进制日志
+3）进行备份整理（细节），截取关键的二进制日志（从备份---误删除之前）
+4）测试库进行备份恢复及日志恢复
+5）应用进行测试无误，开启业务
+6）此次工作的总结
+</code></pre>
+<p>11、恢复过程</p>
+<pre><code class="language-mysql">1）整理full
+innobackupex --apply-log --redo-only /backup/full
+#--redo-only：这个参数应该在整理全备和所有增量合并时使用（除最后一次增量）
+2）合并inc1到full，并整理备份
+innobackupex --apply-log --redo-only --incremental-dir=/backup/inc1 /backup/full
+3）合并inc2到full，并整理备份
+innobackupex --apply-log --incremental-dir=/backup/inc2 /backup/full
+4）最后一次整理full
+innobackupex --apply-log  /backup/full
+5）截取周二 23:00 到drop之前的binlog二进制日志 *****
+起点：
+cat /backup/inc2/xtrabackup_binlog_info
+mysql-bin.000006        2999    923a6d2c-9dc4-11ec-922c-000c299152c6:1-8,
+d63dc971-ec4e-11ec-89bb-000c299152c6:1-14   #看最后一个
+终点：
+| 2581 |       2646 | SET @@SESSION.GTID_NEXT= 'd63dc971-ec4e-11ec-89bb-000c299152c6:13' |
+| 2646 |       2740 | use `cs`; create table t2 (id int)                                 |
+| 2740 |       2805 | SET @@SESSION.GTID_NEXT= 'd63dc971-ec4e-11ec-89bb-000c299152c6:14' |
+| 2805 |       2875 | BEGIN                                                              |
+| 2875 |       2918 | table_id: 916 (cs.t2)                                              |
+| 2918 |       2968 | table_id: 916 flags: STMT_END_F                                    |
+| 2968 |       2999 | COMMIT /* xid=176 */                                               |
+| 2999 |       3064 | SET @@SESSION.GTID_NEXT= 'd63dc971-ec4e-11ec-89bb-000c299152c6:15' |
+| 3064 |       3158 | use `cs`; create table t3 (id int)                                 |
+| 3158 |       3223 | SET @@SESSION.GTID_NEXT= 'd63dc971-ec4e-11ec-89bb-000c299152c6:16' |
+| 3223 |       3293 | BEGIN                                                              |
+| 3293 |       3336 | table_id: 1034 (cs.t3)                                             |
+| 3336 |       3386 | table_id: 1034 flags: STMT_END_F                                   |
+| 3386 |       3417 | COMMIT /* xid=198 */                                               |
+| 3417 |       3482 | SET @@SESSION.GTID_NEXT= 'd63dc971-ec4e-11ec-89bb-000c299152c6:17' |
+| 3482 |       3568 | drop database cs                                                   |
+终点：
+d63dc971-ec4e-11ec-89bb-000c299152c6:15-16
+mysqlbinlog --skip-gtids --include-gtids='d63dc971-ec4e-11ec-89bb-000c299152c6:15-16' 
+/data/binlog/mysql-bin.000006 &gt;/data/backup/binlog.sql 
+6）进行恢复
+mkdir /data/mysql/data2 -p
+cp -a /backup/full/* /data/mysql/data2
+chown -R mysql.mysql  /data/*
+systemctl stop mysqld
+vim /etc/my.cnf
+[mysqld]
+user=mysql
+basedir=/application/mysql
+datadir=/data/mysql/data2
+systemctl start mysqld
+set sql_log_bin=0;
+source /data/backup/binlog.sql
+set sql_log_bin=1;
+show databases;
+use cs
+show tables;
+select * from t1;
+select * from t2;
+select * from t3;
+</code></pre>
+<h3 id="作业1">作业1</h3>
+<pre><code class="language-mysql">Xtrabackup企业级增量恢复实战
+背景：
+某大型网站，mysql数据库，数据量500G，每日更新量20M-30M
+备份策略：
+xtrabackup，每周日0:00进行全备，周一到周六00:00进行增量备份。
+故障场景：
+周三下午2点出现数据库意外删除表操作
+如何恢复？
+500G在300兆的磁盘速率cp大约需要50-60分钟左右
+[root@db01 ~]# dd if=/dev/zero of=/data/bigfile bs=1M count=2048
+记录了2048+0 的读入
+记录了2048+0 的写出
+2147483648字节(2.1 GB)已复制，14.4935 秒，148 MB/秒
+磁盘IO 148 MB/秒
+</code></pre>
+<h3 id="作业2">作业2</h3>
+<pre><code class="language-mysql">练习：mysqldump备份恢复例子
+1）创建一个数据库 oldboy
+2）在oldboy下创建一张表t1
+3）插入5行任意数据
+4）全备
+5）插入两行数据，任意修改3行数据，删除1行数据
+6）删除所有数据
+7）再t1中又插入5行新数据，修改3行数据
+需求，跳过第六步恢复表数据
+</code></pre>
+<h3 id="作业3">作业3</h3>
+<pre><code class="language-mysql">分别写备份脚本和策略
+</code></pre>
+<h3 id="作业4备份集中单独恢复表">作业4：备份集中单独恢复表</h3>
+<pre><code class="language-mysql">思考:在之前的项目案例中,如果误删除的表只有10M,而备份有500G,该如何快速恢复误删除表?
+提示：
+drop table city;
+create table city like city_bak;
+alter table city discard tablespace;
+cp /backup/full/world/city.ibd  /application/mysql/data/world/
+chown -R mysql.mysql  /application/mysql/data/world/city.ibd 
+alter table city import  tablespace;
+</code></pre>
+<h3 id="作业5从mysqldump-全备中获取库和表的备份">作业5：从mysqldump 全备中获取库和表的备份</h3>
+<pre><code class="language-mysql">1、获得表结构
+# sed -e'/./{H;$!d;}' -e 'x;/CREATE TABLE `city`/!d;q' full.sql&gt;createtable.sql
+
+2、获得INSERT INTO 语句，用于数据的恢复
+# grep -i 'INSERT INTO `city`' full.sqll &gt;data.sql &amp;
+
+3.获取单库的备份
+# sed -n '/^-- Current Database: `world`/,/^-- Current Database: `/p' all.sql &gt;world.sql
+</code></pre>
+<h2 id="迁移-5644-5726">迁移（ 5.6.44---&gt; 5.7.26）*****</h2>
+<p>迁移一般都是配合升级出现的，或者迁移到异构平台</p>
+<p>1、搭建5.6的测试环境</p>
+<pre><code class="language-mysql">1）创建必须的目录
+[root@oldboyedu ~]# mkdir /data/mysql/data  -p 
+[root@oldboyedu ~]# mkdir /application/ -p
+[root@oldboyedu ~]# mkdir /data/binlog -p
+上传软件至 /application 下并解压并改名为mysql
+tar xf mysql-5.6.44-liniux-glibc2.12-x86_64
+mv mysql-5.6.44-liniux-glibc2.12-x86_64 mysql
+2）建用户、改权限
+[root@oldboyedu ~]# useradd mysql
+[root@oldboyedu ~]# chown -R mysql. /data /application/
+3）修改环境变量
+vim /etc/profile
+export PATH=/application/mysql/bin:$PATH
+source /etc/profile
+4）数据初始化
+[root@oldboyedu ~]# yum remove mariadb-libs
+[root@oldboyedu ~]# yum install -y libaio-devel
+[root@oldboyedu ~]# \rm -rf /data/mysql/data/*
+[root@oldboyedu ~]# /application/mysql/scripts/mysql_install_db --user=mysql 
+--basedir=/application/mysql --datadir=/data/mysql/data
+5）准备配置文件和启动脚本
+cat &gt; /etc/my.cnf &lt;&lt;EOF
+[mysqld]
+basedir=/application/mysql 
+datadir=/data/mysql/data 
+server_id=99
+user=mysql
+log_bin=/data/binlog/mysql-bin
+binlog_format=row
+socket=/tmp/mysql.sock 
+[mysql]
+socket=/tmp/mysql.sock
+EOF
+cp  /application/mysql/support-files/mysql.server /etc/init.d/mysqld
+6）启动数据库
+ /etc/init.d/mysqld start
+ mysqladmin -uroot -p password 123
+</code></pre>
+<p>2、迁移5.6数据到5.7（扩展）</p>
+<pre><code class="language-mysql">1）5.6数据库备份
+mysqldump -uroot -p123 -A --master-data=2 --single-transaction -R -E --triggers &gt;/tmp/full.sql
+[root@oldboyedu ~]# scp /tmp/full.sql 10.0.0.51:/data/3308 
+2）准备5.7数据库
+[root@db01 /]# systemctl start mysqld3308
+[root@db01 /]# mysql -S /data/3308/mysql.sock
+mysql&gt; source /data/3308/full.sql
+mysql&gt; flush privileges
+[root@db01 /]# mysql_upgrade  -uroot -p123 -S /data/3308/mysql.sock
+3）binlog的持续追加
+4）停业务,恢复剩余的binlog
+5）业务割接
+做完数据迁移后通常原库要静止2个月
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/bei-fen-hui-fu-yi/">
+              <h3 class="post-title">
+                下一篇：备份恢复（一）
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

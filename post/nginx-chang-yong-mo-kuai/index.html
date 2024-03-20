@@ -1,0 +1,562 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>nginx常用模块 | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">nginx常用模块</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-07-28</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/YBDfkYHYeR/">
+                    nginx
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="目录索引模块">目录索引模块</h2>
+<pre><code class="language-bash">ngx_http_autoindex_module模块处理以斜杠('/')结尾的请求，并生成目录列表
+当ngx_http_autoindex_module模块找不到索引文件时，通常会将请求传递给模块
+</code></pre>
+<pre><code class="language-bash">#指令：
+1）启用或禁用目录列表输出，on开启，off关闭
+Syntax :	autoindex on | off;
+Default:	autoindex off;
+Context:	http, server, location
+
+2）指定是否应在目录列表中输出确切的文件大小，on显示字节，off显示大概单位
+Syntax :	autoindex_exact_size on | off;
+Default:	autoindex_exact_size on;
+Context:	http, server, location
+
+3）指定目录列表中的时间是应以本地时区还是UTC输出 on本地时区 off UTC时间
+Syntax :	autoindex_localtime on | off;
+Default:	autoindex_localtime off;
+Context:	http, server, location
+</code></pre>
+<pre><code class="language-bash">#示例配置一：
+1）准备配置文件
+[root@web01 ~]# cd /etc/nginx/conf.d/
+[root@web01 conf.d]# cat autoindex.conf 
+server {
+        listen 80;
+        server_name module.oldboy.com;
+        charset utf-8,gbk;
+
+        location / {
+                root /module;
+                autoindex on;
+                autoindex_exact_size off;
+                autoindex_localtime on;
+        }
+}
+2）准备对应的目录，往目录上传一些文件
+[root@web01 conf.d]# mkdir /module/{centos,ubuntu,redhat}/ -p
+
+3）检查语法并重新加载nginx
+[root@web01 conf.d]# nginx -t
+[root@web01 conf.d]# systemctl reload nginx
+
+4）配置域名解析
+10.0.0.7 module.oldboy.com
+
+5）浏览器访问module.oldboy.com验证
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1659059716717.png" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">#示例配置二： 生产中的用法
+使用module.oldboy.com/download进行访问
+[root@web01 conf.d]# cat autoindex.conf 
+server {
+        listen 80;
+        server_name module.oldboy.com;
+        charset utf-8,gbk;
+    
+        location / {
+                root /code;
+                index index.html index.htm;
+        }
+
+        location /download {
+                alias /module;
+                autoindex on;
+                autoindex_exact_size off;
+                autoindex_localtime on;
+        }
+}
+#注意alias与root的区别：
+如果是alias，访问的是/module目录，如果是root，访问的是/module/download目录。
+</code></pre>
+<h2 id="状态监控模块">状态监控模块</h2>
+<pre><code class="language-bash">ngx_http_stub_status_module模块提供对基本状态信息的访问
+默认情况下不构建此模块，应使用--with-http_stub_status_module配置参数启用它
+</code></pre>
+<pre><code class="language-bash">#指令：
+Syntax :	stub_status;
+Default:	—
+Context:	server, location
+</code></pre>
+<pre><code class="language-bash">#示例配置
+[root@web01 conf.d]# cat game.conf 
+server {
+        listen 80;
+        server_name game.oldboy.com;
+
+        location / {
+                root /code;
+                index index.html;
+        }
+        
+        location /nginx_status {
+                stub_status;
+        }
+}
+</code></pre>
+<pre><code class="language-bash">#浏览器访问game.oldboy.com/nginx_status
+Active connections: 2 
+server accepts handled requests
+         9       9        88 
+Reading: 0 Writing: 1 Waiting: 1 
+#指标解释如下：
+Active connections：    #当前活动客户端连接数，包括Waiting等待连接数；
+accepts           ：    #已接受总的TCP连接数；
+handled           ：    #已处理总的TCP连接数；
+requests          ：    #客户端总的http请求数；
+#以上四个用于监控
+Reading           ：    #当前nginx读取请求头的连接数
+Writing           ：    #当前nginx将响应写回客户端的连接数
+Waiting           ：    #当前等待请求的空闲客户端连接数
+</code></pre>
+<pre><code class="language-bash">#注意：一次TCP的连接，可以发起多次http的请求，如下参数可配置进行验证
+keepalive_timeout  0;   # 类似于关闭长连接
+keepalive_timeout  65;  # 65s没有活动则断开连接（默认）
+</code></pre>
+<h2 id="访问控制模块lua脚本语言">访问控制模块（LUA脚本语言）</h2>
+<pre><code class="language-bash">ngx_http_access_module模块允许限制对某些客户端地址的访问
+</code></pre>
+<pre><code class="language-bash">#指令:
+1）允许配置语法
+Syntax :	allow address | CIDR | unix: | all;
+Default:	—
+Context:	http, server, location, limit_except
+
+2）拒绝配置语法
+Syntax :	deny address | CIDR | unix: | all;
+Default:	—
+Context:	http, server, location, limit_except
+</code></pre>
+<pre><code class="language-bash">#示例配置（基于来源的IP地址做限制）:
+拒绝10.0.0.1来源IP访问，其他人允许
+	location /nginx_status {
+               stub_status;
+               deny 10.0.0.1/32;
+               allow all;
+        }
+		
+允许10.0.0.1来源IP访问，其他人全部拒绝
+	location /nginx_status {
+               stub_status;
+               allow 10.0.0.1/32;
+               deny all;
+        }
+		
+实际配置监控Nginx状态时，仅允许该服务器的回环地址访问127.0.0.1
+	location /nginx_status {
+               stub_status;
+               allow 127.0.0.1;
+               deny all;
+        }
+</code></pre>
+<h2 id="基于用户密码的身份验证">基于用户密码的身份验证</h2>
+<pre><code class="language-bash">ngx_http_auth_basic_module模块允许使用HTTP基本身份验证，验证用户名和密码来对资源的访问
+</code></pre>
+<pre><code class="language-bash">#指令：
+1）使用HTTP基本身份验证协议启用用户名和密码验证
+Syntax :	auth_basic string | off;
+Default:	auth_basic off;
+Context:	http, server, location, limit_except
+
+2）指定保存用户名和密码的文件
+Syntax :	auth_basic_user_file file;
+Default:	—
+Context:	http, server, location, limit_except
+
+3）指定保存用户名和密码的文件，格式如下
+# comment
+name1:password1
+name2:password2:comment
+name3:password3
+</code></pre>
+<pre><code class="language-bash">#示例配置
+1）生成密码文件，密码文件的格式  name:password(加密)
+建议使用htpasswd，openssl password也可以
+[root@web01 conf.d]# yum provides htpasswd
+[root@web01 conf.d]# yum install httpd-tools -y
+[root@web01 conf.d]# htpasswd -c -b /etc/nginx/auth_conf oldboy oldboy
+[root@web01 conf.d]# cat /etc/nginx/auth_conf 
+oldboy:$apr1$p/89Oonb$nos3JbBWy6m70zJ6TpYfd1
+
+2）配置nginx，限制对应的资源
+location /download {
+        alias /module;
+        autoindex on;
+        autoindex_exact_size off;
+        autoindex_localtime on;
+
+        auth_basic &quot;Please Password!!!&quot;;
+        auth_basic_user_file /etc/nginx/auth_conf;
+}
+
+3）浏览器访问module.oldboy.com/download/
+当输入密码错误时，会提示&quot;401 Authorization Required&quot;错误
+</code></pre>
+<h2 id="连接和请求限制">连接和请求限制</h2>
+<pre><code class="language-bash">经常会遇到这种情况，服务器流量异常，负载过大等等，对于大流量恶意的攻击访问，会带来带宽的浪费，服务器压力大，影响业
+务，往往考虑对同一个ip的连接数、请求数进行限制。
+</code></pre>
+<h3 id="并发连接数限制">并发连接数限制</h3>
+<pre><code class="language-bash">ngx_http_limit_conn_module模块用于限制定义key的连接数，特别是来自单个IP地址的连接数，并非所有连接都被计算在内，
+仅当连接已经读取了整个请求头时才计算连接（限制单个IP同一时间连接数）。
+#虚拟机无法测试
+</code></pre>
+<pre><code class="language-bash">#指令：
+Syntax :	limit_conn_zone key zone=name:size;
+Default:	—
+Context:	http
+
+Syntax :	limit_conn zone number;
+Default:	—
+Context:	http, server, location
+</code></pre>
+<pre><code class="language-bash">设置共享内存区域和给定键值的最大允许连接数，超过此限制时，服务器将返回错误以回复请求
+#示例配置：
+# http标签段定义连接限制
+http{
+    # 开辟一个10m的连接空间，命名为conn_zone
+    limit_conn_zone $binary_remote_addr zone=conn_zone:10m;
+}
+server {
+    # 单个IP同一时间只能有一个连接，并发连接数限制
+    limit_conn conn_zone 1; 
+
+    location / {
+        root /code;
+        index index.html;
+    }
+使用ab工具进行压力测试
+[root@web01 ~]# yum install -y httpd-tools
+[root@web01 ~]# ab -n 500 -c 10  http://127.0.0.1/index.html
+-n 500： 表示请求总数为500
+-c  10： 表示并发用户数为10
+#并发用户数：并发主要是针对服务器而言，在同一时段与服务器进行了交互的在线用户数量，这种交互既可以是单向的传输数据，
+#也可以是双向的传送数据。
+</code></pre>
+<h3 id="请求限制速率限制">请求限制（速率限制）</h3>
+<pre><code class="language-bash">ngx_http_limit_req_module模块用于限制定义key的请求的处理速率，特别是单一的IP地址的请求的处理速率（限制单个IP单位时间内的请求数）  *****
+</code></pre>
+<pre><code class="language-bash">#指令
+Syntax :	limit_req_zone key zone=name:size rate=rate;
+Default:	—
+Context:	http
+
+Syntax :	limit_req zone=name [burst=number] [nodelay | delay=number];
+Default:	—
+Context:	http, server, location
+</code></pre>
+<pre><code class="language-bash">设置共享内存区域和请求的最大突发大小，过多的请求被延迟，直到它们的数量超过最大突发大小，在这种情况下请求以错误终止。默认情况下，最大突发大小等于零。
+#示例配置：
+1）定义限制的key（基于什么来做限制，IP地址）
+http{
+     #开辟一个10m的连接空间，命名为req_zone
+     limit_req_zone $binary_remote_addr zone=req_zone:10m rate=1r/s;
+}
+#rate： 平均处理的请求数，这里定义的是每秒不能超过1次
+2）修改站点配置文件
+[root@web01 conf.d]# cat test1.oldboy.com.conf 
+server {
+        listen 80;
+        server_name test1.oldboy.com;
+        
+        limit_req zone=req_zone burst=5 nodelay; #允许延迟处理5个
+        limit_req_status 412;
+        error_page 412 /err.html;                #这个文件必须存在/code/test1/err.html
+
+        location / {
+                root /code/test1;
+                index index.html;
+        }
+
+       #当有人请求改favicon.ico时，不记录日志
+       location /favicon.ico {
+          access_log off;
+          return 200;
+    }
+}
+[root@web01 conf.d]# echo &quot;You operate too fast, slow down.&quot; &gt;/code/test1/err.html
+3）填写hosts域名解析
+[root@web01 conf.d]# echo &quot;10.0.0.7 test1.oldboy.com&quot; &gt;&gt; /etc/hosts
+4）进行简单的压力测试
+[root@web01 conf.d]# ab -n 50 -c 20 http://test1.oldboy.com/index.html
+5）错误日志
+[root@web01 conf.d]# tail -f /var/log/nginx/error.log                 
+2022/07/29 03:50:39 [error] 2256#2256: *606 limiting requests, excess: 5.997 by zone &quot;req_zone&quot;, client: 10.0.0.7, server: test1.oldboy.com, request: &quot;GET /index.html HTTP/1.0&quot;, host: &quot;test1.oldboy.com&quot;
+2022/07/29 03:50:39 [error] 2256#2256: *607 limiting requests, excess: 5.997 by zone &quot;req_zone&quot;, client: 10.0.0.7, server: test1.oldboy.com, request: &quot;GET /index.html HTTP/1.0&quot;, host: &quot;test1.oldboy.com&quot;
+2022/07/29 03:50:39 [error] 2256#2256: *608 limiting requests, excess: 5.997 by zone &quot;req_zone&quot;, client: 10.0.0.7, server: test1.oldboy.com, request: &quot;GET /index.html HTTP/1.0&quot;, host: &quot;test1.oldboy.com&quot;
+</code></pre>
+<pre><code class="language-bash">nginx连接限制没有请求限制有效？
+我们先来回顾一下http协议的连接与请求，首先HTTP是建立在TCP基础之上，在完成HTTP请求前需要先建立TCP三次握手
+（称为TCP连接），在TCP连接的基础上再完成HTTP的请求；
+所以多个HTTP请求可以建立在一次TCP连接之上，那么我们对请求的精度限制，当然比对一个连接的限制会更加的有效，因为
+同一时刻只允许一个TCP连接进入，但是同一时刻多个HTTP请求可以通过一个TCP连接进入。
+所以针对HTTP的请求限制才是比较优的解决方案。
+</code></pre>
+<h2 id="nginx-location">nginx location</h2>
+<pre><code class="language-bash">使用nginx location可以控制访问网站的路径，但一个server可以有多个location，多个location的优先级该如何区分？
+</code></pre>
+<pre><code class="language-bash">Location语法示例
+		location [=|^~|~|~*|!~|!~*|/] /uri/ { ...
+		}
+</code></pre>
+<pre><code class="language-css">匹配符 	      匹配规则					           优先级
+=		      精确匹配					             1
+^~		      以某个字符串开头			             2
+~		      区分大小写的正则匹配		             3
+~*		      不区分大小写的正则匹配		             4
+!~		      区分大小写不匹配的正则		             5   
+!~*		      不区分大小写不匹配的正则	             6
+/		      通用匹配，任何请求都会匹配到              7
+</code></pre>
+<pre><code class="language-bash">#通用匹配，任何请求都会匹配到
+location / {
+    ...
+}
+
+# 严格区分大小写，匹配以.php结尾的都走这个location    
+location ~ \.php$ {
+    ...
+}
+
+# 严格区分大小写，匹配以.jsp结尾的都走这个location 
+location ~ \.jsp$ {
+    ...
+}
+
+# 不区分大小写匹配，只要用户访问.jpg,gif,png,js,css 都走这条location
+location ~* .*\.(jpg|gif|png|js|css|mp4)$ {
+    ...
+}
+
+# 不区分大小写匹配
+location ~* &quot;\.(sql|bak|tgz|tar.gz|.git)$&quot; {
+    ...
+}
+</code></pre>
+<pre><code class="language-bash">        location / {
+            if (!-e $request_filename) {
+                rewrite ^(.*)$ /index.php?s=$1 last;
+                break;
+            }
+        }
+
+        location ~ [^/]\.php(/|$) {
+            fastcgi_pass 127.0.0.1:9000;
+            fastcgi_index index.php;
+            include fastcgi.conf;
+                }
+
+        location ~ .*\.(gif|jpg|jpeg|png|bmp|swf)$ {
+            expires 30d;
+                }
+
+        location ~ .*\.(js|css)?$ {
+            expires 12h;
+               }
+}
+</code></pre>
+<pre><code class="language-bash"> location / {
+        index app.php;
+        try_files $uri @rewriteapp;
+    }
+    location @rewriteapp {
+        rewrite ^(.*)$ /app.php/$1 last;
+    }
+
+    location ~ ^/udisk {
+        internal;
+        root /code/edusoho/app/data/;
+    }
+
+    location ~ ^/(app|app_dev)\.php(/|$) {
+        fastcgi_pass   127.0.0.1:9000;
+        fastcgi_split_path_info ^(.+\.php)(/.*)$;
+        include fastcgi_params;
+        fastcgi_param  SCRIPT_FILENAME    $document_root$fastcgi_script_name;
+        fastcgi_param  HTTPS              off;
+        fastcgi_param HTTP_X-Sendfile-Type X-Accel-Redirect;
+        fastcgi_param HTTP_X-Accel-Mapping /udisk=/code/edusoho/app/data/udisk;
+        fastcgi_buffer_size 128k;
+        fastcgi_buffers 8 128k;
+    }
+    # 配置设置图片格式文件
+    location ~* \.(jpg|jpeg|gif|png|ico|swf)$ {
+        # 过期时间为3年
+        expires 3y;
+        # 关闭日志记录
+        access_log off;
+        # 关闭gzip压缩，减少CPU消耗，因为图片的压缩率不高。
+        gzip off;
+    }
+    # 配置css/js文件
+    location ~* \.(css|js)$ {
+        access_log off;
+        expires 3y;
+    }
+    # 禁止用户上传目录下所有.php文件的访问，提高安全性
+    location ~ ^/files/.*\.(php|php5)$ {
+        deny all;
+    }
+    # 以下配置允许运行.php的程序，方便于其他第三方系统的集成。
+    location ~ \.php$ {
+        fastcgi_pass   127.0.0.1:9000;
+        fastcgi_split_path_info ^(.+\.php)(/.*)$;
+        include fastcgi_params;
+        fastcgi_param  SCRIPT_FILENAME    $document_root$fastcgi_script_name;
+        fastcgi_param  HTTPS              off;
+    }
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/nginx-ji-chu/">
+              <h3 class="post-title">
+                下一篇：nginx基础
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

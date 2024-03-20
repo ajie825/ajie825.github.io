@@ -1,0 +1,263 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>samba服务 | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">samba服务</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-09-19</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/6zz0aRqm3g/">
+                    samba
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="samba简介">samba简介</h2>
+<pre><code class="language-bash">官网地址：https://www.samba.org/samba/。
+samba是在Linux和UNIX系统上实现SMB协议的一个免费软件，由服务器及客户端程序构成。
+SMB(Server Messages Block，信息服务块)是一种在局域网上共享文件和打印机的一种通信协议，它为局域网
+内的不同计算机之间提供文件及打印机等资源的共享服务。
+SMB协议是客户机/服务器型协议，客户机通过该协议可以访问服务器上的共享文件系统、打印机及其他资源。
+通过设置“NetBIOS over TCP/IP”使得Samba不但能与局域网络主机分享资源，还能与全世界的电脑分享资源。
+通过配置samba服务器可以实现与windows用户的资源共享。
+</code></pre>
+<h2 id="samba安装">samba安装</h2>
+<pre><code class="language-bash">centos7:
+[root@samba ~]# yum install samba samba-client -y
+smbclient是一个smb服务器的客户端管理程序
+#查看安装状态
+[root@samba ~]# whereis samba
+samba: /usr/lib64/samba /etc/samba /usr/libexec/samba /usr/share/man/man7/samba.7.gz
+[root@samba ~]# rpm -qa|grep samba
+samba-libs-4.10.16-19.el7_9.x86_64
+samba-4.10.16-19.el7_9.x86_64
+samba-common-libs-4.10.16-19.el7_9.x86_64
+samba-common-tools-4.10.16-19.el7_9.x86_64
+samba-client-4.10.16-19.el7_9.x86_64
+samba-common-4.10.16-19.el7_9.noarch
+samba-client-libs-4.10.16-19.el7_9.x86_64
+[root@samba ~]# smbd --version
+Version 4.10.16
+[root@samba ~]# systemctl enable smb
+[root@samba ~]# systemctl start smb
+[root@samba ~]# systemctl status smb
+● smb.service - Samba SMB Daemon
+   Loaded: loaded (/usr/lib/systemd/system/smb.service; disabled; vendor preset: disabled)
+   Active: active (running) since Mon 2022-09-19 00:36:49 EDT; 1min 4s ago
+[root@samba ~]# netstat -anput|grep smb 
+tcp        0      0 0.0.0.0:445             0.0.0.0:*               LISTEN      1529/smbd           
+tcp        0      0 0.0.0.0:139             0.0.0.0:*               LISTEN      1529/smbd           
+tcp6       0      0 :::445                  :::*                    LISTEN      1529/smbd           
+tcp6       0      0 :::139                  :::*                    LISTEN      1529/smbd 
+</code></pre>
+<h2 id="samba配置">samba配置</h2>
+<h3 id="配置匿名访问">配置匿名访问</h3>
+<pre><code class="language-bash">1）修改配置文件
+[root@samba ~]# cp /etc/samba/smb.conf /etc/samba/smb.conf.bak
+#配置samba的全局参数
+由于是匿名访问，需要添加map to guest = bad user，centos7里smb版本包不再支持share
+ map to guest = bad user
+ hosts allow = 192.168.40.1,192.168.40.185 #指定允许访问的主机IP
+ log file = /var/log/samba/log.%m          #指定日志存放路径，%m为来访的主机名
+ max log size = 50                         #定义日志文件最大容量为50K
+#配置共享组，共享组主要用来定义在网络上共享的文件资源
+[public]
+       comment =  Test Share Direstory
+       path = /usr/src
+       guest ok = yes
+       read only = no
+       browseable = yes       
+#参数解释：
+       comment =  Test Share Direstory   #描述说明，可写可不写
+       path = /usr/src                   #指定共享的路径位置
+       guest ok = yes                    
+       #是否允许所有人访问目录，yes为是，no为否，等同于public
+       #如果全局参数设置为匿名访问，表示所有人都能登录samba服务器，而guset ok针对的是目录
+       read only = no                    #允许写入，yes为只读
+       browseable = yes                  
+       #是否浏览可见，在网络邻居是否能看到，yes是，no否，一般情况下，都是yes
+2）建立共享目录
+#注意：
+path的路径目录必须修权限改为777，否则samba匿名登陆后就算配置了可写也会失败
+[root@samba ~]# chmod -R 777 /usr/src/
+[root@samba ~]# ll /usr/src/          
+total 0
+drwxrwxrwx. 2 777 root 6 Apr 11  2018 debug
+drwxrwxrwx. 2 777 root 6 Apr 11  2018 kernels
+3）检查语法并重启smb服务
+[root@samba samba]# testparm            #语法检查，无异常后回车，会显示当前配置
+[root@samba samba]# systemctl restart smb
+4）测试
+#windows客户端访问
+win+R---&gt;\\192.168.40.183
+#linux客户端访问
+192.168.40.184因为没有加入白名单，所以会报错
+[root@client ~]# yum install samba-client -y
+[root@client ~]# smbclient -L 192.168.40.183
+protocol negotiation failed: NT_STATUS_INVALID_NETWORK_RESPONSE
+</code></pre>
+<h3 id="配置用户密码访问">配置用户密码访问</h3>
+<pre><code class="language-bash">1）给samba服务器添加用户
+#注意：
+添加的账户必须是linux已经创建的账户，直接添加samba用户会导致失败
+[root@samba ~]# useradd user01             #创建smbuser1用户账号
+[root@samba ~]# smbpasswd -a user01        #添加samba用户和为用户修改密码
+New SMB password:                          #创建密码
+Retype new SMB password:                   #再次输入确认密码
+Added user user01.
+[root@samba ~]# pdbedit -L                  #列出samba服务中的所有用户
+-x, --delete：#删除用户
+2）修改smb.conf配置文件
+由于是用户名访问，将map to guest = bad user全局参数注释掉
+[secret]
+       comment =  Test Secret Direstory
+       path = /opt/smb
+       valid users = user01
+       public = no
+       read only = no  
+       browseable = yes
+valid users：指定可以访问共享的用户，如果没有guest ok，那么是指定某个用户访问，要指定多个用
+户，用英文状态的逗号隔开
+3）建立共享目录
+[root@samba ~]# mkdir -p /opt/smb
+[root@samba ~]# chmod -R 777 /opt/smb/
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/pei-zhi-guan-li-zhong-xin-secret/">
+              <h3 class="post-title">
+                下一篇：配置管理中心secret
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

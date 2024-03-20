@@ -1,0 +1,741 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>污点-容忍度-亲和性 | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">污点-容忍度-亲和性</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-07-19</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/vN0im2GW5W/">
+                    k8s
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="亲和性">亲和性</h2>
+<h3 id="node节点亲和性">node节点亲和性</h3>
+<p><code>node</code>节点亲和性针对的是<code>pod</code>和<code>node</code>的关系，<code>pod</code>调度到<code>node</code>节点的时候需要匹配的条件。</p>
+<pre><code class="language-bash">#node节点亲和性调度：nodeAffinity
+[root@master1 ~]# kubectl explain pods.spec.affinity.nodeAffinity
+KIND:     Pod
+VERSION:  v1
+RESOURCE: nodeAffinity &lt;Object&gt;
+DESCRIPTION:
+     #描述Pod的节点亲和性调度规则。
+     #节点亲和性是一组节点亲和性调度规则。
+
+FIELDS:
+   preferredDuringSchedulingIgnoredDuringExecution      &lt;[]Object&gt;
+   requiredDuringSchedulingIgnoredDuringExecution       &lt;Object&gt;
+#preferred表示有节点尽量满足这个位置定义的亲和性，这不是一个必须的条件，软亲和性
+#required表示必须有节点满足这个位置定义的亲和性，这是个硬性条件，硬亲和性
+</code></pre>
+<pre><code class="language-bash">[root@master1 ~]# kubectl explain pods.spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms
+KIND:     Pod
+VERSION:  v1
+RESOURCE: nodeSelectorTerms &lt;[]Object&gt;
+DESCRIPTION:
+
+FIELDS:
+   #匹配表达式的
+   matchExpressions  &lt;[]Object&gt;
+   #匹配字段的
+   matchFields  &lt;[]Object&gt;
+</code></pre>
+<pre><code class="language-bash">[root@master1 ~]# kubectl explain pods.spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms.matchFields
+KIND:     Pod
+VERSION:  v1
+RESOURCE: matchFields &lt;[]Object&gt;
+DESCRIPTION:
+
+FIELDS:
+   key  &lt;string&gt; -required-
+   operator     &lt;string&gt; -required-
+   values       &lt;[]string&gt;
+</code></pre>
+<pre><code class="language-bash">[root@master1 ~]# kubectl explain pods.spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms.matchExpressions
+KIND:     Pod
+VERSION:  v1
+RESOURCE: matchExpressions &lt;[]Object&gt;
+DESCRIPTION:
+
+FIELDS:
+   key  &lt;string&gt; -required-
+   operator     &lt;string&gt; -required-
+   values       &lt;[]string&gt;
+#key：     检查label
+#operator：表示键与一组值的关系，有效的运算符是In, NotIn, Exists, DoesNotExist. Gt, and Lt
+#values：  给定值
+</code></pre>
+<p><strong>使用<code>requiredDuringSchedulingIgnoredDuringExecution</code>硬亲和性</strong></p>
+<pre><code class="language-bash">#把myapp-v1.tar.gz上传到node1和node2上，手动解压：
+[root@node1 ~]# docker load -i myapp-v1.tar.gz 
+[root@node2 ~]# docker load -i myapp-v1.tar.gz 
+Loaded image: ikubernetes/myapp:v1
+
+[root@master1 ~]# cat pod-nodeAffinity-demo.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-affinity-demo
+  namespace: default
+  labels:
+    app: myapp
+    tier: frontend
+spec:
+  containers:
+  - name: myapp
+    image: ikubernetes/myapp:v1
+    imagePullPolicy: IfNotPresent
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: zone
+            operator: In
+            values:
+            - foo
+            - bar
+    #检查如果有节点拥有zone标签的值是foo或者bar，就可以把pod调度到这个node节点上
+    [root@master1 ~]# kubectl apply -f pod-nodeAffinify-demo.yaml 
+    [root@master1 ~]# kubectl get pods |grep pod-node-affinity-demo       
+    pod-node-affinity-demo        0/1     Pending   0          2m11s
+    #status的状态是Pending，说明没有完成调度，因为没有节点拥有zone的标签值是foo或者bar，而且使用的是硬亲和性，必须满足条件才能完成调度。
+
+#给node1节点打标签zone=foo
+[root@master1 ~]# kubectl label nodes node1 zone=foo
+node/node1 labeled
+[root@master1 k8s]# kubectl get nodes -l zone
+NAME    STATUS   ROLES    AGE    VERSION
+node1   Ready    worker   6d5h   v1.20.6
+#重新查看Pod的状态
+[root@master1 ~]# kubectl get pods -o wide|grep pod-node-affinity-demo
+pod-node-affinity-demo        1/1     Running   0          6m25s   10.244.166.150   node1
+
+[root@master1 k8s]# kubectl label nodes node1 zone-
+node/node1 labeled
+[root@master1 ~]# kubectl get pods -o wide|grep pod-node-affinity-demo
+pod-node-affinity-demo        1/1     Running   0          7m12s   10.244.166.150   node1
+</code></pre>
+<p>结论：当节点标签改变而不再符合此节点亲和性规则时，不会将<code>Pod</code>从该节点移出，仅对新建的<code>Pod</code>对象生效。</p>
+<p><strong>使用<code>preferredDuringSchedulingIgnoredDuringExecution</code>软亲和性</strong></p>
+<pre><code class="language-bash">[root@master1 ~]# kubectl explain pods.spec.affinity.nodeAffinity.preferredDuringSchedulingIgnoredDuringExecution
+KIND:     Pod
+VERSION:  v1
+RESOURCE: preferredDuringSchedulingIgnoredDuringExecution &lt;[]Object&gt;
+DESCRIPTION:
+
+FIELDS:
+   preference(优先级) &lt;Object&gt; -required-
+   weight       &lt;integer&gt; -required-
+     range 1-100.
+     
+[root@master1 ~]# kubectl explain pods.spec.affinity.nodeAffinity.preferredDuringSchedulingIgnoredDuringExecution.preference
+KIND:     Pod
+VERSION:  v1
+RESOURCE: preference &lt;Object&gt;
+DESCRIPTION:
+
+FIELDS:
+   matchExpressions     &lt;[]Object&gt;
+   matchFields  &lt;[]Object&gt;
+   
+[root@master1 ~]# cat pod-nodeAffinity-demo-2.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-node-affinity-demo-2
+  namespace: default
+  labels:
+    app: myapp
+    tier: frontend
+spec:
+  containers:
+  - name: myapp
+    image: ikubernetes/myapp:v1
+    imagePullPolicy: IfNotPresent
+  affinity:
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - preference:
+          matchExpressions:
+          - key: zone1
+            operator: In
+            values:
+            - foo1
+            - bar1
+        weight: 60
+ [root@master1 ~]# kubectl apply -f  pod-nodeAffinify-demo-2.yaml
+ 
+ [root@master1 ~]# kubectl get pods -o wide pod-node-affinity-demo-2
+NAME                       READY   STATUS    RESTARTS   AGE    IP              NODE   
+pod-node-affinity-demo-2   1/1     Running   0          109s   10.244.104.30   node2
+</code></pre>
+<p>结论：说明软亲和性是可以运行这个<code>pod</code>的，尽管没有<code>node</code>节点定义<code>zone1</code>这个标签。</p>
+<h3 id="pod对象亲和性">pod对象亲和性</h3>
+<p><code>pod</code>自身的亲和性调度有两种表现形式：</p>
+<p><code>podaffinity</code>：把相近的<code>pod</code>结合到相近的位置，如同一区域，同一机架，这样<code>pod</code>和<code>pod</code>之间更好通信，比方说有两个机房，这两个机房部署的集群有1000台主机，我们希望把<code>nginx</code>和<code>tomcat</code>都部署同一个地方的<code>node</code>节点上，可以提高通信效率；</p>
+<p><code>podunaffinity</code>：<code>pod</code>和<code>pod</code>倾向不在一起，如果部署两套程序，那么这两套程序更倾向于反亲和性，这样相互之间不会有影响。</p>
+<p>第一个<code>pod</code>随机选择一个节点，作为评判后续的<code>pod</code>能否到达这个节点的运行方式，这就称为<code>pod</code>亲和性，我们怎么判定哪些节点是相同位置的，哪些节点是不同位置的？标准是什么？以节点的键值为标准，节点键值相同的表示是同一个位置，节点键值不相同的表示不是一个位置。</p>
+<pre><code class="language-bash">[root@master1 ~]# kubectl explain pods.spec.affinity.podAffinity
+KIND:     Pod
+VERSION:  v1
+RESOURCE: podAffinity &lt;Object&gt;
+DESCRIPTION:
+     #描述pod亲和性调度规则（例如，将此pod并置在与其他pod相同的节点、区域等）。
+     #Pod亲和性是一组Pod间亲和性调度规则。
+
+FIELDS:
+   #软亲和性
+   preferredDuringSchedulingIgnoredDuringExecution      &lt;[]Object&gt;
+   #硬亲和性
+   requiredDuringSchedulingIgnoredDuringExecution       &lt;[]Object&gt;
+   
+[root@master1 ~]# kubectl explain pods.spec.affinity.podAffinity.requiredDuringSchedulingIgnoredDuringExecution
+KIND:     Pod
+VERSION:  v1
+RESOURCE: requiredDuringSchedulingIgnoredDuringExecution &lt;[]Object&gt;
+DESCRIPTION:
+
+FIELDS:
+   labelSelector        &lt;Object&gt;
+   namespaces   &lt;[]string&gt;
+   topologyKey  &lt;string&gt; -required-
+
+#labelSelector：要判断pod跟别的pod亲和，通过labelSelector选择一组作为亲和对象的pod资源
+#namespace：labelSelector通过namespace指定这组资源是在哪个名称空间中，如果不指定namespaces，那么就是当前创建pod的名称空间
+#topologyKey：位置拓扑的键，必须字段，用来判断该pod与labelSelector匹配的pod是否位于同一位置，与选定pod的节点的键值相匹配
+
+[root@master1 ~]# kubectl explain pods.spec.affinity.podAffinity.requiredDuringSchedulingIgnoredDuringExecution.labelSelector 
+KIND:     Pod
+VERSION:  v1
+RESOURCE: labelSelector &lt;Object&gt;
+DESCRIPTION:
+
+FIELDS:
+   matchExpressions     &lt;[]Object&gt;
+   matchLabels  &lt;map[string]string&gt;
+</code></pre>
+<pre><code class="language-bash">#pod节点亲和性
+#定义两个pod，第一个pod作为基准，第二个pod跟着走
+[root@master1 ~]# kubectl delete pods pod-first 
+[root@master1 ~]# cat pod-required-affinity-demo.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-first
+  namespace: default
+  labels:
+    app2: myapp2
+    tier: frontend
+spec:
+  containers:
+  - name: myapp
+    image: ikubernetes/myapp:v1
+    imagePullPolicy: IfNotPresent
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-second
+  namespace: default
+  labels:
+    app: backend
+    tier: db
+spec:
+  containers:
+  - name: busybox
+    image: busybox:1.28
+    imagePullPolicy: IfNotPresent
+    command: [&quot;sh&quot;,&quot;-c&quot;,&quot;sleep 3600&quot;]
+  affinity:
+    podAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+          - {key: app2, operator: In, values: [&quot;myapp2&quot;]}
+        topologyKey: kubernetes.io/hostname
+#上面表示创建的pod必须与拥有app2=myapp2标签的pod在一个节点上
+[root@master1 ~]# kubectl apply -f pod-required-affinity-demo.yaml
+[root@master1 ~]# kubectl get pods -o wide
+显示如下
+pod-first          1/1     Running   0          2m30s   10.244.104.31    node2
+pod-second         1/1     Running   0          2m30s   10.244.104.32    node2
+</code></pre>
+<pre><code class="language-bash">#pod节点反亲和性
+#定义两个pod，第一个pod作为基准，第二个pod跟它调度节点相反
+[root@master1 ~]# kubectl delete -f pod-required-affinity-demo.yaml
+pod &quot;pod-first&quot; deleted
+pod &quot;pod-second&quot; deleted
+[root@master1 ~]# cat pod-required-anti-affinity-demo.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-first
+  labels:
+    app1: myapp1
+    tier: frontend
+spec:
+  containers:
+  - name: myapp
+    image: ikubernetes/myapp:v1
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-second
+  labels:
+    app: backend
+    tier: db
+spec:
+  containers:
+  - name: busybox
+    image: busybox:1.28
+    imagePullPolicy: IfNotPresent
+    command: [&quot;sh&quot;,&quot;-c&quot;,&quot;sleep 3600&quot;]
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+          - {key: app1, operator: In, values: [&quot;myapp1&quot;]}
+        topologyKey: kubernetes.io/hostname
+[root@master1 ~]# kubectl apply -f pod-required-anti-affinity-demo.yaml 
+[root@master1 ~]# kubectl get pods -o wide
+pod-first      1/1     Running   0          58s     10.244.104.33    node2
+pod-second     1/1     Running   0          58s     10.244.166.151   node1 
+</code></pre>
+<pre><code class="language-bash">#换一个topologyKey
+[root@master1 ~]# kubectl delete -f pod-required-anti-affinity-demo.yaml
+pod &quot;pod-first&quot; deleted
+pod &quot;pod-second&quot; deleted
+[root@master1 ~]# kubectl label nodes node2 zone=foo
+[root@master1 ~]# kubectl label nodes node1 zone=foo --overwrite 
+
+[root@master1 ~]# cat pod-first-required-anti-affinity-demo-1.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-first
+  labels:
+    app3: myapp3
+    tier: frontend
+spec:
+  containers:
+  - name: myapp
+    image: ikubernetes/myapp:v1
+    imagePullPolicy: IfNotPresent
+      
+[root@master1 ~]# cat pod-second-required-anti-affinity-demo-1.yaml     
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-second
+  labels:
+    app: backend
+    tier: db
+spec:
+  containers:
+  - name: busybox
+    image: busybox:1.28
+    imagePullPolicy: IfNotPresent
+    command: [&quot;sh&quot;,&quot;-c&quot;,&quot;sleep 3600&quot;]
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+           matchExpressions:
+           - {key: app3 ,operator: In, values: [&quot;myapp3&quot;]}
+        topologyKey: zone
+           
+[root@master1 ~]# kubectl apply -f pod-first-required-anti-affinity-demo-1.yaml
+[root@master1 ~]# kubectl apply -f pod-second-required-anti-affinity-demo-1.yaml
+
+[root@master1 ~]# kubectl get pods -o wide 
+pod-first         1/1     Running   0          37s     10.244.104.34    node2
+pod-second        0/1     Pending   0          21s     &lt;none&gt;           &lt;none&gt;
+
+#pod-second现是pending，因为没有不是同一个位置的节点，而且我们要求反亲和性，所以就会处于pending状态，
+#如果在反亲和性这个位置把required改成preferred，那么pod-second也会运行。
+#podaffinity： pod节点亲和性，pod倾向于哪个pod
+#nodeaffinity：node节点亲和性，pod倾向于哪个node
+</code></pre>
+<h2 id="污点-容忍度">污点、容忍度</h2>
+<p>污点给了节点选择的主动权，我们给节点打一个污点，不容忍该污点的<code>pod</code>就运行不上来，污点就是定义在节点上的键值属性数据，可以决定拒绝哪些<code>pod</code>；</p>
+<p><code>taints</code>是键值数据，用在节点上，定义污点；</p>
+<p><code>toleration</code>是键值数据，用在<code>pod</code>上，定义容忍度，能容忍哪些污点；</p>
+<p><code>pod</code>亲和性是<code>pod</code>属性；但是污点是节点的属性，污点定义在<code>nodeSelector</code>上。</p>
+<pre><code class="language-bash">[root@master1 ~]# kubectl explain node.spec.taints
+KIND:     Node
+VERSION:  v1
+RESOURCE: taints &lt;[]Object&gt;
+DESCRIPTION:
+
+FIELDS:
+   effect       &lt;string&gt; -required-
+    #污点对不能容忍该污点的pod的影响，有效效果为NoSchedule、PreferNoSchedule和NoExecute
+   key  &lt;string&gt; -required-
+   timeAdded    &lt;string&gt;
+   value        &lt;string&gt;
+</code></pre>
+<p><code>taints</code>的<code>effect</code>用来定义对<code>pod</code>对象的排斥等级(效果)：</p>
+<ul>
+<li><code>NoSchedule</code>：<br>
+仅影响<code>pod</code>调度过程，当<code>pod</code>能容忍这个节点污点，就可以调度到当前节点，后来这个节点的污点改了，加了一个新的污点，使得之前调度的<code>pod</code>不能容忍了，那么这个<code>pod</code>会怎么处理，对现存的pod对象不产生影响。</li>
+<li><code>NoExecute</code>：<br>
+既影响调度过程，又影响现存的<code>pod</code>对象，如果现存的<code>pod</code>不能容忍节点后来加的污点，这个<code>pod</code>就会被驱逐。</li>
+<li><code>PreferNoSchedule</code>：<br>
+最好不，也可以，是<code>NoSchedule</code>的柔性版本。</li>
+</ul>
+<pre><code class="language-bash">[root@master1 ~]# kubectl explain pod.spec.tolerations
+KIND:     Pod
+VERSION:  v1
+RESOURCE: tolerations &lt;[]Object&gt;
+DESCRIPTION:
+    #使用匹配运算符operator与&lt;key,value,effect&gt;匹配任何污点
+    
+FIELDS:
+   effect       &lt;string&gt;
+   key  &lt;string&gt;
+   operator     &lt;string&gt;
+   value        &lt;string&gt;
+
+[root@master1 ~]# kubectl explain pod.spec.tolerations.operator
+KIND:     Pod
+VERSION:  v1
+FIELD:    operator &lt;string&gt;
+DESCRIPTION:
+    #有效运算符是&quot;Exists&quot;和&quot;Equal&quot;，默认为等于，Exists相当于值的通配符，因此Pod可以容忍特定类别的所有污点
+    
+[root@master1 ~]# kubectl explain pod.spec.tolerations.effect
+KIND:     Pod
+VERSION:  v1
+FIELD:    effect &lt;string&gt;
+DESCRIPTION:
+     #effect表示要匹配的污点效果，空意味着匹配所有污点效果， 指定后，允许的值为NoSchedule、PreferNoSchedule和NoExecute
+</code></pre>
+<p>在<code>pod</code>对象定义容忍度的时候支持两种操作：</p>
+<ol>
+<li>等值密钥(<code>equal</code>)：表示容忍度与污点必须在<code>key</code>、<code>value</code>和<code>effect</code>三者完全匹配。</li>
+<li>存在性判断(<code>exists</code>)，表示<code>effect</code>和<code>key</code>完全匹配，<code>value</code>字段使用是空值。</li>
+</ol>
+<p>在<code>pod</code>上定义的容忍度可能不止一个，在节点上定义的污点可能多个，需要逐个检查容忍度和污点能否匹配，每个污点都能被容忍，才能完成调度。</p>
+<pre><code class="language-bash">[root@master1 ~]# kubectl describe nodes master1|grep Taints
+Taints:         node-role.kubernetes.io/master:NoSchedule
+#上面可以看到master这个节点的污点是NoSchedule
+#我们创建的pod都不会调度到master上，因为我们创建的pod没有容忍度
+
+[root@master1 ~]# kubectl describe pods kube-apiserver-master1 -n kube-system|grep Tolerations
+Tolerations:       :NoExecute op=Exists
+#可以看到这个pod的容忍度是NoExecute，则可以调度到master1节点上
+
+#管理节点污点
+[root@master1 ~]# kubectl taint --help
+</code></pre>
+<p>例：把<code>node2</code>当成生产环境专用的，其他<code>node</code>是测试的</p>
+<pre><code class="language-bash">#给node2打污点，pod如果不能容忍就不会调度过来
+[root@master1 ~]# kubectl taint node node2 node-type=production:NoSchedule
+node/node2 tainted
+[root@master1 ~]# kubectl describe nodes node2|grep Taints
+Taints:          node-type=production:NoSchedule
+[root@master1 ~]# cat pod-taint.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: taint-pod
+  namespace: default
+  labels:
+    tomcat:  tomcat-pod
+spec:
+  containers:
+  - name:  taint-pod
+    image: tomcat:8.5-jre8-alpine
+    imagePullPolicy: IfNotPresent 
+    ports:
+    - containerPort: 8080
+[root@master1 ~]# kubectl apply -f pod-taint.yaml 
+[root@master1 ~]# kubectl get pods -o wide|grep taint-pod
+taint-pod         1/1     Running   0          28s     10.244.166.157   node1 
+#可以看到被调度到node1节点，因为node2这个节点打了污点，而在创建pod的时候没有定义容忍度，所以node2上不会有pod调度上去
+</code></pre>
+<pre><code class="language-bash">#给node1也打上污点
+[root@master1 ~]# kubectl delete -f pod-taint.yaml 
+[root@master1 ~]# kubectl taint node node1 node-type=dev:NoExecute
+node/node1 tainted
+[root@master1 ~]# kubectl describe nodes node1|grep Taints
+Taints:          node-type=dev:NoExecute
+[root@master1 ~]# kubectl apply -f pod-taint.yaml
+[root@master1 ~]# kubectl get pods -o wide|grep taint-pod         
+taint-pod                     0/1     Pending   0          6s
+[root@master1 ~]# kubectl describe pods taint-pod 
+Warning  FailedScheduling  default-scheduler  0/3 nodes are available: 1 node(s) had taint {node-role.kubernetes.io/master: }, 1 node(s) had taint {node-type: dev}, 1 node(s) had taint {node-type: production}
+#可以看到pod处于Pending状态，因为三个节点因为都打了污点，pod调度失败
+</code></pre>
+<pre><code class="language-bash">#给pod定义容忍度
+[root@master1 ~]# kubectl get pods -o wide|grep taint-pod
+[root@master1 ~]# cat pod-taint-2.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-deploy
+  namespace: default
+  labels:
+    app: myapp
+    release: canary
+spec:
+  containers:
+  - name: myapp
+    image: ikubernetes/myapp:v1
+    ports:
+    - containerPort: 80
+  tolerations:
+  - key: &quot;node-type&quot;
+    operator: &quot;Equal&quot;
+    value: &quot;production&quot;
+    effect: &quot;NoExecute&quot;
+    tolerationSeconds: 3600
+[root@master1 ~]# kubectl apply -f pod-taint-2.yaml 
+pod/myapp-deploy created
+[root@master1 ~]# kubectl get pod -o wide|grep myapp-deploy
+myapp-deploy          0/1     Pending   0          28s
+
+#还是显示Pending状态，因为我们使用的是equal(等值匹配)，所以key和value、effect必须和node节点定义的污点完全匹配才可以
+</code></pre>
+<pre><code class="language-bash">#修改pod-taint-2.yaml，把effect: &quot;NoExecute&quot;变成effect: &quot;NoSchedule&quot;，tolerationSeconds: 3600去掉
+[root@master1 ~]# kubectl delete -f pod-taint-2.yaml       
+pod &quot;myapp-deploy&quot; deleted
+[root@master1 ~]# cat pod-taint-2.yaml     
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-deploy
+  namespace: default
+  labels:
+    app: myapp
+    release: canary
+spec:
+  containers:
+  - name: myapp
+    image: ikubernetes/myapp:v1
+    ports:
+    - containerPort: 80
+  tolerations:
+  - key: &quot;node-type&quot;
+    operator: &quot;Equal&quot;
+    value: &quot;production&quot;
+    effect: &quot;NoSchedule&quot;
+[root@master1 ~]# kubectl apply -f pod-taint-2.yaml 
+[root@master1 ~]# kubectl get pod -o wide|grep myapp-deploy                 
+myapp-deploy          1/1     Running   0          33s     10.244.104.42   node2 
+
+#显示pod被成功调度到node2，状态为Running
+</code></pre>
+<pre><code class="language-bash">#再次对pod-taint-2.yaml进行修改
+[root@master1 ~]# kubectl delete -f pod-taint-2.yaml 
+[root@master1 ~]# cat pod-taint-2.yaml                     
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-deploy
+  namespace: default
+  labels:
+    app: myapp
+    release: canary
+spec:
+  containers:
+  - name: myapp
+    image: ikubernetes/myapp:v1
+    ports:
+    - containerPort: 80
+  tolerations:
+  - key: &quot;node-type&quot;
+    operator: &quot;Exists&quot;
+    value: &quot;&quot;
+    effect: &quot;NoSchedule&quot;
+#只要对应的键是存在的，exists其值被自动定义成通配符
+[root@master1 ~]# kubectl apply -f pod-taint-2.yaml 
+[root@master1 ~]# kubectl get pod -o wide|grep myapp-deploy
+myapp-deploy          1/1     Running   0          100s    10.244.104.43   node2
+
+#发现还是调度到node2节点，状态时Running
+</code></pre>
+<pre><code class="language-bash">#再次对pod-taint-2.yaml进行修改
+[root@master1 ~]# kubectl delete -f pod-taint-2.yaml
+[root@master1 ~]# cat pod-taint-2.yaml                     
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-deploy
+  namespace: default
+  labels:
+    app: myapp
+    release: canary
+spec:
+  containers:
+  - name: myapp
+    image: ikubernetes/myapp:v1
+    ports:
+    - containerPort: 80
+  tolerations:
+  - key: &quot;node-type&quot;
+    operator: &quot;Exists&quot;
+    value: &quot;&quot;
+    effect: &quot;&quot;
+#有一个node-type的键，不管值是什么，不管什么污点，都能容忍
+[root@master1 ~]# kubectl apply -f pod-taint-2.yaml 
+[root@master1 ~]# kubectl get pod -o wide|grep myapp-deploy
+myapp-deploy          1/1     Running   0          17s     10.244.166.158   node1
+
+#可以看到pod有可能被调度到node1和node2节点
+</code></pre>
+<pre><code class="language-bash">#删除污点
+[root@master1 ~]# kubectl taint node node1 node-type:NoExecute-
+node/node1 untainted
+[root@master1 ~]# kubectl taint node node2 node-type-
+node/node2 untainted
+#查看污点
+[root@master1 ~]# kubectl describe nodes node1|grep Taints
+Taints:             &lt;none&gt;
+[root@master1 ~]# kubectl describe nodes node2|grep Taints 
+Taints:             &lt;none&gt;
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/namespace-ming-cheng-kong-jian/">
+              <h3 class="post-title">
+                下一篇：namespace名称空间
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

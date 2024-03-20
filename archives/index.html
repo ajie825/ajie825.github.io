@@ -1,0 +1,886 @@
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+        <div class="content-container">
+          
+          
+
+<div class="archives-container">
+  
+    <h2 class="year">2024</h2>
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/一键编译安装redis脚本/">
+            <h2 class="post-title">
+              一键编译安装redis脚本
+              <small>2024-02-21</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/redis入门教程/">
+            <h2 class="post-title">
+              Redis入门教程(马哥)
+              <small>2024-02-20</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/缓存技术/">
+            <h2 class="post-title">
+              缓存技术
+              <small>2024-02-03</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/helm v3版管理k8s集群/">
+            <h2 class="post-title">
+              helm v3版管理k8s集群
+              <small>2024-01-29</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/k8s安全管理：认证、授权、准入控制/">
+            <h2 class="post-title">
+              k8s安全管理：认证、授权、准入控制
+              <small>2024-01-15</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/job和cronjob调度pod/">
+            <h2 class="post-title">
+              Job&amp;&amp;CronJob调度pod
+              <small>2024-01-08</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  
+    <h2 class="year">2023</h2>
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/持续集成教程(八)/">
+            <h2 class="post-title">
+              持续集成教程 (八)
+              <small>2023-10-19</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/chi-xu-ji-cheng-jiao-cheng-qi/">
+            <h2 class="post-title">
+              持续集成教程 (七)
+              <small>2023-10-14</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/chi-xu-ji-cheng-jiao-cheng-liu/">
+            <h2 class="post-title">
+              持续集成教程 (六)
+              <small>2023-10-12</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/chi-xu-ji-cheng-jiao-cheng-wu/">
+            <h2 class="post-title">
+              持续集成教程 (五)
+              <small>2023-10-09</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/chi-xu-ji-cheng-jiao-cheng-si/">
+            <h2 class="post-title">
+              持续集成教程 (四)
+              <small>2023-10-05</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/chi-xu-ji-cheng-jiao-cheng-san/">
+            <h2 class="post-title">
+              持续集成教程 (三)
+              <small>2023-09-29</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/fen-bu-shi-ban-ben-kong-zhi-xi-tong-git/">
+            <h2 class="post-title">
+              持续集成教程 (二)
+              <small>2023-09-25</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/chi-xu-ji-cheng-jiao-cheng/">
+            <h2 class="post-title">
+              持续集成教程 (一)
+              <small>2023-09-18</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/a-li-yun/">
+            <h2 class="post-title">
+              阿里云
+              <small>2023-09-13</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/shell-jiao-ben-jin-jie-pian-wan-jie/">
+            <h2 class="post-title">
+              Shell脚本进阶篇（完结）
+              <small>2023-09-05</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/shell-bian-cheng-ji-chu-pian-xia/">
+            <h2 class="post-title">
+              Shell编程基础篇-下
+              <small>2023-08-31</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/shell-bian-cheng-ji-chu-pian-shang/">
+            <h2 class="post-title">
+              Shell编程基础篇-上
+              <small>2023-08-23</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  
+    <h2 class="year">2022</h2>
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/an-zhuang-docker-jiao-ben/">
+            <h2 class="post-title">
+              安装docker脚本
+              <small>2022-10-19</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/er-jin-zhi-bu-shu-loki-ri-zhi-xi-tong/">
+            <h2 class="post-title">
+              二进制部署loki日志系统
+              <small>2022-10-14</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/openresty-an-zhuang-jiao-ben/">
+            <h2 class="post-title">
+              openresty安装脚本
+              <small>2022-10-05</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/samba-fu-wu/">
+            <h2 class="post-title">
+              samba服务
+              <small>2022-09-19</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/pei-zhi-guan-li-zhong-xin-secret/">
+            <h2 class="post-title">
+              配置管理中心secret
+              <small>2022-09-07</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/pei-zhi-guan-li-zhong-xin-configmap/">
+            <h2 class="post-title">
+              配置管理中心configmap
+              <small>2022-09-06</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/daemonset-kong-zhi-qi/">
+            <h2 class="post-title">
+              daemonset控制器
+              <small>2022-09-06</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/statefulset-kong-zhi-qi/">
+            <h2 class="post-title">
+              Statefulset控制器
+              <small>2022-09-03</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/k8s-chi-jiu-hua-cun-chu/">
+            <h2 class="post-title">
+              k8s持久化存储
+              <small>2022-08-31</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/ingress-he-ingress-controller/">
+            <h2 class="post-title">
+              Ingress和 Ingress Controller
+              <small>2022-08-29</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/nginx-dai-li-huan-cun/">
+            <h2 class="post-title">
+              nginx代理缓存
+              <small>2022-08-16</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/nginx-xing-neng-you-hua-shi-jian/">
+            <h2 class="post-title">
+              nginx性能优化实践
+              <small>2022-08-15</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/nginx-shi-yong-chang-jian-wen-ti/">
+            <h2 class="post-title">
+              nginx使用常见问题
+              <small>2022-08-10</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/keepalived-gao-ke-yong/">
+            <h2 class="post-title">
+              keepalived高可用
+              <small>2022-08-09</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/nginx-https-shi-jian/">
+            <h2 class="post-title">
+              nginx https实践
+              <small>2022-08-08</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/nginx-rewrite-chong-xie/">
+            <h2 class="post-title">
+              nginx rewrite重写
+              <small>2022-08-08</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/nginx-dong-jing-fen-li/">
+            <h2 class="post-title">
+              nginx动静分离
+              <small>2022-08-06</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/nginx-si-ceng-fu-zai-jun-heng/">
+            <h2 class="post-title">
+              nginx四层负载均衡
+              <small>2022-08-05</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/nginx-fu-zai-jun-heng-er/">
+            <h2 class="post-title">
+              nginx负载均衡（二）
+              <small>2022-08-05</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/nginx-dai-li-yu-fu-zai-jun-heng/">
+            <h2 class="post-title">
+              nginx代理与负载均衡
+              <small>2022-08-04</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/lnmp-chai-fen/">
+            <h2 class="post-title">
+              LNMP-拆分
+              <small>2022-08-02</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/lnmp-jia-gou/">
+            <h2 class="post-title">
+              LNMP架构
+              <small>2022-08-01</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/nginx-chang-yong-mo-kuai/">
+            <h2 class="post-title">
+              nginx常用模块
+              <small>2022-07-28</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/nginx-ji-chu/">
+            <h2 class="post-title">
+              nginx基础
+              <small>2022-07-27</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/web-ji-chu-zhi-http/">
+            <h2 class="post-title">
+              web基础之Http
+              <small>2022-07-27</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/k8s-si-ceng-fu-zai-jun-heng-service/">
+            <h2 class="post-title">
+              k8s四层负载均衡-service
+              <small>2022-07-23</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/deployment-kong-zhi-qi/">
+            <h2 class="post-title">
+              deployment控制器
+              <small>2022-07-22</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/replicaset-kong-zhi-qi/">
+            <h2 class="post-title">
+              replicaset控制器
+              <small>2022-07-21</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/pod-sheng-ming-zhou-qi-he-jian-kang-tan-ce/">
+            <h2 class="post-title">
+              pod生命周期和健康探测
+              <small>2022-07-20</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/wu-dian-rong-ren-du-qin-he-xing/">
+            <h2 class="post-title">
+              污点-容忍度-亲和性
+              <small>2022-07-19</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/namespace-ming-cheng-kong-jian/">
+            <h2 class="post-title">
+              namespace名称空间
+              <small>2022-07-18</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/pod-gai-shu-ru-men-zhi-shi-jiang-jie/">
+            <h2 class="post-title">
+              Pod概述-入门知识讲解
+              <small>2022-07-14</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+  
+</div>
+
+
+        </div>
+
+        <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+      </div>
+      <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+    </div>
+  </body>
+</html>

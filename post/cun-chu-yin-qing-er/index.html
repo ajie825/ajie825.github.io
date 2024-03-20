@@ -1,0 +1,635 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>存储引擎（二） | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">存储引擎（二）</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-06-09</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/eb_lZhnX62/">
+                    mysql
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="上节回顾">上节回顾</h2>
+<p>explain使用场景</p>
+<p>获取执行计划，数据库在出现性能或日常优化工作时，通过这个工具辅助我们查看SQL语句的执行行为，是优化器选择完成的</p>
+<pre><code class="language-mysql">key_ken
+用途：判断联合索引的覆盖长度，一般情况是越长越好，单列无所谓
+
+utf8mb4字符集
+varchar(10):   没有not null  1+4*10+2=43
+char(10)   :   没有not null  1+4*10=41
+int        :   没有not null  1+4=5
+
+联合索引： t1(id,k1,k2,k3) idx(k1,k2,k3)
+1）在where条件中都是等值时，where k1=xx k2=xx k3=xx
+无关where条件的顺序，只要把控建立索引时，把唯一值较多的放在最左侧
+2）在条件查询中没有最左列条件时，即没有k1列的查询，都是不会走索引
+特殊情况：将表中所有列建立联合索引,每个列做查询条件都会走索引(了解)
+3）如果查询中出现&gt;、&lt;、&gt;=、&lt;=、like，k1=xx and k2&lt;xx and k3=xx
+建立索引时，将等值查询条件放在前面，不等值的放在最后
+4）多子句时，按照子句的执行顺序建立联合索引
+where c xxx order by a,b    idx(c,a,b)
+索引的覆盖长度key_len只会显示c的长度
+</code></pre>
+<h2 id="存储引擎的查看了解">存储引擎的查看（了解）</h2>
+<h3 id="查看存储引擎设置">查看存储引擎设置</h3>
+<pre><code class="language-mysql">mysql&gt; show engines;
+mysql&gt; SELECT @@default_storage_engine;
++--------------------------+
+| @@default_storage_engine |
++--------------------------+
+| InnoDB                   |
++--------------------------+
+1 row in set (0.00 sec)
+vim /etc/my.cnf
+[mysqld]
+default_storage_engine=InnoDB
+</code></pre>
+<h3 id="查看表存储引擎状态">查看表存储引擎状态</h3>
+<pre><code class="language-mysql">mysql&gt; show create table city;
+mysql&gt; show table status like 'city'\G
+mysql&gt; select table_schema,table_name ,engine from information_schema.tables
+       where table_schema not in ('sys','mysql','information_schema','performance_schema');
+</code></pre>
+<h2 id="存储引擎修改">存储引擎修改</h2>
+<h3 id="修改存储引擎">修改存储引擎</h3>
+<pre><code class="language-mysql">mysql&gt; alter table t1 engine=innodb;
+mysql&gt; show create table t1; 
+</code></pre>
+<h3 id="整理碎片">整理碎片</h3>
+<pre><code class="language-mysql">前提是innodb引擎
+mysql&gt; alter table t1 engine=innodb;
+在delete删除操作时，只是逻辑删除，并不会释放空间，会短暂的锁表
+</code></pre>
+<h3 id="碎片处理真实案例">碎片处理真实案例</h3>
+<pre><code class="language-mysql">环境：centos7.4，MySQL 5.7.20，InnoDB存储引擎
+业务特点：数据量级较大，经常需要按月删除历史数据
+问题：磁盘空间占用很大，不释放
+处理方法：
+以前：将数据逻辑导出，手工drop表,然后导入进去
+现在：
+对表进行按月进行分表(partition,中间件)
+业务替换为truncate方式
+</code></pre>
+<h3 id="扩展批量修改存储引擎">扩展：批量修改存储引擎</h3>
+<p>需求：将zabbix库中的所有表，innodb替换为tokudb</p>
+<pre><code class="language-mysql">select concat(&quot;alter table zabbix.&quot;,table_name,&quot; engine tokudb;&quot;) from
+information_schema.tables where table_schema='zabbix' into outfile '/tmp/tokudb.sql';
+</code></pre>
+<h2 id="innodb物理存储结构">InnoDB物理存储结构</h2>
+<p>对于MyISAM的表，frm：表结构，列的一些属性，MYD：数据行，MYI：索引</p>
+<p>对于InnoDB的表，frm：表结构，列的一些属性，ibd：数据行和索引</p>
+<h3 id="最直观的存储方式datamysqldata">最直观的存储方式（/data/mysql/data）</h3>
+<pre><code class="language-mysql">ibdata1（共享表空间）：系统数据字典信息（元数据统计信息），UNDO表空间等数据
+ib_logfile0 ~ ib_logfile1：REDO日志文件，事务日志文件
+ibtmp1： 临时表空间磁盘位置，存储临时表
+frm： 存储表的列信息
+ibd： 表的数据行和索引
+</code></pre>
+<h3 id="表空间tablespace">表空间（Tablespace）</h3>
+<h4 id="共享表空间ibdata1~n">共享表空间（ibdata1~N）***</h4>
+<pre><code class="language-mysql">需要将所有数据存储到同一个表空间中，管理比较混乱
+5.5版本出现的管理模式，也是默认的管理模式
+5.6版本，共享表空间保留，只用来存储：数据字典信息、undo、临时表
+5.7版本，临时表被独立出来了
+8.0版本，undo也被独立出来了
+</code></pre>
+<p>具体变化参考官方文档:<br>
+<a href="https://links.jianshu.com/go?to=https%3A%2F%2Fdev.mysql.com%2Fdoc%2Frefman%2F5.6%2Fen%2Finnodb-architecture.html">https://dev.mysql.com/doc/refman/5.6/en/innodb-architecture.html</a><br>
+<a href="https://links.jianshu.com/go?to=https%3A%2F%2Fdev.mysql.com%2Fdoc%2Frefman%2F5.7%2Fen%2Finnodb-architecture.html">https://dev.mysql.com/doc/refman/5.7/en/innodb-architecture.html</a><br>
+<a href="https://links.jianshu.com/go?to=https%3A%2F%2Fdev.mysql.com%2Fdoc%2Frefman%2F5.8%2Fen%2Finnodb-architecture.html">https://dev.mysql.com/doc/refman/5.8/en/innodb-architecture.html</a></p>
+<p>共享表空间设置</p>
+<pre><code class="language-mysql">在搭建MySQL时，初始化数据之前设置到参数文件中
+mysql&gt; select @@innodb_data_file_path;
+mysql&gt; show variables like '%extend%';
+innodb_data_file_path=ibdata1:512M:ibdata2:512M:autoextend
+innodb_autoextend_increment=64
+</code></pre>
+<h4 id="独立表空间重点">独立表空间（重点）</h4>
+<pre><code class="language-mysql">从5.6，默认表空间不再使用共享表空间，替换为独立表空间
+主要存储的是用户数据
+存储特点为：一个表一个ibd文件，存储数据和和索引信息
+最终结论：
+一张InnoDB表=ibdata1+frm+ibd（段、区、页）
+</code></pre>
+<p>存储引擎日志文件</p>
+<pre><code class="language-mysql">Redo Log: ib_logfile0  ib_logfile1，重做日志
+Undo Log: ibdata1 ibdata2(存储在共享表空间中)，回滚日志
+临时表：ibtmp1，在做join union操作产生临时数据，用完就自动清理
+</code></pre>
+<p>独立表空间设置问题 ***</p>
+<pre><code class="language-mysql">mysql&gt; select @@innodb_file_per_table;
++-------------------------+
+| @@innodb_file_per_table |
++-------------------------+
+|                       1 |
++-------------------------+
+#每张表一个文件
+</code></pre>
+<p>独立表空间迁移  *****</p>
+<pre><code class="language-mysql">alter table city dicard tablespace;  
+alter table city import tablespace; 
+可用于没有备份的数据恢复
+1）创建和原表结构一致的表
+CREATE TABLE test LIKE t1;
+2）将空表的ibd文件删除，切记不能用 rm
+alter table city dicard tablespace;  
+3）将原表的ibd文件拷贝过来，并且修改权限
+4）将原表ibd进行导入
+alter table city import tablespace;
+</code></pre>
+<p>真实案例</p>
+<pre><code class="language-mysql">案例背景：
+硬件及软件环境:
+联想服务器（IBM） 
+磁盘500G 没有raid
+centos 6.8
+mysql 5.6.33  innodb引擎  独立表空间
+备份没有，日志也没开
+
+开发用户专用库:
+jira(bug追踪)、 confluence(内部知识库)    ------&gt;LNMT
+</code></pre>
+<pre><code class="language-mysql">故障描述：
+断电了，启动完成后“/” 只读
+fsck  重启,系统成功启动，mysql启动不了
+结果：confulence库在， jira库不见了
+</code></pre>
+<pre><code class="language-mysql">求助内容：
+求助：
+这种情况怎么恢复？
+我问：
+有备份没
+求助：
+连二进制日志都没有，没有备份，没有主从
+我说：
+没招了，jira需要硬盘恢复了
+求助：
+1、jira问题拉倒中关村了
+2、能不能暂时把confulence库先打开用着
+将生产库confulence，拷贝到虚拟机上/var/lib/mysql,直接访问时访问不了的
+
+问：有没有工具能直接读取ibd
+我说：我查查，最后发现没有
+</code></pre>
+<pre><code class="language-mysql">办法：表空间迁移
+create table xxx
+alter table  confulence.t1 discard tablespace;
+alter table confulence.t1 import tablespace;
+虚拟机测试可行
+</code></pre>
+<pre><code class="language-mysql">处理问题思路：
+confulence库中一共有107张表
+1、创建107张和原来一模一样的表
+他有2016年的历史库，我让他去他同事电脑上 mysqldump备份confulence库
+mysqldump -uroot -ppassword -B  confulence --no-data &gt;test.sql
+拿到你的测试库，进行恢复
+到这步为止，表结构有了
+2、表空间删除。
+select concat('alter table ',table_schema,'.'table_name,' discard tablespace;')
+from information_schema.tables where table_schema='confluence' into outfile '/tmp/discad.sql';
+source /tmp/discard.sql
+执行过程中发现，有20-30个表无法成功,主外键关系
+很绝望，一个表一个表分析表结构，很痛苦
+set foreign_key_checks=0 跳过外键检查
+把有问题的表表空间也删掉了
+3、拷贝生产中confulence库下的所有表的ibd文件拷贝到准备好的环境中
+select concat('alter table ',table_schema,'.'table_name,' import tablespace;')
+from information_schema.tables where table_schema='confluence' into outfile '/tmp/discad.sql';
+4、验证数据
+表都可以访问了，数据挽回到了出现问题时刻的状态（2-8）
+</code></pre>
+<h2 id="事务的acid特性">事务的ACID特性*****</h2>
+<p>什么是事务？</p>
+<p>保证和交易操作有关的安全性和完整性</p>
+<pre><code class="language-mysql">Atomic（原子性）
+所有语句作为一个单元全部执行成功或者全部取消，不能出现中间状态
+Consistent（一致性）
+如果数据在事务开始时处于一致状态，则在执行该事务期间将永久保留一致状态
+Isolated（隔离性）
+不同的事务之间互相不影响
+Durable（持久性）
+事务成功完成后，所做的更改都会准确记录在数据库中，更改不会丢失
+</code></pre>
+<h3 id="事务的生命周期事务控制语句">事务的生命周期（事务控制语句）</h3>
+<p>1、事务的开始</p>
+<pre><code class="language-mysql">begin;
+或者
+start transaction;
+在5.5以上的版本，不需要手工begin，只要你执行的是一个DML语句（insert、update、delete）
+都会在前面默认加一个begin命令
+mysql&gt; use world;
+mysql&gt; update city set countrycode='CHN' where id=1;
+mysql&gt; update city set countrycode='CHN' where id=2;
+mysql&gt; update city set countrycode='CHN' where id=3;
+</code></pre>
+<p>2、事务的结束</p>
+<pre><code class="language-mysql">commit;    提交事务
+完成一个事务，一旦事务提交成功，就说明已经具备ACID特性了
+rollback;  回滚事务
+将内存中已执行的操作，回滚回去
+一个DDL语句就是一个事务，不适合标准的事务语句规范
+mysql&gt; begin;
+mysql&gt; create database oldboy charset utf8mb4;
+mysql&gt; rollback;
+会发现oldboy库已经存在
+</code></pre>
+<p>3、自动提交策略（autocommit）</p>
+<pre><code class="language-mysql">#默认是为1，也就是打开状态
+mysql&gt; select @@autocommit;
++--------------+
+| @@autocommit |
++--------------+
+|            1 |
++--------------+
+1 row in set (0.00 sec)
+#会话级别，及时生效，只影响当前登录会话
+mysql&gt; set autocommit=0;
+#全局级别，断开窗口重新连接后生效，影响到所有新开的会话
+set global autocommit=0;
+#永久修改（重启生效）
+vim /etc/my.cnf 
+autocommit=0
+注意：
+1）自动提交是否打开，一般在有事务需求的MySQL中，将其关闭
+2）不论有没有事务需求，我们一般都建议设置为0，可以提高数据库性能
+</code></pre>
+<p>4、隐式提交语句</p>
+<pre><code class="language-mysql">1）事务没有提交又重新开启了一个事务
+begin;
+a
+b
+begin;
+2）SET AUTOCOMMIT = 1
+3）导致提交的非事务语句：
+DDL语句： （ALTER、CREATE 和 DROP）
+DCL语句： （GRANT、REVOKE 和 SET PASSWORD）
+锁定语句：（LOCK TABLES 和 UNLOCK TABLES）
+导致隐式提交的语句示例：
+TRUNCATE TABLE
+LOAD DATA INFILE
+SELECT FOR UPDATE
+</code></pre>
+<p>5、事务流程案例</p>
+<pre><code class="language-mysql">1）检查autocommit是否为关闭状态
+select @@autocommit;
+或者：
+show variables like 'autocommit';
+2）开启事务,并结束事务
+begin;
+delete from student where name='alexsb';
+update student set name='alexsb' where name='alex';
+rollback;
+
+begin;
+delete from student where name='alexsb';
+update student set name='alexsb' where name='alex';
+commit;
+</code></pre>
+<h2 id="acid如何保证">ACID如何保证</h2>
+<h3 id="概念解释">概念解释</h3>
+<pre><code class="language-mysql">redo log ---&gt; 重做日志，ib_logfile0~1 50M， 轮询使用
+redo log buffer ---&gt; redo内存区域，读写都负责
+
+ibd ---&gt; 存储数据行和索引
+data buffer pool ---&gt; 缓冲区池，数据和索引的缓冲
+
+LSN ---&gt; 日志序列号（版本号）
+存在于ibd、redo log、redo log buffer、data buffer pool
+MySQL每次数据库启动，都会比较磁盘数据页ibd和relo log的LSN，两者LSN一致数据库才正常启动
+
+WAL ---&gt; write ahead log，日志优先写的方式实现持久化，日志是优先于数据写入磁盘的 
+
+脏页 ---&gt; 内存脏页，内存发生了修改，没有写入到磁盘之前，我们把内存页称之为脏页
+
+CKPT ---&gt; CheckPoint，检查点，将脏页写到磁盘的动作
+
+TXID ---&gt; 事务号，InnoDB会为每一个事务生成一个事务号,伴随着整个事务
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1654831390364.webp" alt="" loading="lazy"></figure>
+<h3 id="redo-日志">redo 日志</h3>
+<p>1、redo 概念</p>
+<pre><code class="language-mysql">redo，顾名思义“重做日志”，是事务日志的一种
+</code></pre>
+<p>2、redo 作用</p>
+<pre><code class="language-mysql">在事务ACID过程中，实现的是“D”持久化的作用，对于AC也有相应的作用
+</code></pre>
+<p>3、redo 日志文件位置</p>
+<pre><code class="language-mysql">redo日志文件：ib_logfile0 ib_logfile1 
+</code></pre>
+<p>4、redo 内容和功能</p>
+<pre><code class="language-mysql">1）记录了内存数据页的变化
+2）提供快速持久化功能（WAL）
+3）CSR（自动故障恢复）过程中实现前滚的操作（磁盘数据页和redo 日志LSN一致）
+</code></pre>
+<p>5、redo buffer</p>
+<pre><code class="language-mysql">记录数据页的变化信息+数据页当时的LSN号
+</code></pre>
+<p>6、redo的刷新策略</p>
+<pre><code class="language-mysql">1）commit;
+刷新当前事务的redo buffer到磁盘
+还会顺便将一部分redo buffer中没有提交的事务日志也刷新到磁盘
+</code></pre>
+<p>7、MySQL CSR（自动故障恢复）——前滚<br>
+<img src="https://ajie825.github.io/post-images/1654843147038.png" alt="" loading="lazy"></p>
+<pre><code class="language-mysql">MySQL在启动时，必须保证redo日志文件和数据文件LSN一致，如果不一致就会触发CSR，最终保证一致
+情况一：
+我们做了一个事务，begin;update;commit;
+1）在begin时，会立即分配一个TXID=tx_01
+2）update时，会将需要修改的数据页（dp_01，LSN=101），加载到data buffer中
+3）DBWR线程，会进行dp_01数据页修改更新，并更新LSN=102
+4）LOGBWR（日志写线程），会将dp_01数据页的变化+LSN+TXID存储到redo buffer
+5）执行commit时，LOGWR（日志写线程）会将redo buffer信息写入到 redo log日志文件中
+基于WAL原则，在日志完全写入磁盘后，commit命令才执行成功（会将此日志打上commit标记）
+6）假如此时宕机，内存脏页没有来得及写入磁盘，内存数据全部丢失
+7）MySQL再次重启时，必须要redo log和磁盘数据页的LSN保持一致，但是此时dp_01，TXID=tx01
+磁盘是LSN=101，dp_01，TXID=tx_01，redolog中LSN=102，MySQL此时无法正常启动，MySQL触发CSR，
+在内存追平LSN号，触发CKPT，将内存数据页更新到磁盘，从而保证磁盘数据页和redolog LSN一致，这时
+MySQL正常启动，以上的工作过程，我们把它称之为基于REDO的 “前滚操作”
+</code></pre>
+<h3 id="undo回滚日志">undo回滚日志</h3>
+<p>1、undo 概念</p>
+<pre><code class="language-mysql">undo，顾名思义“回滚日志”
+</code></pre>
+<p>2、undo 作用</p>
+<pre><code class="language-mysql">在事务ACID过程中，实现的是“A”原子性的作用，CI也依赖于undo
+1）记录了数据修改之前的状态
+2）在rollback时，将内存的数据恢复到修改之前的状态
+3）在CSR（自动故障恢复）中实现redo当中记录的未提交的数据进行回滚
+4）undo提供快照技术，保存事务修改之前的数据状态，保证了MVCC，隔离性，msqldump的热备
+</code></pre>
+<h3 id="锁">锁</h3>
+<pre><code class="language-mysql">“锁”顾名思义就是锁定的意思
+“锁”的作用是什么？
+在事务ACID过程中，“锁”和“隔离级别”一起来实现“C”一致性和“I”隔离性（redo也有参与）
+悲观锁：行级锁定（行锁），InnoDB中实现的是行级锁
+谁先操作某个数据行，就会持有这行的锁
+乐观锁：没有锁
+gap：间隙锁
+next-lock： 下一键锁
+</code></pre>
+<h3 id="隔离级别">隔离级别</h3>
+<pre><code class="language-mysql">主要控制的是读的隔离性，默认的级别是RR模式
+mysql&gt; select @@tx_isolation;
++-----------------+
+| @@tx_isolation  |
++-----------------+
+| REPEATABLE-READ |
++-----------------+
+
+transaction_isolation   隔离级别(参数)
+负责的是，MVCC（每开启一个窗口都是一个undo快照），读一致性问题
+transaction_isolation=read-uncommitted
+transaction_isolation=read-committed
+transaction_isolation=repeatable-read（默认）
+
+RU： 读未提交，可脏读，一般不允许出现
+RC： 读已提交，可以防止脏读，会出现不可重复读，也会出现幻读
+RR： 通过MVCC技术解决了不可重复读，但是有可能会出现幻读现象
+幻读最有可能出现在数据插入时，在RR模式下，GAP+NextLock进行避免幻读现象，必须有索引支持
+</code></pre>
+<h2 id="存储引擎核心参数补充">存储引擎核心参数补充</h2>
+<h3 id="存储引擎相关">存储引擎相关</h3>
+<p>1、查看</p>
+<pre><code class="language-mysql">mysql&gt; show engines;
+mysql&gt; show variables like 'default_storage_engine';
+mysql&gt; select @@default_storage_engine;
+</code></pre>
+<p>2、指定和修改存储引擎</p>
+<pre><code class="language-mysql">1）通过参数设置默认引擎
+2）建表的时候进行设置
+3）alter table t1 engine=innodb;
+</code></pre>
+<h3 id="表空间">表空间</h3>
+<p>1、共享表空间</p>
+<pre><code class="language-mysql">innodb_data_file_path
+一般是在初始化数据之前就设置好
+例子:
+innodb_data_file_path=ibdata1:512M:ibdata2:512M:autoextend
+</code></pre>
+<p>2、独立表空间</p>
+<pre><code class="language-mysql">mysql&gt; select @@innodb_file_per_table;
+mysql&gt; show variables like 'innodb_file_per_table';
+</code></pre>
+<h3 id="缓冲区池">缓冲区池</h3>
+<pre><code class="language-mysql">select @@innodb_buffer_pool_size;
+show engine innodb status\G
+innodb_buffer_pool_size 
+一般建议最多是物理内存的 75-80%
+</code></pre>
+<h3 id="innodb_flush_log_at_trx_commit-双一标准之一">innodb_flush_log_at_trx_commit (双一标准之一)</h3>
+<p>1、作用</p>
+<pre><code class="language-mysql">主要控制了innodb将log buffer中的数据写入日志文件并flush磁盘的时间点，取值分别为0、1、2三个
+</code></pre>
+<p>2、查询</p>
+<pre><code class="language-mysql">mysql&gt; select @@innodb_flush_log_at_trx_commit;
++----------------------------------+
+| @@innodb_flush_log_at_trx_commit |
++----------------------------------+
+|                                1 |
++----------------------------------+
+</code></pre>
+<p>3、参数说明</p>
+<pre><code class="language-mysql">1）要完全符合ACID，必须使用默认设置1，日志在每次事务提交时写入并刷新到磁盘
+2）设置为0时，每秒写入一次日志并将其刷新到磁盘，尚未刷新日志的事务可能会在崩溃中丢失
+3）设置为2时，在每次事务提交后写入日志，并每秒刷新一次到磁盘，尚未刷新日志的事务可能会在崩溃中丢失
+
+mysql内存---&gt;文件系统缓存（os buffer）---&gt;磁盘（ib_logfile0和ib_logfile1）
+</code></pre>
+<h3 id="innodb_flush_methodo_direct-fsync">Innodb_flush_method=(O_DIRECT, fsync)</h3>
+<p>1、作用</p>
+<pre><code class="language-mysql">控制的是 Redo buffer  和 data buffer pool往磁盘写时是否经过os buffer
+</code></pre>
+<p>2、查看</p>
+<pre><code class="language-mysql">mysql&gt; show variables like '%innodb_flush%';
++--------------------------------+-------+
+| Variable_name                  | Value |
++--------------------------------+-------+
+| innodb_flush_log_at_timeout    | 1     |
+| innodb_flush_log_at_trx_commit | 1     |
+| innodb_flush_method            |       |
+| innodb_flush_neighbors         | 1     |
+| innodb_flush_sync              | ON    |
+| innodb_flushing_avg_loops      | 30    |
++--------------------------------+-------+
+</code></pre>
+<p>3、参数值说明</p>
+<pre><code class="language-mysql">Fsync： 默认模式，redo buffer和 buffer pool都是先刷写到os buffer，然后刷写到磁盘
+O_DIRECT： 建议模式，buffer pool绕过os buffer，直接刷写到磁盘，
+redo buffer是先刷写到os buffer，然后刷写到磁盘
+O_DSYNC： 正好与O_DIRECT相反
+</code></pre>
+<p><img src="https://ajie825.github.io/post-images/1654851850317.png" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1654851863627.png" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1654851874728.png" alt="" loading="lazy"></p>
+<p>4、使用建议</p>
+<pre><code class="language-mysql">最高安全模式：
+innodb_flush_log_at_trx_commit=1
+Innodb_flush_method=O_DIRECT
+最高性能：
+innodb_flush_log_at_trx_commit=0
+Innodb_flush_method=fsync
+</code></pre>
+<h3 id="redo日志相关的参数">redo日志相关的参数</h3>
+<pre><code class="language-mysql">innodb_log_buffer_size=16777216
+innodb_log_file_size=50331648
+innodb_log_files_in_group = 3
+</code></pre>
+<h2 id="扩展">扩展</h2>
+<pre><code class="language-mysql">RR模式(对索引进行删除时):
+GAP:          间隙锁
+next-lock:    下一键锁定
+
+例子:
+id（有索引）
+1 2 3 4 5 6 
+GAP：
+在对3这个值做变更时，会产生两种锁，一种是本行的行级锁，另一种会在2和4索引键上进行枷锁
+next-lock：
+对第六行变更时，一种是本行的行级锁，在索引末尾键进行加锁，6以后的值在这时是不能被插入的
+总之：
+GAP、next lock都是为了保证RR模式下，不会出现幻读，降低隔离级别或取消索引，这两种锁都不会产生
+IX IS X S是什么?
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/cun-chu-yin-qing-yi/">
+              <h3 class="post-title">
+                下一篇：存储引擎（一）
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

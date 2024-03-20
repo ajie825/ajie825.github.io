@@ -1,0 +1,237 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>pipeline简例 | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">pipeline简例</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-04-22</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/orkaNU-rT/">
+                    devops
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <!-- more -->
+<!-- more -->
+<pre><code class="language-shell">pipeline {
+  agent any
+
+  //环境变量
+  environment {
+      git_url = &quot;git@10.0.0.53:oldboy/dzp.git&quot;
+  }
+
+  //选项
+  options {
+  buildDiscarder logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '7', numToKeepStr: '10')
+  }
+  
+   stages {
+     //阶段1 获取代码
+     stage('getCode'){
+	   steps {
+		checkout([$class: 'GitSCM', branches: [[name: '*/master']], extensions: [], userRemoteConfigs: [[credentialsId: '28641e78-3e4f-41fd-8ca3-0ceaa9382782', url: &quot;${git_url}&quot;]]])  
+		  }
+		}
+	 //阶段2 部署代码
+	 stage('deployCode'){
+	    steps {
+	    sh '/server/scripts/deploy.sh' 
+		  }
+	    }
+   }
+}
+</code></pre>
+<pre><code class="language-shell">pipeline { 
+  agent any
+
+environment {
+gitlab_address = &quot;git@10.0.0.53:oldboy/maven.git&quot;
+gitlab_auth = &quot;5e3286c7-cce6-4cdc-877a-4f73ab05c832&quot;
+publish_host = &quot;10.0.0.8&quot;
+}
+
+//Git Parameter用于动态从gitlab中检索项目分支信息，参数化配置可以让不同环境、不同的配置在一个jenkins任务中实现
+parameters {
+  gitParameter branch: '', branchFilter: 'origin/(.*)', defaultValue: 'master', description: '请选择要发布的分支名称', name: 'Branch', quickFilterEnabled: false, selectedValue: 'DEFAULT', sortMode: 'NONE', tagFilter: '*', type: 'PT_BRANCH'
+}
+
+stages {
+   stage('拉取代码') {
+     steps {
+     checkout([$class:'GitSCM', branches: [[name: &quot;${params.Branch}&quot;]],doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [],userRemoteConfigs: [[credentialsId: &quot;${gitlab_auth}&quot;, url:&quot;${gitlab_address}&quot;]]])
+   }
+}
+
+   stage('编译构建') {
+     steps {
+       sh &quot;/usr/local/maven/bin/mvn clean package -D maven.test.skip=true&quot;
+   }
+}
+   stage('拷贝构建文件到远程主机并部署') {
+      steps {
+           sh 'scp /var/lib/jenkins/workspace/pipeline-java/jeesns-web/target/jeesns-web.war root@10.0.0.8:/data/backup'
+           sh 'ssh root@10.0.0.8 &quot;sh /server/scripts/deploy.sh&quot;'
+        }
+     }
+  }
+}
+</code></pre>
+<pre><code class="language-shell">cat /server/scripts/deploy.sh
+#!/bin/bash
+echo '开始备份war..........................'
+appName=tomcat
+bakPath=/data/backup/
+appPath=/app/tomcat
+[ ! -d ${bakpath}/bak ] &amp;&amp; mkdir -p ${bakpath}/bak
+cp -f  ${appPath}/webapps/***.war ${bakPath}/bak
+sleep 3s
+echo '正在停止服务................'
+tomcat_id=`ps -ef | grep ${appName} | grep -v &quot;grep&quot; | awk '{print $2}'`
+kill -9 $tomcat_id
+sleep 1s
+cp -f ${bakPath}/*.war ${appPath}/webapps
+sleep 5s
+sh ${appPath}/bin/startup.sh
+tail -fn 0 --pid=`ps uxh|grep 'sed[[:space:]]\/startup'|awk '{print $2}'|sort -nr|head -1` /app/tomcat/logs/catalina.out|sed /startup[[:space:]]in/Q   
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/jian-kong-zheng-shu-dao-qi-jiao-ben/">
+              <h3 class="post-title">
+                下一篇：监控证书到期脚本
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

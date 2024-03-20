@@ -1,0 +1,877 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>日志管理 | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">日志管理</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-06-10</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/eb_lZhnX62/">
+                    mysql
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="上节回顾">上节回顾</h2>
+<h3 id="表空间">表空间</h3>
+<p>1、说明</p>
+<pre><code class="language-mysql">共享表空间： 5.5默认的模式，所有表的行和索引都存储到ibdata1
+独立表空间： 5.6开始的默认表空间，一个表一个ibd文件，存储数据行和索引 *****
+从5.6开始，不在使用共享表空间模式
+5.6版本    数据字典信息+UNDO日志+tmp
+5.7版本    把临时表tmp独立出来
+5.8版本    把UNDO日志独立出来
+</code></pre>
+<p>2、表空间迁移     *****</p>
+<pre><code class="language-mysql">1）创建和原表结构相同的表
+CREATE TABLE t1 LIKE xxx;
+2）新建表的ibd删除
+alter table t1 discard tablespace;
+3）拷贝原表idb到新表并修改权限
+4）导入ibd到新表
+alter table t1 import tablespace;
+#注意：数据库版本要一致，故障恢复还是推荐使用备份
+#一旦表磁盘空间满了，说明数据量级已经很大了，MySQL推荐使用分布式管理，进行分库分表
+</code></pre>
+<h3 id="acid特性">ACID特性</h3>
+<p>1、redo日志     *****</p>
+<pre><code class="language-mysql">1）记录内存数据页变化的日志
+2）提供快速的事务提交（commit）
+3）CSR（自动故障恢复）提供的前滚功能
+</code></pre>
+<p>2、undo日志     *****</p>
+<pre><code class="language-mysql">1）记录数据修改之前的状态
+2）提供事务工作过程中回滚操作（rollback）
+3）CSR（自动故障恢复）中将未提交的事务进行回滚
+</code></pre>
+<p>​     redo日志和undo日志的功能以上六句话要牢记于心！！！</p>
+<p>3、隔离级别     *****</p>
+<pre><code class="language-mysql">RU： 读未提交，会有脏读、幻读、不可重复读
+RC： 读已提交，会有幻读、不可重复读，大部分互联网企业可容忍 *****
+RR： 可重复读（MVCC、undo快照），有可能出现幻读，通过GAP+NextLock来防止幻读（索引）
+SR： 可串行化，并发度很低，有效防止死锁，很少用
+不可重复读   *****
+幻读最有可能发生在数据插入时   *****
+</code></pre>
+<h3 id="innodb核心参数">InnoDB核心参数</h3>
+<pre><code class="language-mysql">#存储引擎默认设置
+default_storage_engine=innodb
+
+#表空间模式，默认独立表空间模式
+innodb_file_per_table=1  
+
+#共享表空间文件个数和大小
+innodb_data_file_path=ibdata1:512M:ibdata2:512M:autoextend
+
+# &quot;双一&quot; 标准的其中一个  ******
+innodb_flush_log_at_trx_commit=1 控制的是事务提交时redo往磁盘刷写的策略，默认为1
+要完全符合ACID，必须使用默认设置1，日志在每次事务提交时写入并刷新到磁盘
+设置为0时，每秒写入一次日志并将其刷新到磁盘，尚未刷新日志的事务可能会在崩溃中丢失
+设置为2时，在每次事务提交后写入日志，并每秒刷新一次到磁盘，尚未刷新日志的事务可能会在崩溃中丢失
+mysql内存---&gt;文件系统缓存（os buffer）---&gt;磁盘（ib_logfile0和ib_logfile1）
+
+Innodb_flush_method=(O_DIRECT, fsync) *****
+作用: 控制的是redo buffer和 data buffer pool往磁盘写时是否经过os buffer
+fsync    : 默认模式，redo buffer和 buffer pool都是先刷写到os buffer，然后刷写到磁盘
+O_DIRECT : 建议模式，buffer pool绕过os buffer，直接刷写到磁盘，
+redo bufferl是先刷写到os buffer，然后刷写到磁盘
+O_DSYNC  :正好与O_DIRECT相反
+
+#最高安全模式
+innodb_flush_log_at_trx_commit=1
+Innodb_flush_method=O_DIRECT
+#最高性能:
+innodb_flush_log_at_trx_commit=0
+Innodb_flush_method=fsync
+
+#redo日志设置有关的
+innodb_log_buffer_size=16777216
+innodb_log_file_size=50331648
+innodb_log_files_in_group = 3
+
+#脏页刷写策略
+innodb_max_dirty_pages_pct=75
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1654914184148.png" alt="" loading="lazy"></figure>
+<h2 id="错误日志">错误日志    ***</h2>
+<p>1、作用</p>
+<pre><code class="language-mysql">记录MySQL启动\关闭\日常运行过程中的状态信息、警告、错误
+</code></pre>
+<p>2、配置</p>
+<pre><code class="language-mysql">默认就是开启的： /数据路径下/hostname.err
+手工设定：
+mysql&gt; select @@log_error;
+vim /etc/my.cnf
+log_error=/var/log/mysql.log
+log_timestamps=system
+重启生效
+show variables like 'log_error';
+</code></pre>
+<p>3、查看</p>
+<pre><code class="language-mysql">主要关注[ERROR]，看上下文
+</code></pre>
+<h2 id="二进制日志binlog">二进制日志（binlog） ******</h2>
+<h3 id="作用">作用</h3>
+<pre><code class="language-mysql">1）备份恢复必须依赖二进制日志
+2）主从环境必须依赖二进制日志
+</code></pre>
+<h3 id="配置57必须加server_id">配置（5.7必须加server_id）</h3>
+<pre><code class="language-mysql">注意：MySQL默认是没有开启二进制日志的
+基础参数查看：
+#开关
+mysql&gt; select @@log_bin;
+#日志路径及名字
+mysql&gt; select @@log_bin_basename;
+#服务ID号
+mysql&gt; select @@server_id;
+#二进制日志格式
+mysql&gt; select @@binlog_format;
+#双一标准之二：
+mysql&gt; select @@sync_binlog;
+</code></pre>
+<p>1、创建日志目录</p>
+<pre><code class="language-mysql">[root@mysql ~]# mkdir /data/binlog
+[root@mysql ~]# chown -R mysql.mysql /data/binlog
+</code></pre>
+<p>2、修改配置文件</p>
+<pre><code class="language-mysql">vim /etc/my.cnf
+server_id=6                                    -----&gt;5.6中，单机可以不需要此参数              
+log_bin=/data/binlog/mysql-bin
+binlog_format=row
+autocommit=0
+</code></pre>
+<p>3、重启数据库生效</p>
+<pre><code class="language-mysql">[root@mysql ~]# systemctl restart mysqld
+[root@mysql ~]# cd /data/binlog/
+[root@mysql binlog]# ls
+mysql-bin.000001  mysql-bin.index
+</code></pre>
+<p>4、参数说明</p>
+<pre><code class="language-mysql">server_id=3306       服务ID号，主从复制过程中必须要加的
+log_bin=/data/binlog/mysql-bin
+1）开启二进制日志功能
+2）设置二进制日志目录及名称前缀
+binlog_format=row    binlog日志的记录格式
+</code></pre>
+<h3 id="二进制日志记录了什么">二进制日志记录了什么？</h3>
+<p>1、引入</p>
+<pre><code class="language-mysql">binlog是SQL层的功能，记录的是变更SQL语句，不记录查询语句     *****
+</code></pre>
+<p>2、记录SQL语句种类</p>
+<pre><code class="language-mysql">DDL： 原封不动的记录当前DDL（statement语句方式）
+DCL： 原封不动的记录当前DCL（statement语句方式）
+DML： 只记录已经提交的事务DML
+</code></pre>
+<p>3、DML三种记录方式</p>
+<pre><code class="language-mysql">binlog_format（binlog的记录格式）参数影响
+1）statement（5.6默认）SBR(statement based replication) ：语句模式原封不动的记录当前DML
+2）ROW(5.7 默认值) RBR(ROW based replication) ：记录数据行的变化(用户看不懂，需要工具分析)
+3）MBR(mixed based replication)混合模式  ：以上两种模式的混合
+</code></pre>
+<p>4、面试题</p>
+<pre><code class="language-mysql">SBR与ROW模式的对比
+STATEMENT：可读性较高，日志量少，但是不够严谨
+ROW      ：可读性很低，日志量大，足够严谨
+update t1 set xxx=xxx where id&gt;1000   ? --&gt;一共500w行，row模式怎么记录的日志
+为什么row模式严谨？
+id  name    intime
+insert into t1 values(1,'zs',now())
+我们建议使用：row记录模式
+</code></pre>
+<h3 id="event-事件是什么">event 事件是什么？</h3>
+<p>1、事件的简介</p>
+<pre><code class="language-mysql">二进制日志的最小记录单元
+对于DDL、DCL，一个语句就是一个event
+对于DML语句来讲：一个事务包含了多个语句，每个语句就是一个event
+例如以下例子，就被分为了4个event
+begin;      120  - 340
+DML1        340  - 460
+DML2        460  - 550
+commit;     550  - 760
+</code></pre>
+<p>2、event 的组成</p>
+<pre><code class="language-mysql">三部分构成：
+1）事件的开始标识
+2）事件的内容
+3）事件的结束标识
+position：开始标识---&gt;at 194  结束标识---&gt;end_log_pos 254
+position代表某个事件在binlog中的相对位置号，方便我们截取事event件
+</code></pre>
+<h3 id="日志文件查看">日志文件查看</h3>
+<p>1、查看日志的开启情况</p>
+<p>log_bin参数设置的路径,可以找到二进制日志</p>
+<pre><code class="language-mysql">mysql&gt; show variables like '%log_bin%';
++---------------------------------+------------------------------+
+| Variable_name                   | Value                        |
++---------------------------------+------------------------------+
+| log_bin                         | ON                           |
+| log_bin_basename                | /data/binlog/mysql-bin       |
+| log_bin_index                   | /data/binlog/mysql-bin.index |
+| log_bin_trust_function_creators | OFF                          |
+| log_bin_use_v1_row_events       | OFF                          |
+| sql_log_bin                     | ON                           |
++---------------------------------+------------------------------+
+6 rows in set (0.00 sec)
+</code></pre>
+<p>2、查看一共多少个binlog</p>
+<pre><code class="language-mysql">mysql&gt; show binary logs;
++------------------+-----------+
+| Log_name         | File_size |
++------------------+-----------+
+| mysql-bin.000001 |       154 |
++------------------+-----------+
+1 row in set (0.00 sec)
+
+mysql&gt; flush logs;  #生成新的二进制日志
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&gt; flush logs;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&gt; show binary logs;
++------------------+-----------+
+| Log_name         | File_size |
++------------------+-----------+
+| mysql-bin.000001 |       201 |
+| mysql-bin.000002 |       201 |
+| mysql-bin.000003 |       154 |
++------------------+-----------+
+3 rows in set (0.00 sec)
+</code></pre>
+<p>3、查看MySQL正在使用的日志文件</p>
+<pre><code class="language-mysql">mysql&gt; show master status;
++------------------+----------+--------------+------------------+-------------------+
+| File             | Position | Binlog_Do_DB | Binlog_Ignore_DB | Executed_Gtid_Set |
++------------------+----------+--------------+------------------+-------------------+
+| mysql-bin.000003 |      154 |              |                  |                   |
++------------------+----------+--------------+------------------+-------------------+
+1 row in set (0.00 sec)
+File： 当前MySQL正在使用的文件名
+Position： 最后一个事件的结束位置号
+</code></pre>
+<h3 id="日志内容查看">日志内容查看</h3>
+<p>1、event查看</p>
+<pre><code class="language-mysql">mysql&gt; create database binlog charset utf8mb4;
+mysql&gt; use binlog
+mysql&gt; create table t1(id int);
+mysql&gt; insert into t1 values(1);
+mysql&gt; commit;
+mysql&gt; show master status;
++------------------+----------+--------------+------------------+-------------------+
+| File             | Position | Binlog_Do_DB | Binlog_Ignore_DB | Executed_Gtid_Set |
++------------------+----------+--------------+------------------+-------------------+
+| mysql-bin.000003 |      758 |              |                  |                   |
++------------------+----------+--------------+------------------+-------------------+
+1 row in set (0.00 sec)
+mysql&gt; show binlog events in 'mysql-bin.000003';
++-----------------+-----+---------------+-----------+---------------------------------------+
+| Log_name        | Pos |Event_type     |End_log_pos| Info                                  |
++-----------------+-----+---------------+-----------+---------------------------------------+
+| mysql-bin.000003|   4 | Format_desc   |      123  | Server ver: 5.7.26-log, Binlog ver: 4 |
+| mysql-bin.000003| 123 | Previous_gtids|      154  |                                       |
+| mysql-bin.000003| 154 | Anonymous_Gtid|      219  | SET @@SESSION.GTID_NEXT= 'ANONYMOUS'  |
+| mysql-bin.000003| 219 | Query         |      335  | create database binlog charset utf8mb4|
+| mysql-bin.000003| 335 | Anonymous_Gtid|      400  | SET @@SESSION.GTID_NEXT= 'ANONYMOUS'  |
+| mysql-bin.000003| 400 | Query         |      501  | use `binlog`; create table t1(id int) |
+| mysql-bin.000003| 501 | Anonymous_Gtid|      566  | SET @@SESSION.GTID_NEXT= 'ANONYMOUS'  |
+| mysql-bin.000003| 566 | Query         |      640  | BEGIN                                 |
+| mysql-bin.000003| 640 | Table_map     |      687  | table_id: 108 (binlog.t1)             |
+| mysql-bin.000003| 687 | Write_rows    |      727  | table_id: 108 flags: STMT_END_F       |
+| mysql-bin.000003| 727 | Xid           |      758  | COMMIT /* xid=22 */                   |
++-----------------+-----+---------------+-----------+---------------------------------------+
+11 rows in set (0.00 sec)
+Log_name： binlog文件名
+Pos： 开始的position   *****
+Event_type： 事件类型
+Server_id： mysql服务号标识
+End_log_pos： 事件的结束位置号   *****
+Info： 事件内容   *****
+补充：
+SHOW BINLOG EVENTS
+   [IN 'log_name']
+   [FROM pos]
+   [LIMIT [offset,] row_count]
+mysql -uroot -p123 -e &quot;show binlog events in 'mysql-bin.000003'&quot; |grep drop 
+前两行不用关注，标识的是5.7.26版本的头格式
+上一个结束位置就是下一个的起始位置
+SET命令跳过，因为没有开启GTID
+没有提交的事务不会记录日志
+截取事务的时候一定是从begin到commit，566-758
+mysql&gt; show binlog events in 'mysql-bin.000004' limit 5;
+</code></pre>
+<p>2、binlog文件内容详细查看</p>
+<pre><code class="language-mysql">[root@mysql ~]# cd /data/binlog/
+ [root@mysql binlog]# ll
+总用量 16
+-rw-r-----. 1 mysql mysql 201 12月  2 23:07 mysql-bin.000001
+-rw-r-----. 1 mysql mysql 201 12月  2 23:07 mysql-bin.000002
+-rw-r-----. 1 mysql mysql 758 12月  2 23:15 mysql-bin.000003
+-rw-r-----. 1 mysql mysql  90 12月  2 23:07 mysql-bin.index 
+[root@mysql binlog]# file mysql-bin.000003
+mysql-bin.000003: MySQL replication log
+二进制日志的内容只能用专门的命令查看
+[root@mysql binlog]# mysqlbinlog mysql-bin.000003
+[root@mysql binlog]# mysqlbinlog mysql-bin.000003 | grep -v '^SET'
+[root@mysql binlog]# mysqlbinlog --help
+[root@mysql binlog]# mysqlbinlog --base64-output=decode-rows -vvv mysql-bin.000003 
+</code></pre>
+<h3 id="基于position号进行日志截取">基于Position号进行日志截取</h3>
+<pre><code class="language-mysql">核心就是找到截取的起点和终点
+--start-position=219 
+--stop-position=758
+[root@mysqld ~]# cd /data/binlog/
+mysqlbinlog --start-position=219 --stop-position=758 mysql-bin.000003 &gt;/tmp/binlog.sql
+</code></pre>
+<p>案例：使用binlog日志进行数据恢复</p>
+<pre><code class="language-mysql">1）模拟数据
+mysql&gt; create database haoge charset utf8mb4; 
+mysql&gt; use haoge
+mysql&gt; create table t1(id int);
+mysql&gt; insert into t1 values(1);
+mysql&gt; commit;
+</code></pre>
+<pre><code class="language-mysql">2）模拟故障
+mysql&gt; drop database haoge;
+</code></pre>
+<pre><code class="language-mysql">3）分析和截取binlog
+mysql&gt; show master status;
++------------------+----------+--------------+------------------+-------------------+
+| File             | Position | Binlog_Do_DB | Binlog_Ignore_DB | Executed_Gtid_Set |
++------------------+----------+--------------+------------------+-------------------+
+| mysql-bin.000003 |     1515 |              |                  |                   |
++------------------+----------+--------------+------------------+-------------------+
+1 row in set (0.00 sec)
+查看事件，找到起点和终点，进行截取
+mysql&gt; show binlog events in 'mysql-bin.000003';   
++------------------+----+----------------+-----------+--------------------------------------+
+| Log_name         |Pos | Event_type     |End_log_pos|Info                                  |
++------------------+----+----------------+-----------+--------------------------------------+
+| mysql-bin.000003 |   4| Format_desc    |        123|Server ver: 5.7.26-log, Binlog ver: 4 |
+| mysql-bin.000003 | 123| Previous_gtids |        154|                                      |
+| mysql-bin.000003 | 154| Anonymous_Gtid |        219|SET @@SESSION.GTID_NEXT= 'ANONYMOUS'  |
+| mysql-bin.000003 | 219| Query          |        335|create database binlog charset utf8mb4|
+| mysql-bin.000003 | 335| Anonymous_Gtid |        400|SET @@SESSION.GTID_NEXT= 'ANONYMOUS'  |
+| mysql-bin.000003 | 400| Query          |        501|use `binlog`; create table t1(id int) |
+| mysql-bin.000003 | 501| Anonymous_Gtid |        566|SET @@SESSION.GTID_NEXT= 'ANONYMOUS'  |
+| mysql-bin.000003 | 566| Query          |        640|BEGIN                                 |
+| mysql-bin.000003 | 640| Table_map      |        687|table_id: 108 (binlog.t1)             |
+| mysql-bin.000003 | 687| Write_rows     |        727|table_id: 108 flags: STMT_END_F       |
+| mysql-bin.000003 | 727| Xid            |        758|COMMIT /* xid=18 */                   |
+| mysql-bin.000003 | 758| Anonymous_Gtid |        823|SET @@SESSION.GTID_NEXT= 'ANONYMOUS'  |
+| mysql-bin.000003 | 823| Query          |        936|create database haoge charset utf8mb4 |
+| mysql-bin.000003 | 936| Anonymous_Gtid |       1001|SET @@SESSION.GTID_NEXT= 'ANONYMOUS'  |
+| mysql-bin.000003 |1001| Query          |       1100|use `haoge`; create table t1(id int)  |
+| mysql-bin.000003 |1100| Anonymous_Gtid |       1165|SET @@SESSION.GTID_NEXT= 'ANONYMOUS'  |
+| mysql-bin.000003 |1165| Query          |       1238|BEGIN                                 |
+| mysql-bin.000003 |1238| Table_map      |       1284|table_id: 109 (haoge.t1)              |
+| mysql-bin.000003 |1284| Write_rows     |       1324|table_id: 109 flags: STMT_END_F       |
+| mysql-bin.000003 |1324| Xid            |       1355|COMMIT /* xid=29 */                   |
+| mysql-bin.000003 |1355| Anonymous_Gtid |       1420|SET @@SESSION.GTID_NEXT= 'ANONYMOUS'  |
+| mysql-bin.000003 |1420| Query          |       1515|drop database haoge                   |
++------------------+----+----------------+-----------+--------------------------------------+
+22 rows in set (0.00 sec)
+[root@mysqld binlog]# mysqlbinlog --start-position=823 --stop-position=1420 
+mysql-bin.000003 &gt;/tmp/bin.sql
+</code></pre>
+<pre><code class="language-mysql">4）恢复binlog
+#在此会话中临时关闭二进制日志，避免日志冗余
+mysql&gt; set sql_log_bin=0;
+mysql&gt; source /tmp/bin.sql
+#改回来，将二进制日志重启开启
+mysql&gt; set sql_log_bin=1;
+mysql&gt; show databases;
+mysql&gt; use haoge
+mysql&gt; select * from t1;
+</code></pre>
+<p>二进制日志的弊端</p>
+<pre><code class="language-mysql">二进制日志是做数据恢复时必不可少的一个环节，功能性还是有缺陷的，不能作为数据恢复的唯一手段；
+将来做数据恢复肯定是备份+二进制日志进行恢复
+单独过滤一个库的二进制日志是可以的，无法实现针对某一张表的过滤
+mysqlbinlog -d haoge mysql-bin.000003 &gt;/tmp/haoge.sql
+</code></pre>
+<h3 id="binlog日志的gtid新特性">binlog日志的GTID新特性</h3>
+<p>1、GTID介绍</p>
+<pre><code class="language-mysql">1）5.6版本新加的特性，5.7版本做了加强
+2）5.6中不开启，没有这个功能，
+3）5.7中的GTID，即使不开启也会自动生成 SET @@SESSION.GTID_NEXT= 'ANONYMOUS'
+4）是对于一个已提交事务的编号，并且是一个全局唯一的编号
+DDL、DCL，一个event就是一个事务，就会有一个GTID号
+DML，begin到commit是一个事务，就会有一个GTID号
+</code></pre>
+<p>2、GTID（Global Transaction ID）</p>
+<pre><code class="language-mysql">它的官方定义如下：
+GTID = server-uuid ：transaction_id
+server-uuid在数据库初始化后第一次启动时就会生成，不用乱删除
+[root@mysqld data]# cat auto.cnf 
+[auto]
+server-uuid=923a6d2c-9dc4-11ec-922c-000c299152c6
+TID：是一个自增长的数据，从1开始
+923a6d2c-9dc4-11ec-922c-000c299152c6:1-15
+</code></pre>
+<p>3、GTID的开启和配置   *****</p>
+<pre><code class="language-mysql">vim /etc/my.cnf
+gtid-mode=on
+enforce-gtid-consistency=true   #强制GTID一致性
+systemctl restart mysqld
+GTID开启后，只会影响后面的事务，不会影响发生过的事务
+</code></pre>
+<p>4、查看GTID信息</p>
+<pre><code class="language-mysql">mysql&gt; show master status;
++------------------+----------+--------------+------------------+-------------------+
+| File             | Position | Binlog_Do_DB | Binlog_Ignore_DB | Executed_Gtid_Set |
++------------------+----------+--------------+------------------+-------------------+
+| mysql-bin.000004 |      154 |              |                  |                   |
++------------------+----------+--------------+------------------+-------------------+
+1 row in set (0.00 sec)
+mysql&gt; create database gtid charset utf8mb4;
+mysql&gt; show master status;
++------------------+----------+------------------+----------------------------------------+
+| File             | Position | Binlog_Ignore_DB | Executed_Gtid_Set                      |
++------------------+----------+------------------+----------------------------------------+
+| mysql-bin.000004 |      329 |                  | 923a6d2c-9dc4-11ec-922c-000c299152c6:1 |
++------------------+----------+------------------+----------------------------------------+
+1 row in set (0.00 sec)
+mysql&gt; use gtid;
+mysql&gt; create table t1(id int);
+mysql&gt; show master status;
++------------------+----------+------------------+------------------------------------------+
+| File             | Position | Binlog_Ignore_DB | Executed_Gtid_Set                        |
++------------------+----------+------------------+------------------------------------------+
+| mysql-bin.000004 |      491 |                  | 923a6d2c-9dc4-11ec-922c-000c299152c6:1-2 |
++------------------+----------+------------------+------------------------------------------+
+1 row in set (0.00 sec)
+mysql&gt; insert into t1 values(1); 
+mysql&gt; commit;
+mysql&gt; show master status;
++------------------+----------+------------------+------------------------------------------+
+| File             | Position | Binlog_Ignore_DB | Executed_Gtid_Set                        |
++------------------+----------+------------------+------------------------------------------+
+| mysql-bin.000004 |      744 |                  | 923a6d2c-9dc4-11ec-922c-000c299152c6:1-3 |
++------------------+----------+------------------+------------------------------------------+
+1 row in set (0.00 sec)
+</code></pre>
+<p>5、基于GTID进行查看event事件和binlog</p>
+<pre><code class="language-mysql">mysql&gt; show binlog events in 'mysql-bin.000004';
++------------------+-------------------------------------------------------------------+
+| Log_name         | Info                                                              |
++------------------+-------------------------------------------------------------------+
+| mysql-bin.000004 | Server ver: 5.7.26-log, Binlog ver: 4                             |
+| mysql-bin.000004 |                                                                   |
+| mysql-bin.000004 | SET @@SESSION.GTID_NEXT= '923a6d2c-9dc4-11ec-922c-000c299152c6:1' |
+| mysql-bin.000004 | create database gtid charset utf8mb4                              |
+| mysql-bin.000004 | SET @@SESSION.GTID_NEXT= '923a6d2c-9dc4-11ec-922c-000c299152c6:2' |
+| mysql-bin.000004 | use `gtid`; create table t1(id int)                               |
+| mysql-bin.000004 | SET @@SESSION.GTID_NEXT= '923a6d2c-9dc4-11ec-922c-000c299152c6:3' |
+| mysql-bin.000004 | BEGIN                                                             |
+| mysql-bin.000004 | table_id: 109 (gtid.t1)                                           |
+| mysql-bin.000004 | table_id: 109 flags: STMT_END_F                                   |
+| mysql-bin.000004 | COMMIT /* xid=15 */                                               |
++------------------+-------------------------------------------------------------------+
+11 rows in set (0.01 sec)
+具备GTID后，截取和查看某些事务日志
+--include-gtids
+--include-gtids='d60b549f-9e10-11e9-ab04-000c294a1b3b:6',
+'d60b549f-9e10-11e9-ab04-000c294a1b3b:8'
+
+--exclude-gtids
+--exclude-gtids='d60b549f-9e10-11e9-ab04-000c294a1b3b:6',
+'d60b549f-9e10-11e9-ab04-000c294a1b3b:8'
+
+mysqlbinlog --include-gtids='923a6d2c-9dc4-11ec-922c-000c299152c6:1-3' 
+--exclude-gtids='923a6d2c-9dc4-11ec-922c-000c299152c6:2' /data/binlog/mysql-bin.000004
+&gt; gtid.sql
+</code></pre>
+<p>6、GTID的幂等性   ******</p>
+<pre><code class="language-mysql">类似ansible，如果拿有GTID的日志去恢复数据，检查当前是否有相同的GTID号，如果有相同的就会自动跳过
+会影响到binlog恢复和主从复制
+使用参数：--skip-gtids
+</code></pre>
+<p>7、使用GTID恢复数据案例</p>
+<pre><code class="language-mysql">1）删除gtid数据库
+mysql&gt; drop database gtid;
+2）查看events事件信息并截取日志
+mysql&gt; show binlog events in 'mysql-bin.000004';
++------------------+-------------------------------------------------------------------+
+| Log_name         | Info                                                              |
++------------------+-------------------------------------------------------------------+
+| mysql-bin.000004 | Server ver: 5.7.26-log, Binlog ver: 4                             |
+| mysql-bin.000004 |                                                                   |
+| mysql-bin.000004 | SET @@SESSION.GTID_NEXT= '923a6d2c-9dc4-11ec-922c-000c299152c6:1' |
+| mysql-bin.000004 | create database gtid charset utf8mb4                              |
+| mysql-bin.000004 | SET @@SESSION.GTID_NEXT= '923a6d2c-9dc4-11ec-922c-000c299152c6:2' |
+| mysql-bin.000004 | use `gtid`; create table t1(id int)                               |
+| mysql-bin.000004 | SET @@SESSION.GTID_NEXT= '923a6d2c-9dc4-11ec-922c-000c299152c6:3' |
+| mysql-bin.000004 | BEGIN                                                             |
+| mysql-bin.000004 | table_id: 109 (gtid.t1)                                           |
+| mysql-bin.000004 | table_id: 109 flags: STMT_END_F                                   |
+| mysql-bin.000004 | COMMIT /* xid=15 */                                               |
+| mysql-bin.000004 | SET @@SESSION.GTID_NEXT= '923a6d2c-9dc4-11ec-922c-000c299152c6:4' |
+| mysql-bin.000004 | drop database gtid                                                |
++------------------+-------------------------------------------------------------------+
+13 rows in set (0.00 sec)
+[root@mysqld ~]# mysqlbinlog --include-gtids='923a6d2c-9dc4-11ec-922c-000c299152c6:1-3' 
+/data/binlog/mysql-bin.000004&gt;/tmp/gtid.sql
+3）恢复数据
+mysql&gt; set sql_log_bin=0;
+mysql&gt; source /tmp/gtid.sql
+ERROR 1049 (42000): Unknown database 'gtid'
+ERROR 1046 (3D000): No database selected
+为什么会报错呢？因为幂等性的检查，1-3事务已经在系统中做过了
+4）正确做法
+[root@mysqld ~]# mysqlbinlog --skip-gtids 
+--include-gtids='923a6d2c-9dc4-11ec-922c-000c299152c6:1-3' 
+/data/binlog/mysql-bin.000004&gt;/tmp/gtid.sql
+--skip-gtids 作用：在导出时，不记录原有的gtid号码信息
+5）恢复
+set sql_log_bin=0;
+source /tmp/gtid.sql
+set sql_log_bin=1;
+#注意观察：新的二进制日志事件和原来的二进制日志事件是一致的
+</code></pre>
+<h3 id="使用二进制日志恢复数据案例">使用二进制日志恢复数据案例</h3>
+<p>1、故障环境介绍</p>
+<pre><code class="language-mysql">创建一个库db，导入了表t1，t1表中录入了很多数据
+一个开发人员，drop database db；
+没有备份，日志都在，怎么恢复？
+思路：找到建库语句到删库之前的所有日志，进行恢复（开启了GTID模式）
+故障案例模拟：
+drop database if exists db;
+create database db charset utf8; 
+use db;
+create table t1 (id int);
+insert into t1 values(1),(2),(3);
+insert into t1 values(4),(5),(6);
+commit;
+update t1 set id=30 where id=3;
+commit;
+delete from t1 where id=4;
+commit;
+insert into t1 values(7),(8),(9);
+commit;
+drop database db;
+运行以上语句，模拟故障场景
+需求：将数据库恢复到以下状态（提示第9步delete和第14步drop是误操作，其他都是正常操作）
+</code></pre>
+<p>2、恢复过程（无GTID时的恢复）</p>
+<pre><code class="language-mysql">1）查看当前使用的binlog文件
+mysql&gt; show master status;
+1 row in set (0.00 sec)
+2）查看event事件信息
+第一段：
+| mysql-bin.000005 |  415 | Query          | 516 | create database db charset utf8      |
+| mysql-bin.000005 |  516 | Anonymous_Gtid | 581 | SET @@SESSION.GTID_NEXT= 'ANONYMOUS' |
+| mysql-bin.000005 |  581 | Query          | 675 | use `db`; create table t1 (id int)   |
+| mysql-bin.000005 |  675 | Anonymous_Gtid | 740 | SET @@SESSION.GTID_NEXT= 'ANONYMOUS' |
+| mysql-bin.000005 |  740 | Query          | 810 | BEGIN                                |
+| mysql-bin.000005 |  810 | Table_map      | 853 | table_id: 108 (db.t1)                |
+| mysql-bin.000005 |  853 | Write_rows     | 903 | table_id: 108 flags: STMT_END_F      |
+| mysql-bin.000005 |  903 | Table_map      | 946 | table_id: 108 (db.t1)                |
+| mysql-bin.000005 |  946 | Write_rows     | 996 | table_id: 108 flags: STMT_END_F      |
+| mysql-bin.000005 |  996 | Xid            |1027 | COMMIT /* xid=17 */                  |
+| mysql-bin.000005 | 1027 | Anonymous_Gtid |1092 | SET @@SESSION.GTID_NEXT= 'ANONYMOUS' |
+| mysql-bin.000005 | 1092 | Query          |1162 | BEGIN                                |
+| mysql-bin.000005 | 1162 | Table_map      |1205 | table_id: 108 (db.t1)                |
+| mysql-bin.000005 | 1205 | Update_rows    |1251 | table_id: 108 flags: STMT_END_F      |
+| mysql-bin.000005 | 1251 | Xid            |1282 | COMMIT /* xid=20 */                  |
+[root@mysqld binlog]# mysqlbinlog --start-position=415 --stop-position=1282 
+/data/binlog/mysql-bin.000005 &gt;/tmp/bin1.sql
+第二段：
+| mysql-bin.000005 | 1596 | Query          |1666 | BEGIN                          |
+| mysql-bin.000005 | 1666 | Table_map      |1709 | table_id: 108 (db.t1)          |
+| mysql-bin.000005 | 1709 | Write_rows     |1759 | table_id: 108 flags: STMT_END_F|
+| mysql-bin.000005 | 1759 | Xid            |1790 | COMMIT /* xid=24 */            |
+[root@mysqld binlog]# mysqlbinlog --start-position=1596 --stop-position=1790 
+/data/binlog/mysql-bin.000005 &gt;/tmp/bin2.sql
+3）恢复
+set sql_log_bin=0;
+source /tmp/bin1.sql
+source /tmp/bin2.sql
+set sql_log_bin=1;
+mysql&gt; show databases;
+mysql&gt; use db
+mysql&gt; show tables;
+mysql&gt; select * from t1;
++------+
+| id   |
++------+
+|    1 |
+|    2 |
+|   30 |
+|    4 |
+|    5 |
+|    6 |
+|    7 |
+|    8 |
+|    9 |
++------+
+9 rows in set (0.00 sec)
+</code></pre>
+<p>3、有GTID的恢复</p>
+<pre><code class="language-mysql">mysql&gt; show binlog events in 'mysql-bin.000006';
+| mysql-bin.000006| SET @@SESSION.GTID_NEXT= '923a6d2c-9dc4-11ec-922c-000c299152c6:14' |
+| mysql-bin.000006| drop database if exists db                                         |
+| mysql-bin.000006| SET @@SESSION.GTID_NEXT= '923a6d2c-9dc4-11ec-922c-000c299152c6:15' |
+| mysql-bin.000006| create database db charset utf8                                    |
+| mysql-bin.000006| SET @@SESSION.GTID_NEXT= '923a6d2c-9dc4-11ec-922c-000c299152c6:16' |
+| mysql-bin.000006| use `db`; create table t1 (id int)                                 |
+| mysql-bin.000006| SET @@SESSION.GTID_NEXT= '923a6d2c-9dc4-11ec-922c-000c299152c6:17' |
+| mysql-bin.000006| BEGIN                                                              |
+| mysql-bin.000006| table_id: 109 (db.t1)                                              |
+| mysql-bin.000006| table_id: 109 flags: STMT_END_F                                    |
+| mysql-bin.000006| table_id: 109 (db.t1)                                              |
+| mysql-bin.000006| table_id: 109 flags: STMT_END_F                                    |
+| mysql-bin.000006| COMMIT /* xid=12 */                                                |
+| mysql-bin.000006| SET @@SESSION.GTID_NEXT= '923a6d2c-9dc4-11ec-922c-000c299152c6:18' |
+| mysql-bin.000006| BEGIN                                                              |
+| mysql-bin.000006| table_id: 109 (db.t1)                                              |
+| mysql-bin.000006| table_id: 109 flags: STMT_END_F                                    |
+| mysql-bin.000006| COMMIT /* xid=15 */                                                |
+| mysql-bin.000006| SET @@SESSION.GTID_NEXT= '923a6d2c-9dc4-11ec-922c-000c299152c6:19' |
+| mysql-bin.000006| BEGIN                                                              |
+| mysql-bin.000006| table_id: 109 (db.t1)                                              |
+| mysql-bin.000006| table_id: 109 flags: STMT_END_F                                    |
+| mysql-bin.000006| COMMIT /* xid=17 */                                                |
+| mysql-bin.000006| SET @@SESSION.GTID_NEXT= '923a6d2c-9dc4-11ec-922c-000c299152c6:20' |
+| mysql-bin.000006| BEGIN                                                              |
+| mysql-bin.000006| table_id: 109 (db.t1)                                              |
+| mysql-bin.000006| table_id: 109 flags: STMT_END_F                                    |
+| mysql-bin.000006| COMMIT /* xid=19 */                                                |
+| mysql-bin.000006| SET @@SESSION.GTID_NEXT= '923a6d2c-9dc4-11ec-922c-000c299152c6:21' |
+| mysql-bin.000006| drop database db                                                   |
++-----------------+--------------------------------------------------------------------+
+mysqlbinlog --skip-gtids --include-gtids='923a6d2c-9dc4-11ec-922c-000c299152c6:15-20'
+ --exclude-gtids='923a6d2c-9dc4-11ec-922c-000c299152c6:19' mysql-bin.000006&gt;/tmp/bin.sql
+set sql_log_bin=0;
+source /tmp/bin.sql
+set sql_log_bin=1;
+</code></pre>
+<h3 id="二进制日志其他操作">二进制日志其他操作</h3>
+<p>1、自动清理日志</p>
+<pre><code class="language-mysql">show variables like '%expire%';
+expire_logs_days  0   
+自动清理时间,是要按照全备周期+1
+set global expire_logs_days=8;
+永久生效:
+my.cnf
+expire_logs_days=15;
+企业建议，至少保留两个全备周期+1的binlog日志
+</code></pre>
+<p>2、手工清理</p>
+<pre><code class="language-mysql">PURGE BINARY LOGS BEFORE now() - INTERVAL 3 day;
+PURGE BINARY LOGS TO 'mysql-bin.000010';
+注意:不要手工 rm binlog文件
+1）my.cnf binlog关闭掉,启动数据库
+2）把数据库关闭,开启binlog,启动数据库
+删除所有binlog,并从000001开始重新记录日志
+</code></pre>
+<p>reset master; 主从关系中，主库执行此操作，主从环境必崩  *****</p>
+<p>3、日志是怎么滚动</p>
+<pre><code class="language-mysql">flush logs; 
+重启mysql也会自动滚动一个新的
+日志文件达到1G大小(max_binlog_size)
+| max_binlog_size                          | 1073741824     
+备份时,加入参数也可以自动滚动
+</code></pre>
+<h2 id="slow_log-慢日志">slow_log 慢日志</h2>
+<p>1、作用</p>
+<pre><code class="language-mysql">记录MySQL工作过程中运行较慢的语句，优化过程中常用的工具日志
+</code></pre>
+<p>2、开启慢日志（默认没开启）</p>
+<pre><code class="language-mysql">开关:
+slow_query_log=1 
+文件位置及名字 
+slow_query_log_file=/data/mysql/slow.log
+设定慢查询时间:
+long_query_time=0.1
+没走索引的语句也记录:
+log_queries_not_using_indexes
+默认10s，一个全表扫描100万的数据才2点几秒
+vim /etc/my.cnf
+slow_query_log=1 
+slow_query_log_file=/data/mysql/slow.log
+long_query_time=0.1
+log_queries_not_using_indexes
+systemctl restart mysqld
+</code></pre>
+<p>3、模拟慢查询</p>
+<pre><code class="language-mysql">mysql&gt; desc t100w;
++-------+-----------+------+-----+-------------------+-----------------------------+
+| Field | Type      | Null | Key | Default           | Extra                       |
++-------+-----------+------+-----+-------------------+-----------------------------+
+| id    | int(11)   | YES  |     | NULL              |                             |
+| num   | int(11)   | YES  |     | NULL              |                             |
+| k1    | char(2)   | YES  |     | NULL              |                             |
+| k2    | char(4)   | YES  |     | NULL              |                             |
+| dt    | timestamp | NO   |     | CURRENT_TIMESTAMP | on update CURRENT_TIMESTAMP |
++-------+-----------+------+-----+-------------------+-----------------------------+
+5 rows in set (0.00 sec)
+mysql&gt; select * from t100w where k1='aa' limit 100;
+100 rows in set (0.12 sec)
+mysql&gt; select * from t100w where k1='aa' limit 1000;
+289 rows in set (0.30 sec)
+mysql&gt; select num,k1 from t100w where num='100' group by k1;
+1 row in set (0.26 sec)
+mysql&gt; select num,k1 from t100w order by k1 limit 100;
+100 rows in set (0.34 sec)
+mysql&gt;  select num,k1 from t100w where num !=10 order by k1 limit 10;
+10 rows in set (0.35 sec)
+</code></pre>
+<p>4、mysqldumpslow 分析慢日志</p>
+<pre><code class="language-mysql">[root@mysqld mysql]# cd /data/mysql/
+[root@mysqld mysql]# ll
+total 125632
+drwxr-xr-x 11 mysql mysql      253 Jun 13 04:38 data
+-rw-r-----  1 mysql mysql 67721147 Jun 13 04:42 slow.log
+以执行的次数、时间维度进行排序
+[root@mysqld mysql]# mysqldumpslow -s c -t 10 /data/mysql/slow.log
+-s：sort c：count -t 10： top 10
+找出慢语句，然后进行执行计划分析
+Count: 1  Time=0.35s (0s)  Lock=0.00s (0s)  Rows=10.0 (10)
+select num,k1 from t100w where num !=N order by k1 limit N
+  
+# 第三方工具(自己扩展)
+https://www.percona.com/downloads/percona-toolkit/LATEST/
+yum install perl-DBI perl-DBD-MySQL perl-Time-HiRes perl-IO-Socket-SSL perl-Digest-MD5
+toolkit工具包中的命令:
+./pt-query-diagest  /data/mysql/slow.log
+Anemometer基于pt-query-digest将MySQL慢查询可视化
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/cun-chu-yin-qing-er/">
+              <h3 class="post-title">
+                下一篇：存储引擎（二）
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

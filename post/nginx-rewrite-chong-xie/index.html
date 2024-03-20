@@ -1,0 +1,375 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>nginx rewrite重写 | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">nginx rewrite重写</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-08-08</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/YBDfkYHYeR/">
+                    nginx
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="rewrite基本概述">rewrite基本概述</h2>
+<h3 id="什么是rewrite">什么是rewrite</h3>
+<pre><code class="language-bash">rewrite主要实现url地址重写，以及地址重定向，就是将用户请求web服务器的地址重新定向到其他url的过程。
+</code></pre>
+<h3 id="rewrite使用场景">rewrite使用场景</h3>
+<pre><code class="language-bash">1）地址跳转，用户访问www.oldboy.com/class这个url时，将其定向至一个新的域名class.oldboy.com
+2）协议跳转，用户通过http协议请求网站时，将其重新跳转至https协议方式
+3）伪静态，将动态页面显示为静态页面的一种技术方式，便于搜索引擎的录入，同时减少动态URL地址对外暴露过多的参数，
+提升更高的安全性。
+4）搜索引擎，SEO优化依赖于url路径，好记的url便于支持搜索引擎录入
+</code></pre>
+<h3 id="rewrite配置语法">rewrite配置语法</h3>
+<pre><code class="language-bash">#rewrite表达式可以应用在server,location, if标签下
+Syntax: rewrite regex replacement [flag];
+Default: --
+Context: server, location, if
+#用于切换维护页面场景
+#rewrite ^(.*)$ /page/wh.html break;
+</code></pre>
+<h2 id="rewrite标记flag">rewrite标记Flag</h2>
+<pre><code class="language-bash">rewrite指令根据表达式来重定向URL，或者修改URI字符串。
+每行rewrite指令最后跟一个flag标记，支持的flag标记有如下所示：
+flag	                     作用
+last	    本条规则匹配完成后，停止匹配，不在匹配后面的规则
+break	    本条规则匹配完成后，停止匹配，不在匹配后面的规则
+redirect	返回302临时重定向, 地址栏会显示跳转后的地址
+permanent	返回301永久重定向, 地址栏会显示跳转后的地址
+</code></pre>
+<h3 id="last与break区别对比示例">last与break区别对比示例</h3>
+<pre><code class="language-bash">1）编写nginx配置文件
+[root@web01 ~]# cd /etc/nginx/conf.d/
+[root@web01 conf.d]# cat rewrite.conf 
+server {
+    listen 80;
+    server_name rewrite.oldboy.com;
+    root /code;
+    location ~ ^/break {
+        rewrite ^/break /test/ break;
+    }
+    location ~ ^/last {
+        rewrite ^/last /test/ last;
+    }
+    location  /test/ {
+        default_type application/json;
+        return 200 'ok';
+    }
+}
+#重载nginx服务
+[root@web01 conf.d]# systemctl reload nginx
+</code></pre>
+<pre><code class="language-bash">2）配置域名解析，使用浏览器访问/break测试
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1659926590315.jpg" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">3）使用浏览器访问/last测试
+</code></pre>
+<figure data-type="image" tabindex="2"><img src="https://ajie825.github.io/post-images/1659926973235.jpg" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">4）last和break都是一个作用，都是表示停止rewrite规则，那last和break区别在哪？
+break匹配到规则，会去本地路径目录中寻找对应的请求文件，如果文件不存在，则返回404，如果文件存
+在，则有后面的location匹配。
+last匹配到规则，也会去本地路径目录中寻找对应的请求文件，如果文件不存在会对其所在的server{...}
+标签重新发起请求。
+所以，在访问/break和/last请求时，虽然对应的请求目录/test都是不存在的，理论上都应该返回404，
+但是实际请求/last的时候，会有后面location所匹配到的结果返回，如果last匹配不到location的结
+果则在返回错误。
+</code></pre>
+<h3 id="redirect与permanent区别对比示例">redirect与permanent区别对比示例</h3>
+<pre><code class="language-bash">1）编写nginx配置文件
+[root@web01 conf.d]# cat rewrite.conf 
+server {
+    listen 80;
+    server_name rewrite.oldboy.com;
+    root /code;
+    location ~ ^/bgx {
+        rewrite ^(.*)$ https://www.xuliangwei.com redirect;
+       # rewrite ^(.*)$ https://www.xuliangwei.com permanent;
+        #return 301 http://kt.xuliangwei.com;
+        #return 302 http://kt.xuliangwei.com;
+    }
+}
+[root@web01 conf.d]# nginx -t
+[root@web01 conf.d]# systemctl reload nginx
+</code></pre>
+<pre><code class="language-bash">2）通过浏览器访问，redirect会进行跳转
+</code></pre>
+<figure data-type="image" tabindex="3"><img src="https://ajie825.github.io/post-images/1659938414994.jpg" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">3）停止nginx，然后再次访问测试redirect
+[root@web01 conf.d]# systemctl stop nginx
+</code></pre>
+<figure data-type="image" tabindex="4"><img src="https://ajie825.github.io/post-images/1659938529925.jpg" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">4）通过浏览器访问，permanent会进行301跳转
+</code></pre>
+<figure data-type="image" tabindex="5"><img src="https://ajie825.github.io/post-images/1659938614507.jpg" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">5）停止nginx，然后再次访问测试permanent
+</code></pre>
+<figure data-type="image" tabindex="6"><img src="https://ajie825.github.io/post-images/1659938704041.jpg" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">6）redirect和permanent都是一个跳转，那redirect和permanent区别在哪？实现https
+redirect每次请求都会询问服务器，如果当服务器不可用时，则会跳转失败。
+permanent第一次请求会询问服务器，浏览器会记录跳转地址，第二次则不再询问服务器，直接通过浏览器缓存的地址跳转。
+</code></pre>
+<h2 id="rewrite规则实践">rewrite规则实践</h2>
+<pre><code class="language-bash">例1:用户访问/abc/1.html实际上真实访问是/ccc/bbb/2.html
+#http://rewrite.oldboy.com/abc/1.html ==&gt; http://rewrite.oldboy.com/ccc/bbb/2.html
+1）nginx跳转配置
+[root@web01 conf.d]# cat ccbb.conf 
+server {
+    listen 80;
+    server_name rewrite.oldboy.com;
+    
+    location / {
+        root /code;
+        index index.html;
+    }
+    #匹配/abc开头的任何字符都跳转到/code/ccc/bbb/2.html
+    location /abc {
+        rewrite (.*) /ccc/bbb/2.html redirect;
+        #return 302 /ccc/bbb/2.html;
+    }
+}
+[root@web01 conf.d]# nginx -t
+[root@web01 conf.d]# systemctl reload nginx
+2）准备真实的访问路径
+[root@web01 conf.d]# mkdir /code/ccc/bbb -p
+[root@web01 conf.d]# echo &quot;ccc_bbb_2&quot; &gt; /code/ccc/bbb/2.html
+</code></pre>
+<pre><code class="language-bash">例2:用户访问/2018/ccc/bbb/2.html实际上真实访问是/2014/ccc/bbb/2.html
+#http://rewrite.oldboy.com/2018/ccc/bbb/2.html ==&gt; http://rewrite.oldboy.com/2014/ccc/bbb/2.html
+1）nginx跳转配置
+[root@web01 conf.d]# cat ccbb.conf 
+server {
+    listen 80;
+    server_name rewrite.oldboy.com;
+    location / {
+        root /code;
+        index index.html;
+    }
+    location /2018 {
+        rewrite ^/2018/(.*)$ /2014/$1 redirect;
+    }
+}
+[root@web01 conf.d]# nginx -t
+[root@web01 conf.d]# systemctl reload nginx
+2）准备真实的访问路径
+[root@web01 conf.d]# mkdir /code/2014/ccc/bbb -p
+[root@web01 conf.d]# echo &quot;2014_ccc_bbb_2&quot; &gt; /code/2014/ccc/bbb/2.html
+</code></pre>
+<pre><code class="language-bash">例3：用户访问/test目录下任何内容，实际上真实访问的是http://www.jd.com
+location /test {
+       rewrite (.*) http://www.jd.com redirect;
+}
+</code></pre>
+<pre><code class="language-bash">例4:用户访问course-11-22-33.html实际上真实访问是/course/11/22/33/course_33.html
+#http://rewrite.oldboy.com/course-11-22-33.html ==&gt; http:/rewrite.oldboy.com/course/11/22/33/course_33.html  
+1）nginx跳转配置
+[root@web01 conf.d]# cat ccbb.conf 
+server {
+  listen 80;
+  server_name rewrite.oldboy.com;
+  root /code;
+  index index.html;
+ 
+  location / {
+    # 灵活
+    rewrite ^/course-(.*)-(.*)-(.*).html$ /course/$1/$2/$3/course_$3.html redirect;
+    # 固定
+    rewrite ^/course-(.*) /course/11/22/33/course_33.html redirect;
+   }        
+}
+[root@web01 conf.d]# nginx -t
+[root@web01 conf.d]# systemctl restart nginx
+2）准备真实的访问路径
+[root@web01 conf.d]# mkdir /code/course/11/22/33/ -p
+[root@web01 conf.d]# echo &quot;Curl docs.etiantian.org&quot; &gt; /code/course/11/22/33/course_33.html
+</code></pre>
+<pre><code class="language-bash">例5:将http请求，跳转至https
+server {
+        listen 80;
+        server_name rewrite.oldboy.com;
+        rewrite ^(.*) https://$server_name$1 redirect;
+        #return 302 https://$server_name$request_uri;
+}
+server {
+    listen 443;
+    server_name rewrite.oldboy.com;
+    ssl on;
+}
+</code></pre>
+<h2 id="rewrite规则补充">Rewrite规则补充</h2>
+<h3 id="rewrite优先级">rewrite优先级</h3>
+<pre><code class="language-bash">1）先执行server块的rewrite指令
+2）其次执行location匹配规则
+3）最后执行location中的rewrite
+</code></pre>
+<h3 id="rewrite常用变量在匹配过程中可以引用一些nginx的全局变量">Rewrite常用变量，在匹配过程中可以引用一些Nginx的全局变量</h3>
+<pre><code class="language-bash">$server_name 当前用户请求的域名
+$request_filename 当前请求的文件路径名（带网站的主目录/code/images/test.jpg）
+$request_uri 当前请求的文件路径名（不带网站的主目录/images/test.jpg）
+$scheme用的协议，比如http或者https
+</code></pre>
+<h3 id="如何优雅的书写rewrite规则">如何优雅的书写Rewrite规则</h3>
+<pre><code class="language-bash">server {
+    listen 80;
+    server_name www.oldboyedu.com oldboyedu.com;
+    if ($http_host = oldboyedu.com){
+        rewrite (.*) http://www.nginx.org$1;
+    }
+}
+#推荐的书写格式
+server {
+    listen 80;
+    server_name oldboyedu.com;
+    rewrite ^ http://www.oldboyedu.com$request_uri;
+}
+server {
+    listen 80;
+    server_name www.oldboyedu.com;
+}
+
+rewrite       正则          真实的文件          flag
+return	   http-&gt;https    return状态码   跳转后的地址(可以使用变量)
+rewrite ^(.*)$ https://$server_name$1 redirect;
+return 302 https://$server_name$request_uri;
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/nginx-dong-jing-fen-li/">
+              <h3 class="post-title">
+                下一篇：nginx动静分离
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

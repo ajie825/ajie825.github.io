@@ -1,0 +1,339 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>MySQL体系结构与基础管理（二） | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">MySQL体系结构与基础管理（二）</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-05-31</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/eb_lZhnX62/">
+                    mysql
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="mysql的启动和关闭">MySQL的启动和关闭</h2>
+<h3 id="日常启动和停止">日常启动和停止</h3>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1653976863398.png" alt="" loading="lazy"></figure>
+<p>mysql.server start ---》 mysqld_safe ---》mysqld</p>
+<p>systemctl    ---》 mysqld</p>
+<p>需要依赖于 /etc/my.cnf</p>
+<h3 id="维护性的任务">维护性的任务</h3>
+<p>mysqld_safe --skip-grant-tables --skip-networking &amp;</p>
+<p>我们一般会将我们需要的参数临时加到命令行，也会读取/etc/my.cnf的内容,但是如果冲突,命令行优先级最高</p>
+<pre><code class="language-mysql">[root@mysql ~]# mysqld_safe &amp;
+[root@mysql ~]# mysqladmin -uroot -p123 shutdown
+</code></pre>
+<h2 id="初始化配置">初始化配置</h2>
+<h3 id="作用">作用</h3>
+<p>1）影响数据库的启动</p>
+<p>2）影响到客户端的连接</p>
+<h3 id="方法">方法</h3>
+<p>1）初始化配置文件（例如/etc/my.cnf）</p>
+<p>2）命令行启动时进行设置（例如:mysqld_safe  mysqld）</p>
+<p>3）预编译时设置（仅限于编译安装时设置）</p>
+<h3 id="初始化配置文件的书写格式">初始化配置文件的书写格式</h3>
+<pre><code class="language-mysql">[标签]
+
+xxx=xxx
+
+[标签]
+
+xxx=xxx
+</code></pre>
+<h3 id="配置文件标签的归类">配置文件标签的归类</h3>
+<pre><code class="language-mysql">服务器端:
+[mysqld]
+[mysqld_safe]
+[server]
+
+客户端: 
+[mysql]
+[mysqladmin]
+[mysqldump]
+[client]
+</code></pre>
+<p>配置文件样板设置（5.7）</p>
+<pre><code class="language-mysql">#服务器端配置
+[mysqld]
+#用户
+user=mysql  
+#软件安装目录         
+basedir=/application/mysql  
+#数据路径
+datadir=/data/mysql/data 
+#socket文件位置
+socket=/tmp/mysql.sock
+#服务器id号
+server_id=6
+#端口号
+port=3306
+
+#客户端配置
+[mysql]
+#socket文件位置
+socket=/tmp/mysql.sock
+</code></pre>
+<h3 id="配置文件读取顺序">配置文件读取顺序</h3>
+<pre><code class="language-mysql">[root@mysql ~]# mysqld --help --verbose |grep my.cnf
+/etc/my.cnf /etc/mysql/my.cnf /usr/local/mysql/etc/my.cnf ~/.my.cnf 
+</code></pre>
+<p>默认情况下，MySQL启动时，会依次读取以上配置文件，如果有重复选项，会以最后一个文件设置为准</p>
+<h3 id="强制使用自定义配置文件">强制使用自定义配置文件</h3>
+<p>如果启动时加入了--defaults-file=xxx时，以上的所有文件都不会读取</p>
+<pre><code class="language-mysql">[root@mysql ~]# mysqld_safe --defaults-file=/tmp/aa.txt &amp;
+</code></pre>
+<h2 id="mysql的连接管理">MySQL的连接管理</h2>
+<h3 id="mysql命令">mysql命令</h3>
+<p>注意:提前应该将用户授权做好</p>
+<pre><code class="language-mysql">mysql&gt; grant all on *.* to root@'10.0.0.%' identified by '123';  
+Query OK, 0 rows affected, 1 warning (0.00 sec)
+
+mysql&gt; select user,host from mysql.user;
++---------------+-----------+
+| user          | host      |
++---------------+-----------+
+| oldboy        | 10.0.0.%  |
+| root          | 10.0.0.%  |
+| wordpress     | 10.0.0.%  |
+| mysql.session | localhost |
+| mysql.sys     | localhost |
+| root          | localhost |
++---------------+-----------+
+6 rows in set (0.00 sec)
+
+TCPIP :
+mysql -uroot -p -h 10.0.0.51 -P3306 
+
+Socket ：
+mysql -uroot -p -S /tmp/mysql.sock
+</code></pre>
+<h3 id="客户端工具">客户端工具</h3>
+<pre><code class="language-mysql">sqlyog
+navicat
+</code></pre>
+<h2 id="多实例管理">多实例管理</h2>
+<h3 id="准备多个数据目录">准备多个数据目录</h3>
+<pre><code class="language-mysql">[root@mysql ~]# mkdir -p /data/330{7,8,9}/data
+</code></pre>
+<h3 id="准备实例的配置文件">准备实例的配置文件</h3>
+<pre><code class="language-mysql">#3307的配置文件
+cat &gt; /data/3307/my.cnf &lt;&lt;EOF
+[mysqld]
+basedir=/application/mysql
+datadir=/data/3307/data
+socket=/data/3307/mysql.sock
+log_error=/data/3307/mysql.log
+port=3307
+server_id=7
+log_bin=/data/3307/mysql-bin
+EOF
+
+#3308的配置文件
+cat &gt; /data/3308/my.cnf &lt;&lt;EOF
+[mysqld]
+basedir=/application/mysql
+datadir=/data/3308/data
+socket=/data/3308/mysql.sock
+log_error=/data/3308/mysql.log
+port=3308
+server_id=8
+log_bin=/data/3308/mysql-bin
+EOF
+
+#3309的配置文件
+cat &gt; /data/3309/my.cnf &lt;&lt;EOF
+[mysqld]
+basedir=/application/mysql
+datadir=/data/3309/data
+socket=/data/3309/mysql.sock
+log_error=/data/3309/mysql.log
+port=3309
+server_id=9
+log_bin=/data/3309/mysql-bin
+EOF
+</code></pre>
+<h3 id="初始化多实例的数据">初始化多实例的数据</h3>
+<pre><code class="language-mysql">mysqld --initialize-insecure  --user=mysql --datadir=/data/3307/data 
+--basedir=/application/mysql
+mysqld --initialize-insecure  --user=mysql --datadir=/data/3308/data 
+--basedir=/application/mysql
+mysqld --initialize-insecure  --user=mysql --datadir=/data/3309/data 
+--basedir=/application/mysql
+</code></pre>
+<h3 id="systemd管理多实例">systemd管理多实例</h3>
+<pre><code class="language-mysql">cd /etc/systemd/system
+cp mysqld.service mysqld3307.service
+cp mysqld.service mysqld3308.service
+cp mysqld.service mysqld3309.service
+
+vim mysqld3307.service
+# 修改为:
+ExecStart=/application/mysql/bin/mysqld  --defaults-file=/data/3307/my.cnf
+vim mysqld3308.service
+# 修改为:
+ExecStart=/application/mysql/bin/mysqld  --defaults-file=/data/3308/my.cnf
+vim mysqld3309.service
+# 修改为:
+ExecStart=/application/mysql/bin/mysqld  --defaults-file=/data/3309/my.cnf
+
+[root@mysql system]# grep &quot;ExecStart&quot; mysqld3307.service
+ExecStart=/application/mysql/bin/mysqld --defaults-file=/data/3307/my.cnf
+[root@mysql system]# grep &quot;ExecStart&quot; mysqld3308.service
+ExecStart=/application/mysql/bin/mysqld --defaults-file=/data/3308/my.cnf
+[root@mysql system]# grep &quot;ExecStart&quot; mysqld3309.service
+ExecStart=/application/mysql/bin/mysqld --defaults-file=/data/3309/my.cnf
+</code></pre>
+<h3 id="授权数据目录">授权数据目录</h3>
+<pre><code class="language-mysql">[root@mysql system]# chown -R mysql.mysql /data/*
+</code></pre>
+<h3 id="启动多实例">启动多实例</h3>
+<pre><code class="language-mysql">systemctl start mysqld3307.service
+systemctl start mysqld3308.service
+systemctl start mysqld3309.service
+</code></pre>
+<h3 id="验证多实例">验证多实例</h3>
+<pre><code class="language-mysql">netstat -lnp|grep 330
+mysql -S /data/3307/mysql.sock -e &quot;select @@server_id&quot;
+mysql -S /data/3308/mysql.sock -e &quot;select @@server_id&quot;
+mysql -S /data/3309/mysql.sock -e &quot;select @@server_id&quot;
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/mysql-ti-xi-jie-gou-he-ji-chu-guan-li-yi/">
+              <h3 class="post-title">
+                下一篇：MySQL体系结构和基础管理（一）
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

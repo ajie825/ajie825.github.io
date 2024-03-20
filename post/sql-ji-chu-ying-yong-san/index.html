@@ -1,0 +1,289 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>SQL基础应用（三） | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">SQL基础应用（三）</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-06-03</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/eb_lZhnX62/">
+                    mysql
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="上节回顾">上节回顾</h2>
+<pre><code class="language-mysql">group by name
+执行过程：首先列的值进行排序，进行去重，最后进行聚合函数的操作
+</code></pre>
+<pre><code class="language-mysql">关于group by的sql_mode
+说明：
+1）在5.7版本中，MySQL sql_mode参数自带，5.6和8.0都没有
+2）在带有group by子句的select中，select后的条件列（非主键列），要么是group by后的列，
+  要么需要在函数中包裹
+</code></pre>
+<pre><code class="language-mysql">group_concat：列转行聚合函数
+mysql&gt; SELECT USER,HOST FROM mysql.user;
++---------------+-----------+
+| USER          | HOST      |
++---------------+-----------+
+| oldboy        | 10.0.0.%  |
+| root          | 10.0.0.%  |
+| wordpress     | 10.0.0.%  |
+| mysql.session | localhost |
+| mysql.sys     | localhost |
+| root          | localhost |
++---------------+-----------+
+mysql&gt; SELECT USER,GROUP_CONCAT(HOST) FROM mysql.user GROUP BY USER;
++---------------+--------------------+
+| USER          | GROUP_CONCAT(HOST) |
++---------------+--------------------+
+| mysql.session | localhost          |
+| mysql.sys     | localhost          |
+| oldboy        | 10.0.0.%           |
+| root          | localhost,10.0.0.% |
+| wordpress     | 10.0.0.%           |
++---------------+--------------------+
+</code></pre>
+<pre><code class="language-mysql">concat：列值拼接
+mysql&gt; select concat(user,&quot;@&quot;,host)  from mysql.user;
++-------------------------+
+| concat(user,&quot;@&quot;,host)   |
++-------------------------+
+| oldboy@10.0.0.%         |
+| root@10.0.0.%           |
+| wordpress@10.0.0.%      |
+| mysql.session@localhost |
+| mysql.sys@localhost     |
+| root@localhost          |
++-------------------------+
+</code></pre>
+<pre><code class="language-mysql">多表连接语法规则
+1）找到涉及到的所有表
+2）找到表和表之间的关联列
+3）关联条件列写在 on后面   A join B on 关联列
+4）所有需要查询的信息放在 select后
+5）其他的过滤条件 where、group by、having、order by、limit都往后面放
+注意：
+对多表连接中，驱动表（最前面的表）选择数据行较少的表，后续所有表的关联列尽量是主键或者
+唯一键（表设计），至少建立一个索引（性能优化方面）
+</code></pre>
+<h2 id="元数据获取">元数据获取 ***</h2>
+<h3 id="元数据介绍">元数据介绍</h3>
+<pre><code class="language-mysql">1）元数据（除数据行之外的所有属性）都是存储在“基表”中
+2）通过专用的DDL语句，DCL语句进行修改
+3）通过专用视图的命令进行元数据的查询
+4）information_schema中保存了大量元数据查询的视图
+5）show 命令提供元数据查询基础功能
+</code></pre>
+<h3 id="information_schema-应用">information_schema 应用</h3>
+<pre><code class="language-mysql">mysql&gt; use information_schema
+mysql&gt; desc tables;
+TABLE_SCHEMA             表所在的库名
+TABLE_NAME	             表名
+ENGINE		             存储引擎
+TABLE_ROWS	             数据行
+AVG_ROW_LENGTH	         平均行长度
+INDEX_LENGTH             索引长度
+例子：
+1）显示所有的库和表的信息
+mysql&gt; SELECT table_schema,table_name FROM information_schema.tables;
+2）以下面的模式，显示所有的库和表的信息
+--- world   city,country,countrylanguage
+SELECT table_schema,GROUP_CONCAT(table_name) 
+FROM information_schema.tables
+GROUP BY table_schema;
+3）查询所有innodb引擎的表
+SELECT table_schema,table_name,ENGINE
+FROM information_schema.tables 
+WHERE ENGINE='innodb';
+4）统计world下的city表占用空间大小
+--- 表的数据量=平均行长度*行数+索引长度
+--- AVG_ROW_LENGTH*TABLE_ROWS+INDEX_LENGTH
+SELECT table_name,(AVG_ROW_LENGTH*TABLE_ROWS+INDEX_LENGTH)/1024
+FROM information_schema.TABLES
+WHERE table_schema='world' AND table_name='city';
+5） 统计world库数据量总大小
+SELECT table_schema,SUM((AVG_ROW_LENGTH*TABLE_ROWS+INDEX_LENGTH))/1024
+FROM information_schema.TABLES
+WHERE table_schema='world'
+6）统计每个库的数据量大小，并按数据量从大到小排序
+SELECT table_schema,SUM((AVG_ROW_LENGTH*TABLE_ROWS+INDEX_LENGTH))/1024 AS total_KB
+FROM information_schema.TABLES
+GROUP BY table_schema
+ORDER BY total_KB DESC ;
+</code></pre>
+<h3 id="配合concat函数拼接语句">配合concat()函数拼接语句</h3>
+<pre><code class="language-mysql">例子：
+1）模仿以下语句,进行数据库的分库分表备份
+mysqldump -uroot -p123 world city &gt;/bak/world_city.sql
+SELECT
+CONCAT(&quot;mysqldump -uroot -p123 &quot;,table_schema,&quot; &quot;,table_name
+,&quot; &gt;/bak/&quot;,table_schema,&quot;_&quot;,table_name,&quot;.sql&quot;)
+FROM information_schema.tables;
+2）模仿以下语句,进行批量生成对world库下所有表进行操作
+ALTER TABLE world.city DISCARD TABLESPACE;
+SELECT 
+CONCAT(&quot;ALTER TABLE &quot;,table_schema,&quot;.&quot;,table_name,&quot; DISCARD TABLESPACE;&quot;)
+FROM information_schema.tables
+WHERE table_schema='world';
+</code></pre>
+<h3 id="show-介绍">show 介绍 *****</h3>
+<pre><code class="language-mysql">SHOW DATABASES;     	                   #查看数据库名
+SHOW TABLES; 		  	                   #查看表名
+SHOW CREATE DATABASE xx;                    #查看建库语句
+SHOW CREATE TABLE xx;		               #查看建表语句
+SHOW PROCESSLIST;		                   #查看所有用户连接情况
+SHOW CHARSET;			                   #查看支持的字符集
+SHOW COLLATION;			                   #查看所有支持的校对规则
+SHOW GRANTS FOR xx;		                    #查看用户的权限信息
+SHOW VARIABLES LIKE '%xx%'                  #查看参数信息
+SHOW ENGINES;		                       #查看所有支持的存储引擎类型
+SHOW INDEX FROM xxx		                    #查看表的索引信息
+SHOW ENGINE INNODB STATUS\G                 #查看innoDB引擎详细状态信息
+SHOW BINARY LOGS 		                   #查看二进制日志的列表信息
+SHOW BINLOG EVENTS IN ''	               #查看二进制日志的事件信息
+SHOW MASTER STATUS ;		              #查看mysql当前使用二进制日志信息
+SHOW SLAVE STATUS\G 		              #查看从库状态信息
+SHOW relaylog EVENTS IN ''	               #查看中继日志的事件信息
+SHOW STATUS LIKE ''		                  #查看数据库整体状态信息
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/sql-ji-chu-ying-yong-er/">
+              <h3 class="post-title">
+                下一篇：SQL基础应用（二）
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

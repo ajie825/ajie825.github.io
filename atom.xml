@@ -1,0 +1,4304 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <id>https://ajie825.github.io</id>
+    <title>Ajie的博客</title>
+    <updated>2024-03-20T08:02:31.693Z</updated>
+    <generator>https://github.com/jpmonette/feed</generator>
+    <link rel="alternate" href="https://ajie825.github.io"/>
+    <link rel="self" href="https://ajie825.github.io/atom.xml"/>
+    <subtitle>运维技术文档</subtitle>
+    <logo>https://ajie825.github.io/images/avatar.png</logo>
+    <icon>https://ajie825.github.io/favicon.ico</icon>
+    <rights>All rights reserved 2024, Ajie的博客</rights>
+    <entry>
+        <title type="html"><![CDATA[一键编译安装redis脚本]]></title>
+        <id>https://ajie825.github.io/post/一键编译安装redis脚本/</id>
+        <link href="https://ajie825.github.io/post/一键编译安装redis脚本/">
+        </link>
+        <updated>2024-02-21T08:07:49.000Z</updated>
+        <content type="html"><![CDATA[<pre><code class="language-bash">[root@redis-node1 ~]#cat install_redis_for_centos.sh 
+#!/bin/bash
+#********************************************************************
+#Author:           Ajie
+#EMAIL:            ajiewangops@gmail.com
+#Date:             2020-02-22
+#FileName：        install_redis_for_centos.sh
+#Description：     The test script
+#Copyright (C):    2020 All rights reserved
+#********************************************************************
+. /etc/init.d/functions 
+VERSION=redis-4.0.14
+PASSWORD=123456
+INSTALL_DIR=/apps/redis
+
+install() {
+yum  -y install gcc jemalloc-devel || { action &quot;安装软件包失败，请检查网络配置&quot; false ; exit; }
+
+wget http://download.redis.io/releases/${VERSION}.tar.gz || { action &quot;Redis 源码下载失败&quot; false ; exit; }
+
+tar xf ${VERSION}.tar.gz
+cd ${VERSION}
+make -j 4 PREFIX=${INSTALL_DIR} install &amp;&amp; action &quot;Redis 编译安装完成&quot; || { action &quot;Redis 编译安装失败&quot; false ;exit ; }
+
+ln -s ${INSTALL_DIR}/bin/redis-*  /usr/bin/
+mkdir -p ${INSTALL_DIR}/{etc,logs,data,run}
+cp redis.conf  ${INSTALL_DIR}/etc/
+sed -i.bak -e 's/bind 127.0.0.1/bind 0.0.0.0/' -e &quot;/# requirepass/a requirepass $PASSWORD&quot;  ${INSTALL_DIR}/etc/redis.conf
+
+if id redis &amp;&gt; /dev/null ;then 
+    action &quot;Redis 用户已存在&quot; false  
+else
+    useradd -r -s /sbin/nologin redis
+    action &quot;Redis 用户创建成功&quot;
+fi
+
+chown -R redis.redis ${INSTALL_DIR}
+
+cat &gt;&gt; /etc/sysctl.conf &lt;&lt;EOF
+net.core.somaxconn = 1024
+vm.overcommit_memory = 1
+EOF
+
+cat &gt; /usr/lib/systemd/system/redis.service &lt;&lt;EOF
+[Unit]
+Description=Redis persistent key-value database
+After=network.target
+
+[Service]
+ExecStart=${INSTALL_DIR}/bin/redis-server ${INSTALL_DIR}/etc/redis.conf --supervised systemd
+ExecStop=/bin/kill -s QUIT \$MAINPID
+Type=notify
+User=redis
+Group=redis
+RuntimeDirectory=redis
+RuntimeDirectoryMode=0755
+
+[Install]
+WantedBy=multi-user.target
+
+EOF
+systemctl daemon-reload 
+systemctl start redis &amp;&gt; /dev/null &amp;&amp; action &quot;Redis 服务启动成功,Redis信息如下:&quot; || { action &quot;Redis 启动失败&quot; false ;exit; } 
+
+redis-cli -a $PASSWORD INFO Server 2&gt; /dev/null
+
+}
+
+install 
+</code></pre>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Redis入门教程(马哥)]]></title>
+        <id>https://ajie825.github.io/post/redis入门教程/</id>
+        <link href="https://ajie825.github.io/post/redis入门教程/">
+        </link>
+        <updated>2024-02-20T06:27:31.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="redis基础">redis基础</h2>
+<p><a href="https://redis.io/">官网地址：</a></p>
+<p><code>redis</code>和<code>memcached</code>都是非关系型数据库，也称为<code>NoSQL</code>数据库，<code>MySQL</code>、<code>Mariadb</code>、<code>SQL Server</code>和<code>PostgreSQL</code>、<code>Oracle</code>数据库属于关系型数据库(<code>RDBMS</code>)。</p>
+<h3 id="redis简介">redis简介</h3>
+<p><code>redis</code>在2009年发布，是一个开源的、遵循<code>BSD</code>协议的、基于内存的的键值数据库，<code>redis</code>提供将内存通过网络远程共享的服务，提供类似功能的还有<code>memcached</code>，但相比<code>memcached</code>，<code>redis</code>还提供了易扩展、高性能、具备数据持久性等功能。</p>
+<p><code>redis</code>在高并发、低延迟要求比较高的环境使用量非常广泛，目前<code>redis</code>在<code>DB-Engine</code>排行榜中一直比较靠前，而且一直是键值型存储类的首位。<br>
+<img src="https://ajie825.github.io/post-images/1708413525155.png" alt="" loading="lazy"></p>
+<h3 id="redis对比memcached">redis对比memcached</h3>
+<ul>
+<li>支持数据的持久化：可以将内存中的数据保存在磁盘中，重启<code>redis</code>服务后可以从备份文件中恢复数据到内存继续使用。</li>
+<li>支持更多的数据类型：<code>string</code>(字符串)、<code>hash</code>(哈希数据)、<code>list</code>(列表)、<code>set</code>(集合)、<code>zet</code>(有序集合)。</li>
+<li>支持数据备份，可以实现类似于主从(<code>master-slave</code>)模式的数据备份，另外也支持使用快照+<code>AOF</code>。</li>
+<li>支持更大的<code>value</code>数据：<code>memcached</code>单个<code>key</code>值最大只支持<code>1MB</code>，而<code>redis</code>最大支持<code>512MB</code>。</li>
+<li><code>redis</code>是单线程，而<code>memcached</code>是多线程，所以单机情况下没有<code>memcached</code>并发高，但<code>redis</code>支持分布式集群以实现更高的并发，单<code>redis</code>实例可以实现数万并发。</li>
+<li>支持集群横向扩展：基于<code>redis cluster</code>的横向扩展，可以实现分布式集群，大幅提升性能和数据安全性。</li>
+<li>都是基于<code>C</code>语言开发。</li>
+</ul>
+<h3 id="reids典型应用场景">reids典型应用场景</h3>
+<ul>
+<li><code>session</code>共享：常见于<code>web</code>集群中多台<code>web</code>服务器<code>session</code>共享。</li>
+<li>消息队列：<code>ELK</code>的日志缓存、部分业务的订阅发布系统。</li>
+<li>计数器：访问排行榜、商品浏览数和次数相关的数值统计场景。</li>
+<li>缓存：数据查询、电商网站商品信息、新闻内容。</li>
+<li>微博/微信社交场合：共同好友、点赞评论等。</li>
+</ul>
+<h2 id="redis安装及使用">redis安装及使用</h2>
+<h3 id="编译安装redis">编译安装redis</h3>
+<p><a href="http://download.redis.io/releases/">官方下载地址：</a></p>
+<pre><code class="language-bash">#安装命令
+[root@master ~]# mkdir /data/soft -p
+[root@master ~]# cd /data/soft/
+[root@master soft]# wget http://download.redis.io/releases/redis-5.0.7.tar.gz
+[root@master soft]# tar xf redis-5.0.7.tar.gz -C /opt
+[root@master soft]# ln -s /opt/redis-5.0.7/ /opt/redis
+[root@master soft]# cd /opt/redis
+[root@master redis]# ls
+00-RELEASENOTES  CONTRIBUTING  deps     Makefile   README.md   runtest          runtest-moduleapi  sentinel.conf  tests
+BUGS             COPYING       INSTALL  MANIFESTO  redis.conf  runtest-cluster  runtest-sentinel   src            utils
+[root@master redis]# make &amp;&amp; make install
+</code></pre>
+<h3 id="编译安装后的命令">编译安装后的命令</h3>
+<pre><code class="language-bash">[root@master redis]# cd /usr/local/bin/
+[root@master bin]# ll
+total 32772
+redis-benchmark                      #redis性能测试工具
+redis-check-aof                      #AOF文件检查工具
+redis-check-rdb                      #RDB文件检查工具
+redis-cli                            #客户端工具
+redis-sentinel -&gt; redis-server       #哨兵，软链接到server
+redis-server                         #redis服务启动命令
+</code></pre>
+<h3 id="配置文件">配置文件</h3>
+<pre><code class="language-bash">mkdir -p /opt/redis_6379/{conf,pid,logs}  #配置文件目录、pid目录、日志目录
+mkdir -p /data/redis_6379                 #数据目录
+cp /opt/redis/redis.conf /opt/redis_6379/conf/redis_6379.conf
+</code></pre>
+<h3 id="前台启动redis">前台启动redis</h3>
+<pre><code class="language-bash">[root@master ~]# redis-server  /opt/redis_6379/conf/redis_6379.conf
+[root@master ~]# netstat -lnpt|grep redis
+tcp        0      0 127.0.0.1:6379          0.0.0.0:*               LISTEN      6867/redis-server 1 
+</code></pre>
+<h3 id="解决当前的告警提示">解决当前的告警提示</h3>
+<pre><code class="language-bash">1）TCP backlog
+WARNING: The TCP backlog setting of 511 cannot be enforced because /proc/sys/net/core/somaxconn is set to the lower value of 128.
+#backlog参数控制的是三次握手的时候server端收到client ack确认号后的队列值，即全连接队列
+vim /etc/sysctl.conf
+net.core.somaxconn = 1024
+2）vm.overcommit_memory
+WARNING overcommit_memory is set to 0! Background save may fail under low memory condition. 
+To fix this issue add 'vm.overcommit_memory = 1' to /etc/sysctl.conf 
+and then reboot or run the command 'sysctl vm.overcommit_memory=1' for this to take effect.
+#0表示内核将检查是否有足够的可用内存供应用进程使用，如果有足够的可用内存，内存申请允许，否则内存申请失败，并把错误返回给应用进程
+#1表示内核允许分配所有的物理内存，而不管当前的内存状态如何
+#2表示内核允许分配超过所有物理内存和交换空间总和的内存
+vim /etc/sysctl.conf
+vm.overcommit_memory = 1
+sysctl -p
+3）Transparent Huge Pages
+WARNING you have Transparent Huge Pages (THP) support enabled in your kernel. This will create latency and memory usage issues with Redis. 
+To fix this issue run the command 'echo never &gt; /sys/kernel/mm/transparent_hugepage/enabled' as root
+and add it to your /etc/rc.local in order to retain the setting after a reboot. Redis must be restarted after THP is disabled.
+#警告：您在内核中启用了透明大页面(THP)支持，这将在redis中造成延迟和内存使用问题
+#要解决此问题，请以根用户身份运行命令'echo never &gt; /sys/kernel/mm/transparent_hugepage/enabled'
+#并将其添加到您的/etc/rc.local中，以便在重启后保留设置，禁用THP后，必须重新启动redis
+echo never &gt; /sys/kernel/mm/transparent_hugepage/enabled
+echo 'echo never &gt; /sys/kernel/mm/transparent_hugepage/enabled' &gt;&gt; /etc/rc.d/rc.local
+chmod +x /etc/rc.d/rc.local
+</code></pre>
+<h3 id="再次启动redis">再次启动redis</h3>
+<pre><code class="language-bash">[root@master ~]# redis-server  /opt/redis_6379/conf/redis_6379.conf      
+5800:C 16 Mar 2024 14:02:51.205 # oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+5800:C 16 Mar 2024 14:02:51.205 # Redis version=5.0.7, bits=64, commit=00000000, modified=0, pid=5800, just started
+5800:C 16 Mar 2024 14:02:51.205 # Configuration loaded
+                _._                                                  
+           _.-``__ ''-._                                             
+      _.-``    `.  `_.  ''-._           Redis 5.0.7 (00000000/0) 64 bit
+  .-`` .-```.  ```\/    _.,_ ''-._                                   
+ (    '      ,       .-`  | `,    )     Running in standalone mode
+ |`-._`-...-` __...-.``-._|'` _.-'|     Port: 6379
+ |    `-._   `._    /     _.-'    |     PID: 5800
+  `-._    `-._  `-./  _.-'    _.-'                                   
+ |`-._`-._    `-.__.-'    _.-'_.-'|                                  
+ |    `-._`-._        _.-'_.-'    |           http://redis.io        
+  `-._    `-._`-.__.-'_.-'    _.-'                                   
+ |`-._`-._    `-.__.-'    _.-'_.-'|                                  
+ |    `-._`-._        _.-'_.-'    |                                  
+  `-._    `-._`-.__.-'_.-'    _.-'                                   
+      `-._    `-.__.-'    _.-'                                       
+          `-._        _.-'                                           
+              `-.__.-'                                               
+
+5800:M 16 Mar 2024 14:02:51.206 # Server initialized
+5800:M 16 Mar 2024 14:02:51.206 * DB loaded from disk: 0.000 seconds
+5800:M 16 Mar 2024 14:02:51.206 * Ready to accept connections
+</code></pre>
+<h3 id="修改配置文件">修改配置文件</h3>
+<pre><code class="language-bash">[root@master ~]# grep -vE &quot;^#|^$&quot; /opt/redis_6379/conf/redis_6379.conf
+bind 127.0.0.1 192.168.40.183
+protected-mode yes
+port 6379
+daemonize yes
+supervised no
+pidfile  /opt/redis_6379/pid/redis_6379.pid
+loglevel notice
+logfile &quot;/opt/redis_6379/logs/redis_6379.log&quot;
+databases 16
+save 900 1
+save 300 10
+save 60 10000
+dbfilename dump.rdb
+dir /data/redis_6379/
+requirepass 123456
+appendonly yes
+appendfilename &quot;appendonly.aof&quot;
+appendfsync everysec
+</code></pre>
+<h3 id="创建redis用户和数据目录">创建redis用户和数据目录</h3>
+<pre><code class="language-bash">[root@master ~]# useradd -r -s /sbin/nologin redis
+[root@master ~]# chown -R redis:redis /data/redis*
+[root@master ~]# chown -R redis:redis /opt/redis*
+</code></pre>
+<h3 id="编辑redis服务启动文件">编辑redis服务启动文件</h3>
+<pre><code class="language-bash">cat  &gt;/usr/lib/systemd/system/redis.service &lt;&lt;EOF
+[Unit]
+Description=Redis persistent key-value database
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/redis-server /opt/redis_6379/conf/redis_6379.conf --supervised systemd
+ExecStop=/usr/bin/pkill redis.service
+Type=notify
+User=redis
+Group=redis
+LimitNOFILE=64000
+RuntimeDirectory=redis
+RuntimeDirectoryMode=0755
+
+[Install]
+WantedBy=multi-user.target
+EOF
+</code></pre>
+<h3 id="验证redis启动">验证redis启动</h3>
+<pre><code class="language-bash">[root@master ~]# systemctl daemon-reload
+[root@master ~]# systemctl start redis
+[root@master ~]# systemctl status redis
+● redis.service - Redis persistent key-value database
+   Loaded: loaded (/usr/lib/systemd/system/redis.service; disabled; vendor preset: disabled)
+   Active: active (running) since Sat 2024-03-16 14:22:37 CST; 10s ago
+ Main PID: 5992 (redis-server)
+   CGroup: /system.slice/redis.service
+           └─5992 /usr/local/bin/redis-server 127.0.0.1:6379
+
+Mar 16 14:22:37 master systemd[1]: Starting Redis persistent key-value database...
+Mar 16 14:22:37 master systemd[1]: Started Redis persistent key-value database.
+[root@master ~]# netstat -lnpt|grep redis
+tcp        0      0 127.0.0.1:6379          0.0.0.0:*               LISTEN      5962/redis-server 1 
+[root@master ~]# ps -ef|grep redis
+</code></pre>
+<pre><code class="language-bash">[root@master ~]# redis-cli
+127.0.0.1:6379&gt; auth 123456
+OK
+127.0.0.1:6379&gt; info
+# Server
+redis_version:5.0.7
+redis_git_sha1:00000000
+redis_git_dirty:0
+redis_build_id:9a5a8011e308a301
+redis_mode:standalone
+os:Linux 3.10.0-1160.el7.x86_64 x86_64
+arch_bits:64
+multiplexing_api:epoll
+atomicvar_api:atomic-builtin
+gcc_version:4.8.5
+process_id:6425
+run_id:a4c94be67c5ecc1ab436609bdf42ad93348dbd30
+tcp_port:6379
+uptime_in_seconds:1552
+uptime_in_days:0
+hz:10
+configured_hz:10
+lru_clock:14517897
+executable:/data/redis/bin/redis-server
+config_file:/data/redis/etc/redis.conf
+
+# Clients
+connected_clients:2
+client_recent_max_input_buffer:2
+client_recent_max_output_buffer:0
+blocked_clients:0
+
+# Memory
+used_memory:596728
+used_memory_human:582.74K
+used_memory_rss:4288512
+used_memory_rss_human:4.09M
+used_memory_peak:596728
+used_memory_peak_human:582.74K
+used_memory_peak_perc:100.18%
+used_memory_overhead:579544
+used_memory_startup:512928
+used_memory_dataset:17184
+used_memory_dataset_perc:20.51%
+allocator_allocated:1174816
+allocator_active:1552384
+allocator_resident:13066240
+total_system_memory:1907716096
+total_system_memory_human:1.78G
+used_memory_lua:37888
+used_memory_lua_human:37.00K
+used_memory_scripts:0
+used_memory_scripts_human:0B
+number_of_cached_scripts:0
+maxmemory:0
+maxmemory_human:0B
+maxmemory_policy:noeviction
+allocator_frag_ratio:1.32
+allocator_frag_bytes:377568
+allocator_rss_ratio:8.42
+allocator_rss_bytes:11513856
+rss_overhead_ratio:0.33
+rss_overhead_bytes:-8777728
+mem_fragmentation_ratio:7.73
+mem_fragmentation_bytes:3733784
+mem_not_counted_for_evict:0
+mem_replication_backlog:0
+mem_clients_slaves:0
+mem_clients_normal:66616
+mem_aof_buffer:0
+mem_allocator:jemalloc-5.1.0
+active_defrag_running:0
+lazyfree_pending_objects:0
+
+# Persistence
+loading:0
+rdb_changes_since_last_save:0
+rdb_bgsave_in_progress:0
+rdb_last_save_time:1709015162
+rdb_last_bgsave_status:ok
+rdb_last_bgsave_time_sec:-1
+rdb_current_bgsave_time_sec:-1
+rdb_last_cow_size:0
+aof_enabled:0
+aof_rewrite_in_progress:0
+aof_rewrite_scheduled:0
+aof_last_rewrite_time_sec:-1
+aof_current_rewrite_time_sec:-1
+aof_last_bgrewrite_status:ok
+aof_last_write_status:ok
+aof_last_cow_size:0
+
+# Stats
+total_connections_received:2
+total_commands_processed:4
+instantaneous_ops_per_sec:0
+total_net_input_bytes:76
+total_net_output_bytes:26224
+instantaneous_input_kbps:0.01
+instantaneous_output_kbps:6.93
+rejected_connections:0
+sync_full:0
+sync_partial_ok:0
+sync_partial_err:0
+expired_keys:0
+expired_stale_perc:0.00
+expired_time_cap_reached_count:0
+evicted_keys:0
+keyspace_hits:0
+keyspace_misses:0
+pubsub_channels:0
+pubsub_patterns:0
+latest_fork_usec:0
+migrate_cached_sockets:0
+slave_expires_tracked_keys:0
+active_defrag_hits:0
+active_defrag_misses:0
+active_defrag_key_hits:0
+active_defrag_key_misses:0
+
+# Replication
+role:master
+connected_slaves:0
+master_replid:acdf2476fd031c1db2d167563038f199454bf6cc
+master_replid2:0000000000000000000000000000000000000000
+master_repl_offset:0
+second_repl_offset:-1
+repl_backlog_active:0
+repl_backlog_size:1048576
+repl_backlog_first_byte_offset:0
+repl_backlog_histlen:0
+
+# CPU
+used_cpu_sys:0.203437
+used_cpu_user:2.773323
+used_cpu_sys_children:0.000000
+used_cpu_user_children:0.000000
+
+# Cluster
+cluster_enabled:0
+
+# Keyspace
+</code></pre>
+<h2 id="连接到redis各种方式">连接到redis各种方式</h2>
+<h3 id="本机非密码连接">本机非密码连接</h3>
+<pre><code class="language-bash"># redis-cli
+</code></pre>
+<h3 id="跨主机非密码连接">跨主机非密码连接</h3>
+<pre><code class="language-bash"># redis-cli -h HOSTNAME/IP -p PORT
+</code></pre>
+<h3 id="跨主机密码连接">跨主机密码连接</h3>
+<pre><code class="language-bash"># redis-cli -h HOSTNAME/IP -p PORT -a PASSWORD
+</code></pre>
+<h3 id="shell脚本写入数据到redis">shell脚本写入数据到redis</h3>
+<pre><code class="language-bash">[root@master ~]# cat redis-test.sh 
+#!/bin/bash
+NUM=10000
+PASS=123456
+for i in `seq $NUM`; do
+        redis-cli -h 127.0.0.1 -a &quot;$PASS&quot; --no-auth-warning set ${i} ${i}
+        echo &quot;${i} ${i} 写入完成&quot;
+done
+echo &quot;$NUM 个key写入到Redis完成&quot;
+</code></pre>
+<h2 id="redis配置文件详解">redis配置文件详解</h2>
+<h3 id="网络">网络</h3>
+<pre><code class="language-bash">bind 127.0.0.1 192.168.40.183
+#监听地址，可以用空格隔开后监听多个IP
+
+protected-mode yes
+#redis 3.2之后加入的新特性，在没有设置bind IP和密码的时候，redis只允许访问127.0.0.1:6379
+
+port 6379 
+#监听端口
+
+tcp-backlog 511    
+#TCP连接中已完成队列(三次握手之后)的长度，即全队列长度
+
+timeout 0                                
+#客户端和redis服务端的连接超时时间，默认是0，表示永不超时
+
+tcp-keepalive 300                        
+#tcp会话保持时间300s，建议设置成60秒
+</code></pre>
+<h3 id="基本配置">基本配置</h3>
+<pre><code class="language-bash">daemonize no        
+#默认redis-server在前台运行，如果想在后台运行，需要改成yes
+
+supervised no                          
+#和OS相关参数，可设置通过upstart和systemd管理redis守护进程，centos7后都使用systemd
+
+pidfile /data/redis/run/redis_6379.pid       
+#pid文件路径
+
+loglevel notice                        
+#日志级别
+
+logfile &quot;/data/redis/logs/redis.log&quot;
+#日志路径
+
+databases 16                    
+#设置数据库数量，默认：0-15，共16个库
+
+always-show-logo yes              
+#在启动redis时是否显示redis的logo
+</code></pre>
+<h3 id="rdb数据持久化">RDB数据持久化</h3>
+<pre><code class="language-bash">save 900 1                               
+save 300 10
+save 60 10000 
+#保存数据到磁盘
+#900秒内如果有1个键发生变化(新增、修改或删除)
+#300秒内如果有10个键发生变化(新增、修改或删除)
+#60秒内如果有10000个键发生变化(新增、修改或删除)
+
+stop-writes-on-bgsave-error yes  
+#因空间满等原因快照无法保存出错时，禁止redis写入操作，建议为no
+
+rdbcompression yes               
+#持久化到RDB文件时，是否压缩，yes为压缩，no则反之
+
+rdbchecksum yes               
+#是否对备份文件开启RC64校验，默认是开启
+
+dbfilename redis.rdb            
+#快照文件名
+
+dir /data/redis/data                 
+#快照文件保存路径，如/data/redis/data
+</code></pre>
+<h3 id="主从复制">主从复制</h3>
+<pre><code class="language-bash">#replicaof &lt;masterip&gt; &lt;masterport&gt;     
+#指定复制的master主机地址和端口，5.0版之前的指令为slaveof
+
+#masterauth &lt;master-password&gt;     
+#指定复制的master主机的密码
+
+replica-serve-stale-data yes     
+#当从库同主库失去连接或者复制正在进行，从库有两种运行方式：
+1）#默认为yes，从库会继续响应客户端的读请求，此为建议值
+2）#设置为no，除去指定命令之外的任何请求都会返回一个错误&quot;SYNC with master in progress&quot;
+
+replica-read-only yes           
+#是否设置从库只读，建议值为yes，否则主库同步从库时可能会覆盖数据，造成数据丢失
+
+repl-diskless-sync no               
+#同步策略，磁盘或socket，默认磁盘方式
+#有两种方式把RDB文件传输给客户端：
+1）#基于硬盘：master创建一个新进程dump生成RDB磁盘文件，RDB完成之后由主进程将RDB文件发送给slaves，此为推荐值
+2）#基于socket(diskless)：master创建一个新进程直接dump RDB至slave的网络socket，不经过主进程和硬盘
+#当磁盘I/O较慢且网络较快时，可用diskless(yes)，否则使用磁盘(no)
+
+repl-diskless-sync-delay 5 
+#同步延迟时间
+#如果非磁盘同步方式开启，可以配置同步延迟时间，以等待master产生子进程通过socket传输RDB数据给slave
+#默认值为5秒，设置为0秒则每次传输无延迟
+#一旦复制开始，master节点不会再接收新slave的复制请求，直到下一次同步开始才再接收新请求
+
+#repl-ping-replica-period 10     
+#slave根据master指定的时间周期性的PING master，监测master状态
+
+#repl-timeout 60   
+#复制连接的超时时间，需要大于repl-ping-replica-period，否则会经常报超时
+
+repl-disable-tcp-nodelay no           
+#是否在slave套接字发送SYNC之后禁用TCP_NODELAY
+#如果选择yes，redis将使用更少的TCP包和带宽向slaves发送数据，但这将使数据传输到slave上有延迟
+#如果选择no，数据传输到salve的延迟将会减少但要使用更多的带宽
+
+# repl-backlog-size 1mb
+#复制缓冲区内存大小
+#当slave断开连接一段时间后，该缓冲区会累积复制副本数据，因此当slave重新连接时，通常不需要完全重新同步
+#只需传递在断开连接后没有同步的部分数据即可，只有在至少有一个slave连接之后才分配此内存空间
+
+# repl-backlog-ttl 3600
+#多少秒内master没有slave连接，就清空backlog缓冲区
+
+replica-priority 100
+#当master不可用，sentinel会根据slave的优先级选举一个master
+#此值最低的slave会当选master，配置为0永远不会被选举，一般多个slave都设一样的值，让其自动选择
+
+# min-replicas-to-write 3
+# min-replicas-max-lag 10
+#至少3个slave的延时不能超过10秒，否则master也将停止写操作
+</code></pre>
+<h3 id="安全">安全</h3>
+<pre><code class="language-bash"># requirepass foobared
+#设置redis连接密码，如果有特殊符号，用&quot; &quot;引起来
+
+# rename-command CONFIG &quot;&quot;
+#重命名一些高危命令，示例rename-command FLUSHALL &quot;&quot;禁用命令
+</code></pre>
+<h3 id="客户端连接数">客户端连接数</h3>
+<pre><code class="language-bash"># maxclients 10000
+#redis最大连接客户端
+</code></pre>
+<h3 id="内存管理">内存管理</h3>
+<pre><code class="language-bash"># maxmemory &lt;bytes&gt;
+#redis使用的最大内存，单位为bytes字节，0为不限制，建议设为物理内存一半
+#8G内存的计算方式8(G)*1024(MB)*1024(KB)*1024(Kbyte)
+#需要注意的是缓冲区是不计算在maxmemory内
+</code></pre>
+<h3 id="aof数据持久化">AOF数据持久化</h3>
+<pre><code class="language-bash">appendonly no
+#是否开启AOF日志记录，默认redis使用的是rdb方式持久化，但是redis如果中途宕机，会导致可能有几分钟的数据丢失
+#AOF是另一种持久化方式，可以提供更好的持久化特性，Redis会把每次写入的数据在接收后都写入appendonly.aof文件
+#每次启动时Redis都会先把这个文件的数据读入内存里，先忽略RDB文件(面试常问)
+
+appendfilename &quot;appendonly.aof&quot;
+#AOF文件名，是文本文件，存放在dir指令指定的目录中
+
+appendfsync everysec
+#aof持久化策略的配置
+#fsync()系统调用告诉操作系统把数据写到磁盘上，而不是等更多的数据进入缓冲区
+#no表示不执行fsync，由操作系统保证数据同步到磁盘，速度最快
+#always表示每次写入都执行fsync，以保证数据同步到磁盘，慢，但是最安全
+#everysec表示每秒执行一次fsync，可能会导致丢失这1s数据
+
+no-appendfsync-on-rewrite no
+#重写时是否可以运用appendfsync，用默认no即可，保证数据安全性
+
+auto-aof-rewrite-percentage 100
+#自动重写AOF文件，如果AOF日志文件增大到指定百分比，redis能够通过BGREWRITEAOF自动重写AOF日志文件
+#当前AOF文件大小超过上次重写后AOF文件大小的百分比(默认2倍)
+#如果启动后没有发生过重写，则使用启动时的AOF文件大小作为基准
+
+auto-aof-rewrite-min-size 64mb
+#文件达到大小阈值的时候进行重写
+
+aof-load-truncated yes
+#是否加载由于其它原因导致的末尾异常的AOF文件(主进程被kill/断电等)，建议yes
+
+aof-use-rdb-preamble yes
+#redis4.0新增RDB-AOF混合持久化格式，AOF重写产生的文件将同时包含RDB格式的内容和AOF格式的内容
+#RDB格式的内容用于记录已有的数据，而AOF格式的内容则用于记录最近发生了变化的数据
+#redis就可以同时兼有RDB持久化和AOF持久化的优点，既可以快速的生成重写文件，也能够在出现问题时快速载入数据
+</code></pre>
+<h3 id="lua脚本配置">lua脚本配置</h3>
+<pre><code class="language-bash">lua-time-limit 5000 
+#lua脚本的最大执行时间，单位为毫秒
+</code></pre>
+<h3 id="集群">集群</h3>
+<pre><code class="language-bash"># cluster-enabled yes
+#是否开启集群模式，默认是单机模式
+
+# cluster-config-file nodes-6379.conf
+#由node节点自动生成的集群配置文件名，确保同一系统中运行的各redis实例配置文件不用重名
+
+# cluster-node-timeout 15000
+#集群中node节点连接超时毫秒数，超过此时间，会踢出集群
+
+# cluster-replica-validity-factor 10
+#在执行故障转移的时候可能有些节点和master断开一段时间数据比较旧，这些节点不适用于选举为master节点
+#超过这个时间的就不会被进行故障转移
+
+# cluster-migration-barrier 1
+#集群迁移屏障，一个主节点至少拥有一个正常工作的从节点，不会出现裸奔的主节点
+#如果主节点的salve节点故障后会将多余的从节点分配到当前主节点成为新的从节点
+#防止当孤立master节点宕机时，没有slave节点可以升为 master 导致集群不可用
+
+# cluster-require-full-coverage yes
+#默认情况下如果redis集群如果检测到至少有1个hash槽位不可用，集群将停止查询数据
+#如果所有slot恢复则集群自动恢复
+
+# cluster-replica-no-failover no
+#用于控制master发生故障时是否自动进行故障转移
+#如果为yes，master发生故障时不会自动进行故障转移，一般为no
+</code></pre>
+<h3 id="慢日志">慢日志</h3>
+<pre><code class="language-bash">slowlog-log-slower-than 10000
+#以微秒为单位的慢日志记录，为负数会禁用慢日志，为0会记录每个命令操作
+slowlog-max-len 128
+#最多记录多少条慢日志的保存队列长度
+#达到此长度后，记录新命令会将最旧的命令从命令队列中删除，以此滚动删除
+</code></pre>
+<h2 id="redis持久化">redis持久化</h2>
+<p><code>redis</code>虽然是一个内存级别的缓存数据库，但是其可以将内存的数据按照一定的策略保存到硬盘上，从而实现数据持久保存的目的，目前<code>redis</code>支持两种不同方式的数据持久化保存机制，分别是<code>RDB</code>和<code>AOF</code>。</p>
+<h3 id="rdb模式">RDB模式</h3>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1709107848200.png" alt="" loading="lazy"></figure>
+<p><code>RDB(Redis DataBase)</code>：基于时间点的快照，其默认只保留当前最新的一次快照，特点是执行速度比较快，缺点是可能会丢失从上次快照到当前时间点之间未做快照的数据。</p>
+<p><code>RDB</code>实现的具体过程：<code>Redis</code>从<code>master</code>主进程先<code>fork</code>出一个子进程，首先子进程将内存的数据保存为一个临时文件，比如<code>dump.rdb.temp</code>，当数据保存完成之后再将上一次保存的<code>RDB</code>文件替换掉，然后关闭子进程，这样可以保存每一次做<code>RDB</code>快照的时候数据都是完整的，因为直接替换<code>RDB</code>文件可能会出现突然断电等问题而导致数据丢失的情况，可以手动将每次生成的<code>RDB</code>文件进行备份，这样可以最大化保存历史数据。<br>
+<img src="https://ajie825.github.io/post-images/1709177049065.png" alt="" loading="lazy"></p>
+<p><code>RDB</code>模式的优缺点：</p>
+<p>优点：<code>RDB</code>快照保存了某个时间点的数据，可以通过脚本执行<code>bgsave</code>(非阻塞，后台执行)或者<code>save</code>(阻塞，不推荐)命令自定义时间点备份，可以保留多个备份，当出现问题可以恢复到不同时间点的版本。</p>
+<p>可以最大化<code>IO</code>的性能，在生成<code>RDB</code>文件的时候，主进程会<code>fork</code>一个子进程来处理所有保存工作，主进程不需要进行任何磁盘<code>IO</code>操作，<code>RDB</code>在恢复大数据集时的速度比<code>AOF</code>的恢复速度要快。</p>
+<p>缺点：不能实时保存数据，会丢失自上一次执行<code>RDB</code>备份到当前的内存数据，数据量非常大的时候，从父进程<code>fork</code>子进程时需要一点时间，可能是毫秒或者秒或者分钟，取决于磁盘<code>IO</code>性能。</p>
+<h3 id="aof模式">AOF模式</h3>
+<figure data-type="image" tabindex="2"><img src="https://ajie825.github.io/post-images/1709189811470.png" alt="" loading="lazy"></figure>
+<p><code>AOF</code>：<code>AppendOnlyFile</code>，它将<code>redis</code>的写操作以日志的形式追加到指定的文件末尾。</p>
+<p><code>AOF</code>默认为每秒钟<code>fsync</code>一次，即每秒将执行的命令保存到<code>AOF</code>文件当中，这样即使服务器发生故障最多只丢失1秒钟之内的数据，也可以设置不同的策略，<code>fsync</code>会在后台执行线程，所以主线程可以继续处理用户的正常请求而不受写入<code>AOF</code>文件的<code>IO</code>影响。</p>
+<p><code>AOF</code>模式优缺点：</p>
+<p>优点：</p>
+<ul>
+<li>可以保证数据的完整性，即使发生系统崩溃或者断电，也可以通过<code>AOF</code>文件恢复数据。</li>
+<li>由于对日志文件的写入操作采用的是<code>append</code>模式，因此在写入过程中即使出现宕机现象，也不会破坏日志文件中已存在的内容，如果本次操作只是写入了一半数据就出现了系统崩溃问题，在下次启动之前，可以通过<code>redis-check-aof</code>工具来帮助解决数据一致性的问题。</li>
+<li>如果日志过大，可以自动启用<code>rewrite</code>机制，它可以压缩和优化<code>AOF</code>文件的内容，减少冗余和无效的命令，提高数据存储效率和恢复速度。</li>
+<li>可以方便的查看和修改<code>AOF</code>文件，因为它是一个纯文本文件，记录了所有的写入命令。</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li>重复的写操作也会全部记录，<code>AOF</code>文件会变得越来越大，占用更多的磁盘空间和网络带宽。</li>
+<li><code>AOF</code>在恢复大数据集时的速度比<code>RDB</code>的恢复速度要慢。</li>
+</ul>
+<h3 id="aof重写机制的原理">AOF重写机制的原理</h3>
+<ul>
+<li>根据进程内的数据生成一个新的<code>AOF</code>文件，只包含当前有效和存在的数据的写入命令，而不是历史上所有的写入命令。</li>
+<li>通过<code>fork</code>出一个子进程来完成，子进程会扫描数据库，并将每个键值对转换为相应的写入命令，然后写入到一个临时文件中。</li>
+<li>在子进程进行<code>AOF</code>重写的过程中，主进程还会继续接收和处理客户端的请求，如果有新的写操作，主进程会将这些写操作追加到一个缓冲区中，并通过管道通知子进程。</li>
+<li>子进程在完成<code>AOF</code>重写后，会将缓冲区中的写操作也追加到临时文件中，然后向主进程发送信号，通知主进程可以切换到新的<code>AOF</code>文件了。</li>
+<li>主进程在收到子进程的信号后，会将缓冲区中的写操作再次追加到临时文件中(以防止在此期间有新的写操作发送)，然后用临时文件覆盖旧的<code>AOF</code>文件，并关闭子进程。</li>
+</ul>
+<h2 id="redis数据类型详解">redis数据类型详解</h2>
+<h3 id="全局命令">全局命令</h3>
+<p>全局命令是指对所有数据类型都通用的命令，<code>redis</code>有5种数据结构，它们是键值对中的值，对于键来说有一些通用的命令。</p>
+<p>查看所有的键</p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; keys *  #十分危险的命令，线上禁止使用
+</code></pre>
+<p>查看键的总数</p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; DBSIZE
+#dbsize命令在计算键总数时不会遍历所有键，而是直接获取redis内置的键总数变量
+</code></pre>
+<p>检查键是否存在</p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; EXISTS key  #0表示这个key不存在，1表示这个key存在
+</code></pre>
+<p>删除键</p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; DEL key [key ...]   #0表示这个key不存在，1表示这个key存在，并且删除成功
+</code></pre>
+<p>键的数据类型</p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; TYPE key
+</code></pre>
+<p>键过期</p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; EXPIRE key seconds
+#redis支持对键添加过期时间，当超过过期时间后，会自动删除键
+#通过ttl命令观察键的剩余时间
+</code></pre>
+<h3 id="字符串string">字符串string</h3>
+<p>字符串是所有编程语言中最常用的数据类型，也是<code>redis</code>最基本的数据类型之一，常用于保存<code>session</code>信息场景，此数据类型比较常用。</p>
+<p>添加一个<code>key</code></p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; set key1 value1
+OK
+127.0.0.1:6379&gt; type key1
+string
+127.0.0.1:6379&gt; set NAME wang
+OK
+127.0.0.1:6379&gt; set name zhao      #大小写敏感
+OK
+</code></pre>
+<p>查看一个<code>key</code></p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; get key1
+&quot;value1&quot;
+127.0.0.1:6379&gt; get NAME
+&quot;wang&quot;
+127.0.0.1:6379&gt; get name
+&quot;zhao&quot;
+</code></pre>
+<p>删除一个<code>key</code></p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; DEL key1
+(integer) 1
+</code></pre>
+<p>批量设置多个<code>key</code></p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; MSET key1 value1 key2 value2
+OK
+</code></pre>
+<p>批量获取多个<code>key</code></p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; mget key1 key2 NAME name title1
+1) &quot;value1&quot;
+2) &quot;value2&quot;
+3) &quot;wang&quot;
+4) &quot;zhao&quot;
+5) (nil)
+127.0.0.1:6379&gt; KEYS k*
+1) &quot;key1&quot;
+2) &quot;key2&quot;
+</code></pre>
+<p>批量删除多个<code>key</code></p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; del NAME name
+(integer) 2
+</code></pre>
+<p><code>key</code>值追加数据</p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; get key1
+&quot;value1&quot;
+127.0.0.1:6379&gt; APPEND key1 &quot; append&quot;
+(integer) 13
+127.0.0.1:6379&gt; get key1
+&quot;value1 append&quot;
+</code></pre>
+<p>天然计数器</p>
+<pre><code class="language-bash">#数值递增
+127.0.0.1:6379&gt; set num 10      #设置初始值
+OK
+127.0.0.1:6379&gt; INCR num        #INCR命令将字符串值解析成整型，将其加1，最后结果保存为新的字符串
+(integer) 11
+127.0.0.1:6379&gt; get num
+&quot;11&quot;
+127.0.0.1:6379&gt; INCRBY num 3
+(integer) 14
+127.0.0.1:6379&gt; get num
+&quot;14&quot;
+</code></pre>
+<pre><code class="language-bash">#数值递减
+127.0.0.1:6379&gt; get num
+&quot;14&quot;
+127.0.0.1:6379&gt; DECR num
+(integer) 13
+127.0.0.1:6379&gt; get num
+&quot;13&quot;
+127.0.0.1:6379&gt; DECRBY num 4
+(integer) 9
+127.0.0.1:6379&gt; get num
+&quot;9&quot;
+</code></pre>
+<p>返回字符串<code>key</code>的长度</p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; get key1
+&quot;value1 append&quot;
+127.0.0.1:6379&gt; STRLEN key1
+(integer) 13
+</code></pre>
+<p>判断<code>key</code>是否存在</p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; EXISTS key1
+(integer) 1
+127.0.0.1:6379&gt; EXISTS key2
+(integer) 1
+127.0.0.1:6379&gt; EXISTS name
+(integer) 0
+</code></pre>
+<p>查看<code>key</code>的过期时间</p>
+<pre><code class="language-bash">ttl #查看key的剩余生存时间
+-1  #为永不过期，默认创建的key是永不过期，重新对key赋值，也会从剩余生命周期变成永不过期
+-2  #为没有此key
+num #key的剩余有效期
+127.0.0.1:6379&gt; get key1
+&quot;value1 append&quot;
+127.0.0.1:6379&gt; TTL key1
+(integer) -1
+127.0.0.1:6379&gt; set NAME wang ex 50
+OK
+127.0.0.1:6379&gt; TTL NAME
+(integer) 43
+127.0.0.1:6379&gt; TTL NAME
+(integer) 3
+127.0.0.1:6379&gt; TTL NAME
+(integer) -2
+</code></pre>
+<p>重新设置<code>key</code>的过期时间</p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; set NAME wang ex 30
+OK
+127.0.0.1:6379&gt; ttl NAME
+(integer) 21
+127.0.0.1:6379&gt; EXPIRE NAME 50
+(integer) 1
+127.0.0.1:6379&gt; ttl NAME
+(integer) 44
+</code></pre>
+<p>取消<code>key</code>的过期时间</p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; ttl NAME
+(integer) 44
+127.0.0.1:6379&gt; PERSIST NAME
+(integer) 1
+127.0.0.1:6379&gt; ttl NAME
+(integer) -1
+</code></pre>
+<h3 id="列表list">列表list</h3>
+<p>列表是一个双向可读写的管道，其头部是左侧，尾部是右侧，一个列表最多可以包含2^32-1个元素，下标0表示列表的第一个元素，1表示列表的第二个元素，以此类推，也可以使用负数下标，以-1表示列表的最后一个元素，元素值可以重复，常用于存入日志等场景，此数据类型比较常用。</p>
+<p>生成列表并插入数据</p>
+<pre><code class="language-bash">#从左边添加数据，已添加的需向后移
+#LPUSH命令可向list的左边(头部)添加一个新元素
+#RPUSH命令可向list的右边(尾部)添加一个新元素
+127.0.0.1:6379&gt; LPUSH list1 jack tom john #根据顺序逐个写入list1，最后的john会在列表的最左侧
+(integer) 3
+127.0.0.1:6379&gt; TYPE list1          #键list1是列表类型
+list
+</code></pre>
+<p>向列表追加数据</p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; LPUSH list1 paul
+(integer) 4
+127.0.0.1:6379&gt; RPUSH list1 Wade   #从右边添加数据，已添加的向左移
+(integer) 5
+</code></pre>
+<p>获取列表长度</p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; LLEN list1
+(integer) 5
+</code></pre>
+<p>获取列表指定数据</p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; LINDEX list1 0      #获取索引为0的元素
+&quot;paul&quot;
+127.0.0.1:6379&gt; LINDEX list1 3
+&quot;jack&quot;
+127.0.0.1:6379&gt; LRANGE list1 0 -1   #获取所有数据
+1) &quot;paul&quot;
+2) &quot;john&quot;
+3) &quot;tom&quot;
+4) &quot;jack&quot;
+5) &quot;Wade&quot;
+127.0.0.1:6379&gt; LRANGE list1 1 3    #获取索引1-3的元素
+1) &quot;john&quot;
+2) &quot;tom&quot;
+3) &quot;jack&quot;
+</code></pre>
+<p>移除列表数据</p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; LRANGE list1 0 -1
+1) &quot;paul&quot;
+2) &quot;john&quot;
+3) &quot;tom&quot;
+4) &quot;jack&quot;
+5) &quot;Wade&quot;
+127.0.0.1:6379&gt; LPOP list1                  #弹出左边元素，即删除第一个
+&quot;paul&quot;
+127.0.0.1:6379&gt; LRANGE list1 0 -1
+1) &quot;john&quot;
+2) &quot;tom&quot;
+3) &quot;jack&quot;
+4) &quot;Wade&quot;
+127.0.0.1:6379&gt; rpop list1                 #弹出右边元素，即删除最后一个
+&quot;Wade&quot;
+127.0.0.1:6379&gt; LRANGE list1 0 -1
+1) &quot;john&quot;
+2) &quot;tom&quot;
+3) &quot;jack&quot;
+#ltrim：对列表进行修剪，让列表只保留指定区间内的元素，不在指定区间内的元素都将被删除
+127.0.0.1:6379&gt; LPUSH list2 a b c d e
+(integer) 5
+127.0.0.1:6379&gt; LRANGE list2 0 -1
+1) &quot;e&quot;
+2) &quot;d&quot;
+3) &quot;c&quot;
+4) &quot;b&quot;
+5) &quot;a&quot;
+127.0.0.1:6379&gt; LTRIM list2 2 4
+OK
+127.0.0.1:6379&gt; LRANGE list2 0 -1
+1) &quot;c&quot;
+2) &quot;b&quot;
+3) &quot;a&quot;
+</code></pre>
+<p>删除列表</p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; del list2
+(integer) 1
+</code></pre>
+<h3 id="集合set">集合set</h3>
+<p><code>set</code>是字符串的无序排列，集合中的成员是唯一的，这就意味着集合中不能出现重复的数据，可以在两个不同的集合中对数据进行对比并取值，常用于取值判断、统计、交集等场景。</p>
+<p>生成集合<code>key</code></p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; SADD set1 v1
+(integer) 1
+127.0.0.1:6379&gt; SADD set2 v2 v4
+(integer) 2
+127.0.0.1:6379&gt; TYPE set1
+set
+127.0.0.1:6379&gt; TYPE set2
+set
+</code></pre>
+<p>追加数值</p>
+<pre><code class="language-bash">#追加时，只能追加不存在的数据，不能追加已经存在的数值
+127.0.0.1:6379&gt; sadd set1 v2 v3 v5
+(integer) 3
+127.0.0.1:6379&gt; SADD set1 v2        #0表示追加数据失败
+(integer) 0
+</code></pre>
+<p>查看集合的所有数据</p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; SMEMBERS set1
+1) &quot;v5&quot;
+2) &quot;v3&quot;
+3) &quot;v2&quot;
+4) &quot;v1&quot;
+127.0.0.1:6379&gt; SMEMBERS set2
+1) &quot;v2&quot;
+2) &quot;v4&quot;
+</code></pre>
+<p>获取集合的交集</p>
+<pre><code class="language-bash">#交集：既属于A且属于B的元素
+127.0.0.1:6379&gt; SINTER set1 set2
+1) &quot;v2&quot;
+</code></pre>
+<p>获取集合的并集</p>
+<pre><code class="language-bash">#并集：属于A或者属于B的元素
+127.0.0.1:6379&gt; SUNION set1 set2
+1) &quot;v1&quot;
+2) &quot;v3&quot;
+3) &quot;v4&quot;
+4) &quot;v2&quot;
+5) &quot;v5&quot;
+</code></pre>
+<p>获取集合的差集</p>
+<pre><code class="language-bash">#差集：已属于A而不属于B的元素
+127.0.0.1:6379&gt; SDIFF set1 set2
+1) &quot;v5&quot;
+2) &quot;v3&quot;
+3) &quot;v1&quot;
+127.0.0.1:6379&gt; SDIFF set2 set1
+1) &quot;v4&quot;
+</code></pre>
+<p>删除指定的值</p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; SMEMBERS set1
+1) &quot;v3&quot;
+2) &quot;v2&quot;
+3) &quot;v5&quot;
+4) &quot;v1&quot;
+127.0.0.1:6379&gt; SREM set1 v5
+(integer) 1
+127.0.0.1:6379&gt; SMEMBERS set1
+1) &quot;v3&quot;
+2) &quot;v2&quot;
+3) &quot;v1&quot;
+</code></pre>
+<h3 id="有序集合zset">有序集合zset</h3>
+<p>有序集合和集合一样也是字符串的无序排列，且不允许重复的数据，不同的是每个元素都会关联一个双精度浮点型的分数，<code>redis</code>正是通过该分数为集合中的成员进行从小到大的排序，有序集合的成员是唯一的，但分数却可以重复，集合是通过哈希表实现的，经常用于排行榜的场景。</p>
+<p>添加成员</p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; ZADD paihangbang 90 nezha 199 zhanlang 60 zhuluoji 30 gangtiexia
+(integer) 4
+#分数可重复，元素值不可以重复
+127.0.0.1:6379&gt; type paihangbang
+zset
+</code></pre>
+<p>计算成员个数</p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; ZCARD paihangbang
+(integer) 4
+</code></pre>
+<p>升序排序后显示集合内所有的<code>key</code></p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; ZRANGE paihangbang 0 -1
+1) &quot;gangtiexia&quot;
+2) &quot;zhuluoji&quot;
+3) &quot;nezha&quot;
+4) &quot;zhanlang&quot;
+#升序排序后显示集合内所有key和得分
+127.0.0.1:6379&gt; ZRANGE paihangbang 0 -1 WITHSCORES
+1) &quot;gangtiexia&quot;
+2) &quot;30&quot;
+3) &quot;zhuluoji&quot;
+4) &quot;60&quot;
+5) &quot;nezha&quot;
+6) &quot;90&quot;
+7) &quot;zhanlang&quot;
+8) &quot;199&quot;
+#按照升序查看成员名次
+127.0.0.1:6379&gt; ZRANK paihangbang gangtiexia
+(integer) 0
+127.0.0.1:6379&gt; ZRANK paihangbang nezha
+(integer) 2
+</code></pre>
+<p>降序排序后显示集合内所有的<code>key</code></p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; ZREVRANGE paihangbang 0 -1
+1) &quot;zhanlang&quot;
+2) &quot;nezha&quot;
+3) &quot;zhuluoji&quot;
+4) &quot;gangtiexia&quot;
+#降序排序后显示集合内所有key和得分
+127.0.0.1:6379&gt; ZREVRANGE paihangbang 0 -1 WITHSCORES
+1) &quot;zhanlang&quot;
+2) &quot;199&quot;
+3) &quot;nezha&quot;
+4) &quot;90&quot;
+5) &quot;zhuluoji&quot;
+6) &quot;60&quot;
+7) &quot;gangtiexia&quot;
+8) &quot;30&quot;
+#按照降序查看成员名次
+127.0.0.1:6379&gt; ZREVRANk paihangbang nezha
+(integer) 1
+127.0.0.1:6379&gt; ZREVRANk paihangbang gangtiexia
+(integer) 3
+</code></pre>
+<p>计算某个成员分数</p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; ZSCORE paihangbang zhuluoji
+&quot;60&quot;
+</code></pre>
+<p>增加成员分数</p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; ZINCRBY paihangbang 100 gangtiexia
+&quot;130&quot;
+127.0.0.1:6379&gt; ZSCORE paihangbang gangtiexia
+&quot;130&quot;
+127.0.0.1:6379&gt; ZRANGE paihangbang 0 -1 WITHSCORES
+1) &quot;zhuluoji&quot;
+2) &quot;60&quot;
+3) &quot;nezha&quot;
+4) &quot;90&quot;
+5) &quot;gangtiexia&quot;
+6) &quot;130&quot;
+7) &quot;zhanlang&quot;
+8) &quot;199&quot;
+</code></pre>
+<p>返回指定排名范围的成员</p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; ZRANGE paihangbang 1 3
+1) &quot;nezha&quot;
+2) &quot;gangtiexia&quot;
+3) &quot;zhanlang&quot;
+127.0.0.1:6379&gt; ZRANGE paihangbang 1 3 WITHSCORES
+1) &quot;nezha&quot;
+2) &quot;90&quot;
+3) &quot;gangtiexia&quot;
+4) &quot;130&quot;
+5) &quot;zhanlang&quot;
+6) &quot;199&quot;
+</code></pre>
+<p>返回指定分数范围的成员</p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; ZRANGEBYSCORE paihangbang 30 90
+1) &quot;zhuluoji&quot;
+2) &quot;nezha&quot;
+127.0.0.1:6379&gt; ZRANGEBYSCORE paihangbang 30 90 WITHSCORES
+1) &quot;zhuluoji&quot;
+2) &quot;60&quot;
+3) &quot;nezha&quot;
+4) &quot;90&quot;
+</code></pre>
+<p>返回指定分数范围的成员个数</p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; ZCOUNT paihangbang 30 120
+(integer) 2
+</code></pre>
+<p>删除成员</p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; ZREM paihangbang zhanlang
+(integer) 1
+127.0.0.1:6379&gt; ZRANGE paihangbang 0 -1 WITHSCORES
+1) &quot;zhuluoji&quot;
+2) &quot;60&quot;
+3) &quot;nezha&quot;
+4) &quot;90&quot;
+5) &quot;gangtiexia&quot;
+6) &quot;130&quot;
+</code></pre>
+<h3 id="哈希hash">哈希hash</h3>
+<p>哈希是字符串类型的<code>field</code>和<code>value</code>的映射表，类似于字典，存放了多个<code>k/v</code>键值对，哈希特别适合用于存储对象场景。</p>
+<p>创建<code>hash</code>数据</p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; HSET user:1 name bobo job IT age 28
+(integer) 3
+127.0.0.1:6379&gt; HSET user:2 name json job py age 29
+(integer) 3
+127.0.0.1:6379&gt; HSET user:3 name hao job bug age 19
+(integer) 3
+127.0.0.1:6379&gt; type user:1
+hash
+127.0.0.1:6379&gt; type user:2
+hash
+127.0.0.1:6379&gt; type user:3
+hash
+</code></pre>
+<p>查看<code>hash</code>里指定字段的值</p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; HGET user:1 name
+&quot;bobo&quot;
+127.0.0.1:6379&gt; HMGET user:1 name job age
+1) &quot;bobo&quot;
+2) &quot;IT&quot;
+3) &quot;28&quot;
+</code></pre>
+<p>查看<code>hash</code>里所有字段的值</p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; HGETALL user:1
+1) &quot;name&quot;
+2) &quot;bobo&quot;
+3) &quot;job&quot;
+4) &quot;IT&quot;
+5) &quot;age&quot;
+6) &quot;28&quot;
+</code></pre>
+<p>删除<code>hash</code>的字段</p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; HDEL user:1 age
+(integer) 1
+127.0.0.1:6379&gt; HGETALL user:1
+1) &quot;name&quot;
+2) &quot;bobo&quot;
+3) &quot;job&quot;
+4) &quot;IT&quot;
+</code></pre>
+<p>修改<code>hash</code>字段的值</p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; HSET user:1 name xingxing
+(integer) 0
+127.0.0.1:6379&gt; HGETALL user:1
+1) &quot;name&quot;
+2) &quot;xingxing&quot;
+3) &quot;job&quot;
+4) &quot;IT&quot;
+</code></pre>
+<h2 id="redis常用命令详解">redis常用命令详解</h2>
+<h3 id="config">config</h3>
+<p><code>config</code>命令用于查看当前<code>redis</code>配置、以及不重启<code>redis</code>服务更改<code>redis</code>配置等。</p>
+<p>注意：不是所有配置都可以动态修改</p>
+<pre><code class="language-bash">#更改最大内存
+127.0.0.1:6379&gt; CONFIG SET maxmemory 2147483648
+OK
+127.0.0.1:6379&gt; CONFIG GET maxmemory
+1) &quot;maxmemory&quot;
+2) &quot;2147483648&quot;
+</code></pre>
+<pre><code class="language-bash">#设置连接密码
+127.0.0.1:6379&gt; CONFIG SET requirepass 123qwe
+OK
+127.0.0.1:6379&gt; CONFIG GET requirepass
+1) &quot;requirepass&quot;
+2) &quot;123qwe&quot;
+</code></pre>
+<pre><code class="language-bash">#获取当前配置，奇数行为键，偶数行为值
+127.0.0.1:6379&gt; CONFIG GET *
+  1) &quot;dbfilename&quot;
+  2) &quot;dump.rdb&quot;
+  3) &quot;requirepass&quot;
+  4) &quot;123qwe&quot;
+  5) &quot;masterauth&quot;
+  6) &quot;&quot;
+  7) &quot;cluster-announce-ip&quot;
+  8) &quot;&quot;
+  9) &quot;unixsocket&quot;
+ 10) &quot;&quot;
+ 11) &quot;logfile&quot;
+ 12) &quot;/data/redis/logs/redis.log&quot;
+ 13) &quot;pidfile&quot;
+ 14) &quot;/data/redis/run/redis_6379.pid&quot;
+ 15) &quot;slave-announce-ip&quot;
+ 16) &quot;&quot;
+ 17) &quot;replica-announce-ip&quot;
+ 18) &quot;&quot;
+ 19) &quot;maxmemory&quot;
+ 20) &quot;2147483648&quot;
+ ……
+</code></pre>
+<h3 id="info">info</h3>
+<p>显示当前节点<code>redis</code>运行状态</p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; INFO
+# Server
+redis_version:5.0.7
+redis_git_sha1:00000000
+redis_git_dirty:0
+redis_build_id:9a5a8011e308a301
+redis_mode:standalone
+os:Linux 3.10.0-1160.el7.x86_64 x86_64
+arch_bits:64
+multiplexing_api:epoll
+atomicvar_api:atomic-builtin
+gcc_version:4.8.5
+process_id:35223
+run_id:9dd3e4c6673838ff7859a0daa9c3f25e78afd054
+tcp_port:6379
+uptime_in_seconds:78019
+uptime_in_days:0
+hz:10
+configured_hz:10
+lru_clock:15292908
+executable:/data/redis/bin/redis-server
+config_file:/data/redis/etc/redis.conf
+……
+</code></pre>
+<h3 id="select">select</h3>
+<p>切换数据库，等于<code>MySQL</code>的<code>use dbname</code>指令</p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; SELECT 0
+OK
+127.0.0.1:6379&gt; keys k*
+1) &quot;key1&quot;
+2) &quot;key2&quot;
+127.0.0.1:6379&gt; SELECT 15
+OK
+127.0.0.1:6379[15]&gt; SELECT 16
+(error) ERR DB index is out of range
+</code></pre>
+<h3 id="keys">keys</h3>
+<p>查看当前库下所有的<code>key</code>，此命令慎用！<br>
+<img src="https://ajie825.github.io/post-images/1709794008488.png" alt="" loading="lazy"></p>
+<h3 id="bgsave">bgsave</h3>
+<p>手动在后台执行<code>RDB</code>持久化操作</p>
+<pre><code class="language-bash">#交互式执行
+127.0.0.1:6379&gt; BGSAVE
+Background saving started
+[root@centos7 ~]# ll -h /data/redis/data/
+total 8.0K
+-rw-r--r-- 1 redis redis 1.3K Mar  7 00:45 appendonly.aof
+-rw-r--r-- 1 redis redis  169 Mar  7 01:39 dump.rdb
+#非交互式执行
+[root@centos7 ~]# redis-cli -a &quot;123qwe&quot; --no-auth-warning bgsave
+Background saving started
+</code></pre>
+<h3 id="dbsize">dbsize</h3>
+<p>返回当前库下所有<code>key</code>的数量</p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; DBSIZE
+(integer) 10
+127.0.0.1:6379&gt; SELECT 1
+OK
+127.0.0.1:6379[1]&gt; DBSIZE
+(integer) 0
+</code></pre>
+<h3 id="flushdb">flushdb</h3>
+<p>强制清空当前库中的所有<code>key</code></p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; DBSIZE
+(integer) 10
+127.0.0.1:6379&gt; FLUSHDB
+OK
+127.0.0.1:6379&gt; DBSIZE
+(integer) 0
+</code></pre>
+<h3 id="flushall">flushall</h3>
+<p>强制清空所有库中的<code>key</code>，即删除所有数据</p>
+<pre><code class="language-bash">127.0.0.1:6379&gt; FLUSHALL
+OK
+</code></pre>
+<h2 id="redis主从复制">redis主从复制</h2>
+<p>虽然<code>redis</code>可以实现单机的数据持久化，但无论是<code>RDB</code>还是<code>AOF</code>，都解决不了单点宕机问题，即一旦单台<code>redis</code>服务器本身出现系统故障、硬件故障等问题后，就会直接造成数据的丢失，因此需要使用另外的技术来解决单点问题。</p>
+<h3 id="slave主要配置">slave主要配置</h3>
+<p><code>slave</code>也要开启持久化并设置和<code>master</code>同样的密码，因为后期<code>slave</code>会有可能提升为<code>master</code>，在数据同步过程中，<code>slave</code>会清空当前<code>redis</code>服务器上的所有数据并将<code>master</code>的数据导入到自己的内存中，但是断开同步关系后不会删除当前已经同步过的数据。</p>
+<p>注意：<code>slave</code>切换<code>master</code>同步后会丢失之前的所有数据。</p>
+<h3 id="快速部署第二台服务器">快速部署第二台服务器</h3>
+<pre><code class="language-bash">rsync -avz 192.168.40.183:/opt/* /opt/
+mkdir /data/redis_6379/ -p
+cd /opt/redis
+make install
+sed -i 's#183#184#g' /opt/redis_6379/conf/redis_6379.conf
+rsync -avz 192.168.40.183:/usr/lib/systemd/system/redis.service /usr/lib/systemd/system/
+useradd -r -s /sbin/nologin redis
+chown -R redis:redis /data/redis*
+chown -R redis:redis /opt/redis*
+systemctl daemon-reload
+systemctl start redis
+systemctl status redis
+</code></pre>
+<h3 id="命令行配置">命令行配置</h3>
+<p>当前状态为<code>master</code>，需要转换为<code>slave</code>角色并指向<code>master</code>服务器的<code>IP+PROT+Password</code></p>
+<pre><code class="language-bash">#在master上设置key
+[root@master ~]# redis-cli
+127.0.0.1:6379&gt; AUTH 123456
+OK
+127.0.0.1:6379&gt; INFO replication
+# Replication
+role:master
+connected_slaves:0
+master_replid:75a433738b495a0428a3ec64b6fb0c623da9c743
+master_replid2:0000000000000000000000000000000000000000
+master_repl_offset:0
+second_repl_offset:-1
+repl_backlog_active:0
+repl_backlog_size:1048576
+repl_backlog_first_byte_offset:0
+repl_backlog_histlen:0
+127.0.0.1:6379&gt; DBSIZE
+(integer) 100
+</code></pre>
+<pre><code class="language-bash">#在slave上设置master的IP和端口，4.0版本之前的指令为slaveof，临时生效
+[root@slave1 ~]# redis-cli
+127.0.0.1:6379&gt; AUTH 123456
+OK
+127.0.0.1:6379&gt; REPLICAOF 192.168.40.183 6379      #仍可使用SLAVEOF masterIP port
+OK
+127.0.0.1:6379&gt; CONFIG SET masterauth 123456       #设置master的密码，才可以同步
+OK
+127.0.0.1:6379&gt; INFO replication
+# Replication
+role:slave                                         #角色变为slave
+master_host:192.168.40.183                         #指向master
+master_port:6379
+master_link_status:up
+master_last_io_seconds_ago:1
+master_sync_in_progress:0
+slave_repl_offset:28
+slave_priority:100
+slave_read_only:1
+connected_slaves:0
+master_replid:f8b09fae6a5ff81a4387410c81b2c36da3a4d586
+master_replid2:0000000000000000000000000000000000000000
+master_repl_offset:28
+second_repl_offset:-1
+repl_backlog_active:1
+repl_backlog_size:1048576
+repl_backlog_first_byte_offset:1
+repl_backlog_histlen:28
+127.0.0.1:6379&gt; DBSIZE                            #查看数据已经同步
+(integer) 100
+</code></pre>
+<h3 id="观察日志">观察日志</h3>
+<pre><code class="language-bash">#在master上观察日志
+[root@master ~]# tail -f /opt/redis_6379/logs/redis_6379.log 
+Replica 192.168.40.184:6379 asks for synchronization
+Full resync requested by replica 192.168.40.184:6379
+Starting BGSAVE for SYNC with target: disk
+Background saving started by pid 6183
+DB saved on disk
+RDB: 0 MB of memory used by copy-on-write
+Background saving terminated with success
+Synchronization with replica 192.168.40.184:6379 succeeded
+</code></pre>
+<pre><code class="language-bash">#在slave节点观察日志
+[root@slave1 ~]# tail -f /opt/redis_6379/logs/redis_6379.log
+MASTER &lt;-&gt; REPLICA sync: Finished with success
+Background append only file rewriting started by pid 1893
+AOF rewrite child asks to stop sending diffs.
+Parent agreed to stop sending diffs. Finalizing AOF...
+Concatenating 0.00 MB of AOF diff received from parent.
+SYNC append only file rewrite performed
+AOF rewrite: 0 MB of memory used by copy-on-write
+Background AOF rewrite terminated with success
+Residual parent diff successfully flushed to the rewritten AOF (0.00 MB)
+Background AOF rewrite finished successfully
+</code></pre>
+<h3 id="写入配置文件">写入配置文件</h3>
+<pre><code class="language-bash">[root@slave1 ~]# vim /opt/redis_6379/conf/redis_6379.conf   #永久生效
+……
+replicaof 192.168.40.183 6379                               #指定master的IP和端口 
+masterauth 123456                                           #指定master的密码
+……
+[root@slave1 ~]# systemctl restart redis
+</code></pre>
+<h3 id="master和slave查看状态">master和slave查看状态</h3>
+<pre><code class="language-bash">#在master上查看状态
+127.0.0.1:6379&gt; info replication
+# Replication
+role:master
+connected_slaves:1
+slave0:ip=192.168.40.184,port=6379,state=online,offset=574,lag=0
+master_replid:17af318902663bfd1065629b70a26484eaa87f1e
+master_replid2:0000000000000000000000000000000000000000
+master_repl_offset:574
+second_repl_offset:-1
+repl_backlog_active:1
+repl_backlog_size:1048576
+repl_backlog_first_byte_offset:1
+repl_backlog_histlen:574
+
+#在slave上查看状态
+127.0.0.1:6379&gt; info replication
+# Replication
+role:slave
+master_host:192.168.40.183
+master_port:6379
+master_link_status:up
+master_last_io_seconds_ago:3
+master_sync_in_progress:0
+slave_repl_offset:644
+slave_priority:100
+slave_read_only:1
+connected_slaves:0
+master_replid:17af318902663bfd1065629b70a26484eaa87f1e
+master_replid2:0000000000000000000000000000000000000000
+master_repl_offset:644
+second_repl_offset:-1
+repl_backlog_active:1
+repl_backlog_size:1048576
+repl_backlog_first_byte_offset:519
+repl_backlog_histlen:126
+</code></pre>
+<pre><code class="language-bash">#停止master的redis服务，在slave上可以观察到以下现象
+127.0.0.1:6379&gt; info replication
+# Replication
+role:slave
+master_host:192.168.40.183
+master_port:6379
+master_link_status:down                          #显示down，表示无法连接master
+master_last_io_seconds_ago:-1
+master_sync_in_progress:0
+slave_repl_offset:11540
+master_link_down_since_seconds:9
+slave_priority:100
+slave_read_only:1
+connected_slaves:0
+master_replid:f8b09fae6a5ff81a4387410c81b2c36da3a4d586
+master_replid2:0000000000000000000000000000000000000000
+master_repl_offset:11540
+second_repl_offset:-1
+repl_backlog_active:1
+repl_backlog_size:1048576
+repl_backlog_first_byte_offset:1009
+repl_backlog_histlen:10532
+</code></pre>
+<h3 id="slave只可读无法写入">slave只可读无法写入</h3>
+<pre><code class="language-bash">127.0.0.1:6379&gt; set key2 value2
+(error) READONLY You can't write against a read only replica.
+</code></pre>
+<h3 id="主从复制过程">主从复制过程</h3>
+<ol>
+<li>从服务器连接主服务器，发送<code>SYNC</code>命令</li>
+<li>主服务器接收到<code>SYNC</code>命令后，开始执行<code>BGSAVE</code>命令生成<code>RDB</code>快照文件并使用缓冲区记录此后执行的所有写命令</li>
+<li>主服务器<code>BGSAVE</code>执行完后，向所有从服务器发送<code>RDB</code>快照文件，并在发送期间继续记录被执行的写命令</li>
+<li>从服务器收到快照文件后丢弃所有旧数据，载入收到的<code>RDB</code>快照文件到内存中</li>
+<li>主服务器快照发送完毕后开始向从服务器发送缓冲区中的写命令</li>
+<li>从服务器完成对快照的载入，开始接收命令请求，并执行来自主服务器缓冲区的写命令</li>
+<li>后期同步会先发送自己<code>slave_repl_offset</code>位置，只同步新增加的数据，不再全量同步</li>
+</ol>
+<h3 id="主从同步优化配置">主从同步优化配置</h3>
+<pre><code class="language-bash">repl-diskless-sync no
+#是否使用无盘同步RDB文件，默认为no，需要将RDB文件保存到磁盘后再发送给slave
+#yes为使用无盘同步，不需要保存至本地磁盘，而是直接通过socket文件发送给slave
+
+repl-diskless-sync-delay 5
+#无盘复制时服务器等待的延迟时间
+
+# repl-ping-replica-period 10
+#slave端向server端发送ping的时间区间设置，默认为10秒
+
+# repl-timeout 60
+#设置超时时间
+
+repl-disable-tcp-nodelay no
+#是否启用TCP_NODELAY
+#如果设置成yes，则redis会合并小的TCP包从而节省带宽，但会增加同步延迟(40ms)
+#如果选择no，数据传输到slave的延迟将会减少但要使用更多的带宽
+
+# repl-backlog-size 1mb
+#master的数据缓冲区
+#当slave断开连接一段时间后，该缓冲区会累积复制副本数据，因此当slave重新连接时，通常不需要完全重新同步
+#只需要传递在断开连接后没有同步的部分数据即可
+
+# repl-backlog-ttl 3600
+#多少秒内master没有slave连接，就清空backlog缓冲区
+
+replica-priority 100
+#当master不可用，sentinel会根据slave的优先级选举一个master
+#此值最低的slave会当选master，配置为0永远不会被选举，一般多个slave都设一样的值，让其自动选择
+
+# min-replicas-to-write 1
+#设置一个master的可用slave不能少于多少个，否则master无法写操作
+
+# min-replicas-max-lag 20
+#设置至少上面数量的slave延迟不能超过20秒，否则master不接收写操作
+</code></pre>
+<h3 id="取消复制">取消复制</h3>
+<p>主从模式下，一旦<code>master</code>发生故障不能提供服务，需要人工干预，将从节点提升为主节点，不支持自动切换。</p>
+<pre><code class="language-bash">#查看当前状态为slave
+127.0.0.1:6379&gt; get key1
+&quot;v1-master&quot;
+127.0.0.1:6379&gt; INFO replication
+# Replication
+role:slave
+master_host:192.168.40.183
+master_port:6379
+master_link_status:up
+master_last_io_seconds_ago:8
+master_sync_in_progress:0
+slave_repl_offset:12096
+slave_priority:100
+slave_read_only:1
+connected_slaves:0
+master_replid:4a4d502a52eb31af29701850d63264cef768bde0
+master_replid2:0000000000000000000000000000000000000000
+master_repl_offset:12096
+second_repl_offset:-1
+repl_backlog_active:1
+repl_backlog_size:1048576
+repl_backlog_first_byte_offset:1
+repl_backlog_histlen:12096
+</code></pre>
+<pre><code class="language-bash">#提升为master角色
+127.0.0.1:6379&gt; REPLICAOF no one                 #旧版使用SLAVEOFF no one
+OK
+127.0.0.1:6379&gt; INFO replication
+# Replication
+role:master
+connected_slaves:0
+master_replid:ffa428b8876d90549a390ad4e8317565a84c643e
+master_replid2:4a4d502a52eb31af29701850d63264cef768bde0
+master_repl_offset:12222
+second_repl_offset:12223
+repl_backlog_active:1
+repl_backlog_size:1048576
+repl_backlog_first_byte_offset:1
+repl_backlog_histlen:12222
+127.0.0.1:6379&gt; set key2 value2                 #可以写入数据
+OK
+</code></pre>
+<h3 id="常见主从复制故障汇总">常见主从复制故障汇总</h3>
+<ol>
+<li>配置的<code>master</code>密码不对，导致验证不通过而无法建立主从同步关系。</li>
+<li>不同的<code>redis</code>大版本之间存在兼容性问题，因此各<code>master</code>和<code>slave</code>之间必须保持版本一致。</li>
+<li>在开启了安全模式情况下，没有设置<code>bind</code>地址或者密码。</li>
+</ol>
+<h2 id="redis哨兵sentinel">redis哨兵(sentinel)</h2>
+<p><code>redis</code>主从架构下，无法实现<code>master</code>和<code>slave</code>角色的自动故障转移，即当主服务器出现服务异常、主机断电、磁盘损坏等问题导致<code>master</code>无法使用时，需要手动更改环境配置才能切换到<code>slave</code>服务器，另外也无法横向扩展服务的并行写入性能，当单台服务器性能无法满足业务写入需求时就需要一种方式解决以上两个核心问题。</p>
+<ol>
+<li><code>master</code>和<code>slave</code>角色的无缝切换，让业务无感知从而不影响业务使用。</li>
+<li>可以横向动态扩展<code>redis</code>服务器，从而实现多台服务器并行写入以实现更高并发的目的。</li>
+</ol>
+<h3 id="哨兵sentinel主要功能">哨兵(sentinel)主要功能</h3>
+<p><code>redis sentinel</code>是一个分布式系统，哨兵为<code>redis</code>服务提供了高可用性，可以在没有人为干预的情况下阻止某种类型的故障。</p>
+<p><code>sentinel</code>系统用于管理多个<code>redis</code>服务器(实例)，该系统执行以下几个任务：</p>
+<ol>
+<li>监控(<code>Monitoring</code>)：<code>sentinel</code>会不断地定期检查主服务器和从服务器是否运作正常。</li>
+<li>提醒(<code>Notification</code>)：当被监控的某个服务器出现问题时，<code>sentinel</code>可以通过<code>API</code>向管理员或者其它应用程序发送通知。</li>
+<li>自动故障转移(<code>Automatic failover</code>)：当<code>master</code>服务器不能正常工作时，哨兵会开始自动故障转移操作，它会将失效主服务器的其中一个从服务器升级为新的主服务器，并让失效主服务器的其它从服务器改为复制新的主服务器。</li>
+<li>配置提供者(<code>Configuration provider</code>)：客户端在初始化时，通过连接哨兵来获得当前<code>redis</code>服务的主节点地址。</li>
+</ol>
+<p>其中，监控和自动故障转移功能，使得<code>sentinel</code>可以及时发现主节点故障并完成转移；而配置提供者和通知功能，则需要在与客户端的交互中才能体现。</p>
+<h3 id="架构图">架构图</h3>
+<figure data-type="image" tabindex="3"><img src="https://ajie825.github.io/post-images/1710136341468.png" alt="" loading="lazy"></figure>
+<h3 id="实现哨兵操作">实现哨兵操作</h3>
+<p>配置主从复制</p>
+<p>哨兵的前提是已经实现了主从的运行环境，从而实现一主两从基于哨兵的高可用架构。</p>
+<pre><code class="language-bash">#查看master信息
+[root@master ~]# redis-cli 
+127.0.0.1:6379&gt; auth 123456
+OK
+127.0.0.1:6379&gt; info replication
+# Replication
+role:master
+connected_slaves:2
+slave0:ip=192.168.40.184,port=6379,state=online,offset=15470,lag=1
+slave1:ip=192.168.40.185,port=6379,state=online,offset=15484,lag=0
+master_replid:21e995843e456b6fa5d4580a91fd942430c501c5
+master_replid2:0000000000000000000000000000000000000000
+master_repl_offset:15484
+second_repl_offset:-1
+repl_backlog_active:1
+repl_backlog_size:1048576
+repl_backlog_first_byte_offset:15191
+repl_backlog_histlen:294
+</code></pre>
+<pre><code class="language-bash">#查看slave1信息
+[root@slave1 ~]# redis-cli
+127.0.0.1:6379&gt; auth 123456
+OK
+127.0.0.1:6379&gt; INFO replication
+# Replication
+role:slave
+master_host:192.168.40.183
+master_port:6379
+master_link_status:up
+master_last_io_seconds_ago:0
+master_sync_in_progress:0
+slave_repl_offset:15232
+slave_priority:100
+slave_read_only:1
+connected_slaves:0
+master_replid:21e995843e456b6fa5d4580a91fd942430c501c5
+master_replid2:0000000000000000000000000000000000000000
+master_repl_offset:15232
+second_repl_offset:-1
+repl_backlog_active:1
+repl_backlog_size:1048576
+repl_backlog_first_byte_offset:15191
+repl_backlog_histlen:42
+</code></pre>
+<pre><code class="language-bash">#查看slave2信息
+[root@slave2 ~]# redis-cli
+127.0.0.1:6379&gt; auth 123456
+OK
+127.0.0.1:6379&gt; INFO replication
+# Replication
+role:slave
+master_host:192.168.40.183
+master_port:6379
+master_link_status:up
+master_last_io_seconds_ago:1
+master_sync_in_progress:0
+slave_repl_offset:15428
+slave_priority:100
+slave_read_only:1
+connected_slaves:0
+master_replid:21e995843e456b6fa5d4580a91fd942430c501c5
+master_replid2:0000000000000000000000000000000000000000
+master_repl_offset:15428
+second_repl_offset:-1
+repl_backlog_active:1
+repl_backlog_size:1048576
+repl_backlog_first_byte_offset:15415
+repl_backlog_histlen:14
+</code></pre>
+<p>部署哨兵节点</p>
+<p>哨兵可以不和<code>redis</code>服务器部署在一起，但通常会部署在一起，所有<code>redis</code>节点使用相同的以下示例的配置文件。</p>
+<pre><code class="language-bash">#如果是编译安装，在源码目录有sentinel.conf文件，复制到安装目录即可，三台主机都操作
+mkdir -p /data/redis_26379
+mkdir -p /opt/redis_26379/{conf,pid,logs}
+</code></pre>
+<pre><code class="language-bash">#只在master操作
+[root@master ~]# cd /opt/redis
+[root@master redis]# cp sentinel.conf /opt/redis_26379/conf/redis_26379.conf
+#修改配置文件
+[root@master ~]# grep -vE &quot;^#|^$&quot; /opt/redis_26379/conf/redis_26379.conf 
+bind 192.168.40.183
+port 26379
+daemonize yes
+pidfile /opt/redis_26379/pid/redis_26379.pid
+logfile &quot;/opt/redis_26379/logs/redis_26379.log&quot;
+dir /data/redis_26379
+sentinel monitor mymaster 192.168.40.183 6379 2    #指定master服务器的地址和端口
+#2为法定人数限制，即有几个slave认为master down就进行故障转移
+#此值一般是所有节点的一半以上的整数值，比如总数是3，即3/2=1.5，取整为2
+sentinel auth-pass mymaster 123456                 #master的密码
+sentinel down-after-milliseconds mymaster 3000     #指定了sentinel认为服务器已经断线所需的毫秒数，建议3000
+sentinel parallel-syncs mymaster 1                 #发生故障转移后，向新的主节点发起复制操作的从节点个数，1轮询发起复制
+sentinel failover-timeout mymaster 180000          #故障转移超时时间
+sentinel deny-scripts-reconfig yes                 #禁止修改脚本
+#目录授权
+[root@master ~]# chown -R redis:redis  /data/redis*
+[root@master ~]# chown -R redis:redis  /opt/redis*
+#编写哨兵启动文件
+cat  &gt;/usr/lib/systemd/system/redis-sentinel.service &lt;&lt;EOF
+[Unit]
+Description=Redis persistent key-value database
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/redis-sentinel /opt/redis_26379/conf/redis_26379.conf --supervised systemd
+ExecStop=/usr/bin/pkill redis-sentinel.service
+Type=notify
+User=redis
+Group=redis
+LimitNOFILE=64000
+RuntimeDirectory=redis
+RuntimeDirectoryMode=0755
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+scp -r /opt/redis_26379/conf/redis_26379.conf 192.168.40.184:/opt/redis_26379/conf/ 
+scp -r /opt/redis_26379/conf/redis_26379.conf 192.168.40.185:/opt/redis_26379/conf/
+scp /usr/lib/systemd/system/redis-sentinel.service 192.168.40.184:/usr/lib/systemd/system/
+scp /usr/lib/systemd/system/redis-sentinel.service 192.168.40.185:/usr/lib/systemd/system/
+</code></pre>
+<pre><code class="language-bash">#在slave1操作，修改配置文件
+sed -i 's#bind 192.168.40.183#bind 192.168.40.184#g' /opt/redis_26379/conf/redis_26379.conf
+#目录授权
+[root@slave1 conf]# chown -R redis:redis  /data/redis*
+[root@slave1 conf]# chown -R redis:redis  /opt/redis*
+</code></pre>
+<pre><code class="language-bash">#在slave2操作，修改配置文件
+sed -i 's#bind 192.168.40.183#bind 192.168.40.185#g' /opt/redis_26379/conf/redis_26379.conf
+#目录授权
+[root@slave2 ~]# chown -R redis:redis  /data/redis*
+[root@slave2 ~]# chown -R redis:redis  /opt/redis*
+</code></pre>
+<p>启动哨兵并检查</p>
+<pre><code class="language-bash">#三台主机都操作
+systemctl daemon-reload
+systemctl start redis-sentinel 
+systemctl status redis-sentinel.service
+netstat -lnpt
+</code></pre>
+<p>配置文件的变化</p>
+<pre><code class="language-bash">[root@master ~]# tail -8 /opt/redis_26379/conf/redis_26379.conf 
+protected-mode no
+supervised systemd
+sentinel leader-epoch mymaster 0
+sentinel known-replica mymaster 192.168.40.185 6379
+sentinel known-replica mymaster 192.168.40.184 6379
+sentinel known-sentinel mymaster 192.168.40.184 26379 48905d7c224f43bc6aca979004f8144b88c914dd
+sentinel known-sentinel mymaster 192.168.40.185 26379 919aefdbeb1a153b226cd2e4446f619c4ea59779
+sentinel current-epoch 0
+</code></pre>
+<p>查看日志</p>
+<pre><code class="language-bash">#master的哨兵日志
+[root@master ~]# tail -8 /opt/redis_26379/logs/redis_26379.log
+supervised by systemd, will signal readiness
+Running mode=sentinel, port=26379.
+Sentinel ID is ed005823dc02ddfed452f3b3b28def59742c8dcc
++monitor master mymaster 192.168.40.183 6379 quorum 2
++slave slave 192.168.40.184:6379 192.168.40.184 6379 @ mymaster 192.168.40.183 6379
++slave slave 192.168.40.185:6379 192.168.40.185 6379 @ mymaster 192.168.40.183 6379
++sentinel sentinel 14951454cea17e67c72cf636507cfa9c56a0b8e8 192.168.40.185 26379 @ mymaster 192.168.40.183 6379
++sentinel sentinel e26507dace6345dbac5c323953e74502d8a9e497 192.168.40.184 26379 @ mymaster 192.168.40.183 6379
+
+#slave的哨兵日志
+[root@slave1 ~]# tail -f /data/redis_26379/logs/redis_26379.log
+supervised by systemd, will signal readiness
+Running mode=sentinel, port=26379.
+Sentinel ID is e26507dace6345dbac5c323953e74502d8a9e497
++monitor master mymaster 192.168.40.183 6379 quorum 2
++slave slave 192.168.40.184:6379 192.168.40.184 6379 @ mymaster 192.168.40.183 6379
++slave slave 192.168.40.185:6379 192.168.40.185 6379 @ mymaster 192.168.40.183 6379
++sentinel sentinel 14951454cea17e67c72cf636507cfa9c56a0b8e8 192.168.40.185 26379 @ mymaster 192.168.40.183 6379
++sentinel sentinel ed005823dc02ddfed452f3b3b28def59742c8dcc 192.168.40.183 26379 @ mymaster 192.168.40.183 6379
+</code></pre>
+<p>哨兵常用操作<code>API</code></p>
+<pre><code class="language-bash">[root@master ~]# redis-cli -h 192.168.40.183 -p 26379
+192.168.40.183:26379&gt; info sentinel
+# Sentinel
+sentinel_masters:1
+sentinel_tilt:0
+sentinel_running_scripts:0
+sentinel_scripts_queue_length:0
+sentinel_simulate_failure_flags:0
+master0:name=mymaster,status=ok,address=192.168.40.183:6379,slaves=2,sentinels=3
+192.168.40.183:26379&gt; sentinel get-master-addr-by-name mymaster
+1) &quot;192.168.40.183&quot;
+2) &quot;6379&quot;
+</code></pre>
+<h3 id="模拟故障转移">模拟故障转移</h3>
+<pre><code class="language-bash">#停止master的redis服务
+[root@master ~]# systemctl stop redis
+
+#查看各节点哨兵信息
+[root@master ~]# redis-cli -h 192.168.40.183 -p 26379
+192.168.40.183:26379&gt; info sentinel
+# Sentinel
+sentinel_masters:1
+sentinel_tilt:0
+sentinel_running_scripts:0
+sentinel_scripts_queue_length:0
+sentinel_simulate_failure_flags:0
+master0:name=mymaster,status=ok,address=192.168.40.184:6379,slaves=2,sentinels=3   #mymaster地址发生了改变
+</code></pre>
+<pre><code class="language-bash">#故障转移时sentinel的日志信息
+[root@master ~]# tail -f /data/redis_26379/logs/redis_26379.log
++failover-state-reconf-slaves master mymaster 192.168.40.183 6379
++slave-reconf-sent slave 192.168.40.185:6379 192.168.40.185 6379 @ mymaster 192.168.40.183 6379
++slave-reconf-inprog slave 192.168.40.185:6379 192.168.40.185 6379 @ mymaster 192.168.40.183 6379
+-odown master mymaster 192.168.40.183 6379
++slave-reconf-done slave 192.168.40.185:6379 192.168.40.185 6379 @ mymaster 192.168.40.183 6379
++failover-end master mymaster 192.168.40.183 6379
++switch-master mymaster 192.168.40.183 6379 192.168.40.184 6379
++slave slave 192.168.40.185:6379 192.168.40.185 6379 @ mymaster 192.168.40.184 6379
++slave slave 192.168.40.183:6379 192.168.40.183 6379 @ mymaster 192.168.40.184 6379
++sdown slave 192.168.40.183:6379 192.168.40.183 6379 @ mymaster 192.168.40.184 6379
+
+#故障转移后redis配置文件会被自动修改
+[root@slave2 ~]# grep ^replicaof /opt/redis_6379/conf/redis_6379.conf
+replicaof 192.168.40.184 6379
+
+#sentinel.conf中的sentinel monitor ip会被修改
+[root@master ~]# grep &quot;^s&quot; /opt/redis_26379/conf/redis_26379.conf 
+sentinel myid ed005823dc02ddfed452f3b3b28def59742c8dcc
+sentinel deny-scripts-reconfig yes
+sentinel monitor mymaster 192.168.40.184 6379 2                         #mymaster的地址自动修改
+sentinel down-after-milliseconds mymaster 3000
+sentinel auth-pass mymaster 123456
+sentinel config-epoch mymaster 1
+supervised systemd
+sentinel leader-epoch mymaster 1
+sentinel known-replica mymaster 192.168.40.183 6379
+sentinel known-replica mymaster 192.168.40.185 6379
+sentinel known-sentinel mymaster 192.168.40.185 26379 14951454cea17e67c72cf636507cfa9c56a0b8e8
+sentinel known-sentinel mymaster 192.168.40.184 26379 e26507dace6345dbac5c323953e74502d8a9e497
+sentinel current-epoch 1
+</code></pre>
+<pre><code class="language-bash">#产生新的master，另一个slave指向新的master
+[root@slave1 ~]# redis-cli 
+127.0.0.1:6379&gt; auth 123456
+OK
+127.0.0.1:6379&gt; info replication
+# Replication
+role:master
+connected_slaves:1
+slave0:ip=192.168.40.185,port=6379,state=online,offset=211441,lag=1
+master_replid:98590d834402b5942cc8904009cb6a8feb5cdcc0
+master_replid2:3cd12c3c7c30414022d20fc39c1183d3624e9299
+master_repl_offset:211584
+second_repl_offset:131536
+repl_backlog_active:1
+repl_backlog_size:1048576
+repl_backlog_first_byte_offset:1
+repl_backlog_histlen:211584
+127.0.0.1:6379&gt; set k1 v1                      #新的master可以写入数据
+OK
+</code></pre>
+<pre><code class="language-bash">#恢复故障的原master，重新加入了集群
+[root@master ~]# systemctl start redis
+[root@master ~]# grep ^replicaof /opt/redis_6379/conf/redis_6379.conf      
+replicaof 192.168.40.184 6379                 #特别注意，密码并不会自动生成，需要手动修改
+
+[root@slave1 ~]# redis-cli 
+127.0.0.1:6379&gt; auth 123456
+OK
+127.0.0.1:6379&gt; info replication
+# Replication
+role:master
+connected_slaves:2
+slave0:ip=192.168.40.185,port=6379,state=online,offset=625535,lag=0
+slave1:ip=192.168.40.183,port=6379,state=online,offset=625535,lag=0
+master_replid:f1be1a41b5fcef77bd1b32326a5e0a0ea38da09c
+master_replid2:1b0aa7a7b359ee4eaf07786565abb224c57cb0f5
+master_repl_offset:625535
+second_repl_offset:289787
+repl_backlog_active:1
+repl_backlog_size:1048576
+repl_backlog_first_byte_offset:1
+repl_backlog_histlen:625535
+</code></pre>
+<h2 id="redis集群">redis集群</h2>
+<p>在哨兵机制中，可以解决<code>redis</code>高可用问题，即当<code>master</code>故障后可以自动将<code>slave</code>提升为<code>master</code>，从而可以保证<code>redis</code>服务的正常使用，但是无法解决<code>redis</code>单机写入的瓶颈问题，因为每个节点都要储存一份完整的数据，这样很浪费内存。</p>
+<p>因此<code>redis 3.0</code>版本之后推出了无中心架构的<code>redis</code>集群模式，在这种模式下每个节点不会储存完整的数据，仅保存当前节点数据和整个<code>cluster</code>状态，而且每个节点都和其它所有节点连接，这样就保证了只需要连接集群中的任意一个节点，就可以获取到其他节点的数据。</p>
+<p>在客户端配置集群地址时需要将所有节点的地址和端口都添加，整个<code>cluster</code>被看做是一个整体，客户端可以连接任意一个节点进行操作，就像操作单一<code>redis</code>实例一样，当客户端操作的<code>key</code>没有分配到该节点上时，<code>redis</code>会返回转向指令，指向正确的节点。</p>
+<h3 id="集群重要概念">集群重要概念</h3>
+<ul>
+<li>集群会将数据自动进行分片，然后通过<code>hash</code>算法均匀的存放在每个节点</li>
+<li>无论有多少个节点，一共有16384个槽位，这些槽位就是用来存储通过<code>hash</code>分配的分片，所有的槽位都必须分配</li>
+<li>每个节点的槽的顺序不重要，重要是数量，每个槽被分配到数据的概率是相当的</li>
+<li>集群的高可用依赖于主从复制</li>
+<li>集群拥有自己的配置文件，动态更新，不需要手动修改</li>
+<li>集群通讯使用<code>redis</code>端口号+10000的端口，这个是自动创建的，不是配置文件配置的</li>
+<li>集群槽位分配比例允许误差在%2之间</li>
+</ul>
+<h3 id="架构图-2">架构图</h3>
+<figure data-type="image" tabindex="4"><img src="https://ajie825.github.io/post-images/1710482174202.png" alt="" loading="lazy"></figure>
+<h3 id="部署redis集群">部署redis集群</h3>
+<p><code>master</code>的操作</p>
+<pre><code class="language-bash">systemctl stop redis
+systemctl stop redis-sentinel
+mkdir -p /opt/redis_{6380,6381}/{conf,logs,pid}
+mkdir -p /data/redis_{6380,6381}
+cp /opt/redis/redis.conf /opt/redis_6380/conf/redis_6380.conf
+#修改配置文件
+[root@master ~]# grep -vE &quot;^#|^$&quot; /opt/redis_6380/conf/redis_6380.conf
+bind 192.168.40.183
+protected-mode yes
+port 6380
+daemonize yes
+supervised no
+pidfile /opt/redis_6380/pid/redis_6380.pid
+loglevel notice
+logfile &quot;/opt/redis_6380/logs/redis_6380.log&quot;
+databases 16
+always-show-logo yes
+save 900 1
+save 300 10
+save 60 10000
+rdbcompression yes
+rdbchecksum yes
+dbfilename dump.rdb
+dir /data/redis_6380/
+appendonly yes
+appendfilename &quot;redis.aof&quot;
+appendfsync everysec
+cluster-enabled yes
+cluster-config-file nodes_6380.conf
+cluster-node-timeout 15000
+cd /opt/
+cp redis_6380/conf/redis_6380.conf redis_6381/conf/redis_6381.conf
+sed -i 's#6380#6381#g' redis_6381/conf/redis_6381.conf
+#目录授权
+chown -R redis:redis /opt/redis_*
+chown -R redis:redis /data/redis_*
+#编写启动文件
+cat &gt;/usr/lib/systemd/system/redis-master.service&lt;&lt;EOF
+[Unit]
+Description=Redis persistent key-value database
+After=network.target
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/redis-server /opt/redis_6380/conf/redis_6380.conf --supervised systemd
+ExecStop=pkill redis-master.service
+Type=notify
+User=redis
+Group=redis
+LimitNOFILE=64000
+RuntimeDirectory=redis
+RuntimeDirectoryMode=0755
+
+[Install]
+WantedBy=multi-user.target
+EOF
+cd /usr/lib/systemd/system/
+cp redis-master.service redis-slave.service
+sed -i 's#6380#6381#g' redis-slave.service
+sed -i 's#master#slave#g' redis-slave.service
+systemctl daemon-reload
+systemctl start redis-master
+systemctl start redis-slave
+netstat -lnpt|grep redis
+rsync -avz /opt/redis_638* 192.168.40.184:/opt/
+rsync -avz /opt/redis_638* 192.168.40.185:/opt/
+rsync -avz /usr/lib/systemd/system/redis-*.service 192.168.40.184:/usr/lib/systemd/system
+rsync -avz /usr/lib/systemd/system/redis-*.service 192.168.40.185:/usr/lib/systemd/system
+</code></pre>
+<p><code>slave1</code>的操作</p>
+<pre><code class="language-bash">systemctl stop redis
+systemctl stop redis-sentinel
+find /opt/redis_638* -type f -name &quot;*.conf&quot;|xargs sed -i &quot;/bind/s#183#184#g&quot;
+mkdir -p /data/redis_{6380,6381}
+chown -R redis:redis /opt/redis_*
+chown -R redis:redis /data/redis_*
+systemctl daemon-reload 
+systemctl start redis-master
+systemctl start redis-slave
+netstat -lnpt|grep redis
+</code></pre>
+<p><code>slave2</code>的操作</p>
+<pre><code class="language-bash">systemctl stop redis
+systemctl stop redis-sentinel
+find /opt/redis_638* -type f -name &quot;*.conf&quot;|xargs sed -i &quot;/bind/s#183#185#g&quot;
+mkdir -p /data/redis_{6380,6381}
+chown -R redis:redis /opt/redis_*
+chown -R redis:redis /data/redis_*
+systemctl daemon-reload
+systemctl start redis-master
+systemctl start redis-slave
+netstat -lnpt|grep redis
+</code></pre>
+<p>查看集群配置文件内容</p>
+<p>在集群启动后会生成一个数据文件，这个数据文件其实保存的就是集群的信息，在没有配置集群互相发现时，单个节点只保存自己的集群信息，当集群内节点信息发生变化时，如添加节点、节点下线、故障转移等，节点都会自动保存集群状态到数据文件，不需要手动修改防止节点重启时产生错乱。</p>
+<pre><code class="language-bash">[root@master ~]# cd /data/redis_6380/
+[root@master redis_6380]# cat nodes_6380.conf 
+9f7f95a3a90f82dd35f036bf6424049c8ea42503 :0@0 myself,master - 0 0 0 connected
+[root@master redis_6380]# cd /data/redis_6381/
+[root@master redis_6381]# cat nodes_6381.conf 
+f6a8f91087a184d3f28f132fb10c3db340579c11 :0@0 myself,master - 0 0 0 connected
+</code></pre>
+<p>集群手动发现节点</p>
+<p>集群互相发现只需要在一个节点上配置，所有节点都会接收到配置信息并自动加入到配置文件中。</p>
+<pre><code class="language-bash">redis-cli -h 192.168.40.183 -p 6380
+192.168.40.183:6380&gt; auth 123456
+OK
+192.168.40.183:6380&gt; CLUSTER MEET 192.168.40.183 6381
+192.168.40.183:6380&gt; CLUSTER MEET 192.168.40.184 6380
+192.168.40.183:6380&gt; CLUSTER MEET 192.168.40.184 6381
+192.168.40.183:6380&gt; CLUSTER MEET 192.168.40.185 6380
+192.168.40.183:6380&gt; CLUSTER MEET 192.168.40.185 6381
+192.168.40.183:6380&gt; CLUSTER NODES
+6fa38713d1b46a2b4632bd8320082f0cfcfc02f2 192.168.40.185:6380@16380 master - 0 1710827237000 3 connected
+f6a8f91087a184d3f28f132fb10c3db340579c11 192.168.40.183:6381@16381 master - 0 1710827238000 5 connected
+23992ae7f3451372b8d4e097028bf442d9b94bb4 192.168.40.184:6380@16380 master - 0 1710827238574 1 connected
+9f7f95a3a90f82dd35f036bf6424049c8ea42503 192.168.40.183:6380@16380 myself,master - 0 1710827239000 4 connected
+fbe4a12bdf9bd5cd0f020ed12eeabcba26212c02 192.168.40.185:6381@16381 master - 0 1710827239583 0 connected
+5e5c98c80395453a6c85a62afa5bb724fdf82c93 192.168.40.184:6381@16381 master - 0 1710827235547 2 connected
+</code></pre>
+<pre><code class="language-bash">#查看集群数据文件信息
+[root@master ~]# cd /data/redis_6380/
+[root@master redis_6380]# cat nodes_6380.conf 
+6fa38713d1b46a2b4632bd8320082f0cfcfc02f2 192.168.40.185:6380@16380 master - 0 1710827237000 3 connected
+f6a8f91087a184d3f28f132fb10c3db340579c11 192.168.40.183:6381@16381 master - 0 1710827238000 5 connected
+23992ae7f3451372b8d4e097028bf442d9b94bb4 192.168.40.184:6380@16380 master - 0 1710827238574 1 connected
+9f7f95a3a90f82dd35f036bf6424049c8ea42503 192.168.40.183:6380@16380 myself,master - 0 1710827239000 4 connected
+fbe4a12bdf9bd5cd0f020ed12eeabcba26212c02 192.168.40.185:6381@16381 master - 0 1710827239583 0 connected
+5e5c98c80395453a6c85a62afa5bb724fdf82c93 192.168.40.184:6381@16381 master - 0 1710827235547 2 connected
+vars currentEpoch 5 lastVoteEpoch 0
+</code></pre>
+<p>集群手动分配槽位</p>
+<p>没有分配槽位时集群的状态，所有节点执行<code>cluster info</code>，<code>cluster_state</code>都是<code>fail</code>，<code>fail</code>状态表示集群不可用，没有分配槽位，<code>cluster_slots</code>都会显示0</p>
+<pre><code class="language-bash">192.168.40.183:6380&gt; CLUSTER INFO
+cluster_state:fail
+cluster_slots_assigned:0
+cluster_slots_ok:0
+cluster_slots_pfail:0
+cluster_slots_fail:0
+cluster_known_nodes:6
+cluster_size:0
+cluster_current_epoch:5
+cluster_my_epoch:4
+cluster_stats_messages_ping_sent:229
+cluster_stats_messages_pong_sent:97
+cluster_stats_messages_meet_sent:6
+cluster_stats_messages_sent:332
+cluster_stats_messages_ping_received:97
+cluster_stats_messages_pong_received:86
+cluster_stats_messages_received:183
+</code></pre>
+<p>每个集群都有16384个槽位，三台机器手动分配平均就需要使用16384除以3</p>
+<pre><code class="language-bash">master：       0-5460          5461
+slave1：       5641-10921      5461
+slave2：       10922-16383     5462
+#分配槽位语法：
+redis-cli -h 192.168.40.183 -p 6380 cluster addslots {0..5460}
+#删除槽位分配语法：
+redis-cli -h 192.168.40.183 -p 6380 cluster delslots {0..5460}
+
+#配置手动分配槽位
+redis-cli -h 192.168.40.183 -p 6380 -a 123456 CLUSTER ADDSLOTS {0..5460}
+redis-cli -h 192.168.40.184 -p 6380 -a 123456 CLUSTER ADDSLOTS {5461..10921}
+redis-cli -h 192.168.40.185 -p 6380 -a 123456 CLUSTER ADDSLOTS {10922..16383}
+
+#查看集群状态已经可用了
+[root@master ~]# redis-cli -h 192.168.40.183 -p 6380
+192.168.40.183:6380&gt; AUTH 123456
+OK
+192.168.40.183:6380&gt; CLUSTER INFO
+cluster_state:ok
+cluster_slots_assigned:16384
+cluster_slots_ok:16384
+cluster_slots_pfail:0
+cluster_slots_fail:0
+cluster_known_nodes:6
+cluster_size:3
+cluster_current_epoch:5
+cluster_my_epoch:4
+cluster_stats_messages_ping_sent:7219
+cluster_stats_messages_pong_sent:7431
+cluster_stats_messages_meet_sent:6
+cluster_stats_messages_sent:14656
+cluster_stats_messages_ping_received:7431
+cluster_stats_messages_pong_received:7076
+cluster_stats_messages_received:14507
+
+#查看node文件内容
+[root@master redis_6380]# cat nodes_6380.conf 
+6fa38713d1b46a2b4632bd8320082f0cfcfc02f2 192.168.40.185:6380@16380 master - 0 1710820803145 3 connected 10922-16383
+f6a8f91087a184d3f28f132fb10c3db340579c11 192.168.40.183:6381@16381 master - 0 1710820803000 5 connected
+23992ae7f3451372b8d4e097028bf442d9b94bb4 192.168.40.184:6380@16380 master - 0 1710820804153 1 connected 5461-10921
+9f7f95a3a90f82dd35f036bf6424049c8ea42503 192.168.40.183:6380@16380 myself,master - 0 1710820801000 4 connected 0-5460
+fbe4a12bdf9bd5cd0f020ed12eeabcba26212c02 192.168.40.185:6381@16381 master - 0 1710820801128 0 connected
+5e5c98c80395453a6c85a62afa5bb724fdf82c93 192.168.40.184:6381@16381 master - 0 1710820803000 2 connected
+vars currentEpoch 5 lastVoteEpoch 0
+</code></pre>
+<p>手动部署复制关系</p>
+<pre><code class="language-bash">#从节点对应的主节点关系：
+#master的6381从节点对应的主节点是slave2的6380主节点
+#slave1的6381从节点对应的主节点是master的6380主节点
+#slave2的6381从节点对应的主节点是slave1的6380主节点
+
+#配置复制关系
+[root@master ~]# redis-cli -h 192.168.40.183 -p 6381
+192.168.40.183:6381&gt; AUTH 123456
+192.168.40.183:6381&gt; CLUSTER REPLICATE 6fa38713d1b46a2b4632bd8320082f0cfcfc02f2
+[root@slave1 ~]# redis-cli -h 192.168.40.184 -p 6381 
+192.168.40.184:6381&gt; auth 123456
+192.168.40.184:6381&gt; CLUSTER REPLICATE 9f7f95a3a90f82dd35f036bf6424049c8ea42503
+[root@slave2 ~]# redis-cli -h 192.168.40.185 -p 6381 
+192.168.40.185:6381&gt; AUTH 123456
+192.168.40.185:6381&gt; CLUSTER REPLICATE 23992ae7f3451372b8d4e097028bf442d9b94bb4
+#注意：如果master节点设置了密码，需要从节点的masterauth参数配置密码后，重启redis-slave服务
+
+#检查复制关系，发现已经是三主三从
+[root@master ~]# redis-cli -h 192.168.40.183 -p 6380
+192.168.40.183:6380&gt; AUTH 123456
+OK
+192.168.40.183:6380&gt; CLUSTER NODES
+6fa38713d1b46a2b4632bd8320082f0cfcfc02f2 192.168.40.185:6380@16380 master - 0 1710828594162 3 connected 10922-16383
+f6a8f91087a184d3f28f132fb10c3db340579c11 192.168.40.183:6381@16381 slave 6fa38713d1b46a2b4632bd8320082f0cfcfc02f2 0 1710828594000 5 connected
+23992ae7f3451372b8d4e097028bf442d9b94bb4 192.168.40.184:6380@16380 master - 0 1710828596183 1 connected 5461-10921
+9f7f95a3a90f82dd35f036bf6424049c8ea42503 192.168.40.183:6380@16380 myself,master - 0 1710828594000 4 connected 0-5460
+fbe4a12bdf9bd5cd0f020ed12eeabcba26212c02 192.168.40.185:6381@16381 slave 23992ae7f3451372b8d4e097028bf442d9b94bb4 0 1710828595171 1 connected
+5e5c98c80395453a6c85a62afa5bb724fdf82c93 192.168.40.184:6381@16381 slave 9f7f95a3a90f82dd35f036bf6424049c8ea42503 0 1710828593151 4 connected
+
+#查看主从同步日志
+[root@master ~]# tail -20 /opt/redis_6381/logs/redis_6381.log  
+Connecting to MASTER 192.168.40.185:6380
+MASTER &lt;-&gt; REPLICA sync started
+Non blocking connect for SYNC fired the event.
+Master replied to PING, replication can continue...
+Trying a partial resynchronization (request 565b05c61eb556c2c5eec795bf614b0c7254d4e8:1).
+Full resync from master: 0e8f6120147ea48a664340a1c7177207ac2663c9:0
+Discarding previously cached master state.
+MASTER &lt;-&gt; REPLICA sync: receiving 175 bytes from master
+MASTER &lt;-&gt; REPLICA sync: Flushing old data
+MASTER &lt;-&gt; REPLICA sync: Loading DB in memory
+MASTER &lt;-&gt; REPLICA sync: Finished with success
+Background append only file rewriting started by pid 6520
+AOF rewrite child asks to stop sending diffs.
+Parent agreed to stop sending diffs. Finalizing AOF...
+Concatenating 0.00 MB of AOF diff received from parent.
+SYNC append only file rewrite performed
+AOF rewrite: 0 MB of memory used by copy-on-write
+Background AOF rewrite terminated with success
+Residual parent diff successfully flushed to the rewritten AOF (0.00 MB)
+Background AOF rewrite finished successfully
+</code></pre>
+<h3 id="集群插入数据测试">集群插入数据测试</h3>
+<p>不是所有的<code>key</code>都能插入，有的<code>key</code>插入的时候会报错，提示说应该到指定的节点插入，这时手动到对应的节点执行就可以插入，这是由于<code>cluster</code>集群槽位分布在不同的节点，每次新建一个<code>key</code>，都会通过<code>hash</code>算法均匀的在不同节点去创建。</p>
+<p>不同节点创建的<code>key</code>只能由自己节点看到创建的数据</p>
+<pre><code class="language-bash">[root@master ~]# redis-cli -h 192.168.40.183 -p 6380
+192.168.40.183:6380&gt; AUTH 123456
+192.168.40.183:6380&gt; set k1 v1
+(error) MOVED 12706 192.168.40.185:6380
+192.168.40.183:6380&gt; set k2 v2
+OK
+192.168.40.183:6380&gt; set k3 v3
+OK
+192.168.40.183:6380&gt; set k4 v4
+(error) MOVED 8455 192.168.40.184:6380
+</code></pre>
+<p>可以通过<code>ASK</code>路由解决创建<code>key</code>时提示去其他节点进行创建</p>
+<ul>
+<li>如果可以在本机直接创建就执行创建<code>key</code>的命令，如果不能在本机执行，它会根据提示去对应节点上创建<code>key</code></li>
+<li>每次通过<code>hash</code>在指定节点上创建<code>key</code>后就会停留在该节点</li>
+<li>只需要执行<code>redis-cli</code>时加上<code>-c</code>参数即可</li>
+</ul>
+<pre><code class="language-bash">#写入测试数据
+[root@master ~]# cat redis-test.sh 
+#!/bin/bash
+NUM=10000
+PASS=123456
+for i in `seq $NUM`; do
+        redis-cli -h 192.168.40.183 -a &quot;$PASS&quot; -p 6380 -c set ${i} ${i}
+        echo &quot;${i} ${i} 写入完成&quot;
+done
+echo &quot;$NUM 个key写入到Redis完成&quot;
+
+[root@master ~]# redis-cli -h 192.168.40.183 -a 123456 --cluster info 192.168.40.183 6380
+Warning: Using a password with '-a' or '-u' option on the command line interface may not be safe.
+192.168.40.183:6380 (9f7f95a3...) -&gt; 3336 keys | 5461 slots | 1 slaves.
+192.168.40.185:6380 (6fa38713...) -&gt; 3338 keys | 5462 slots | 1 slaves.
+192.168.40.184:6380 (23992ae7...) -&gt; 3330 keys | 5461 slots | 1 slaves.
+[OK] 10004 keys in 3 masters.
+0.61 keys per slot on average.
+</code></pre>
+<pre><code class="language-bash">#验证hash分配是否平均
+[root@master ~]# redis-cli -h 192.168.40.183 -p 6380
+192.168.40.183:6380&gt; AUTH 123456
+192.168.40.183:6380&gt; DBSIZE
+(integer) 3336
+
+[root@slave1 ~]# redis-cli -h 192.168.40.184 -p 6380
+192.168.40.184:6380&gt; AUTH 123456
+192.168.40.184:6380&gt; DBSIZE
+(integer) 3330
+
+[root@slave2 ~]# redis-cli -h 192.168.40.185 -p 6380 
+192.168.40.185:6380&gt; AUTH 123456
+192.168.40.185:6380&gt; DBSIZE
+(integer) 3338
+</code></pre>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[缓存技术]]></title>
+        <id>https://ajie825.github.io/post/缓存技术/</id>
+        <link href="https://ajie825.github.io/post/缓存技术/">
+        </link>
+        <updated>2024-02-03T03:32:08.000Z</updated>
+        <content type="html"><![CDATA[<p>缓存是为了调节两个或多个不同物质的速度，使速度较快的一方加速访问速度较慢一方的作用，比如处理器<code>CPU</code>的一级、二级缓存保存了最近经常访问的数据，内存则是保存了<code>CPU</code>经常访问硬盘的数据，而且硬盘也有大小不一的缓存，都是为了起到加速<code>CPU</code>访问硬盘的目的，因为<code>CPU</code>处理数据的速度太快，硬盘不能在短时间内满足<code>CPU</code>的需求，因此<code>CPU</code>缓存、内存、以及硬盘缓存就在一定程度上满足了<code>CPU</code>的数据需求，即<code>CPU</code>从缓存读取数据可以大幅提高<code>CPU</code>的工作效率。<br>
+<img src="https://ajie825.github.io/post-images/1707715697232.png" alt="" loading="lazy"></p>
+<h2 id="系统缓存">系统缓存</h2>
+<h3 id="buffer与cache">buffer与cache</h3>
+<p><code>buffer</code>：缓冲也叫写缓冲，一般用于写操作，<code>CPU</code>会把数据先写到内存的磁盘缓冲区，然后就认为数据已经写入完成，然后由内核在后续的时间再写入磁盘，所以服务器突然断电会丢失内存中的部分数据。</p>
+<p><code>cache</code>：缓存也叫读缓存，一般用于读操作，<code>CPU</code>读文件会从内存读取，硬盘中的数据需要先写入到内存，然后将频繁读取的数据保存在自己最近的缓存区域，方便下次读取。</p>
+<h3 id="cache的保存位置">cache的保存位置</h3>
+<ul>
+<li>客户端：浏览器</li>
+<li>内存：本地服务器、远程服务(如：<code>redis</code>、<code>memcached</code>)</li>
+<li>硬盘：本机硬盘、远程服务器硬盘(如：<code>NFS</code>存储)</li>
+</ul>
+<h3 id="cache的特性">cache的特性</h3>
+<ul>
+<li>自动过期：给缓存的数据加上有效时间，超出时间后会自动过期删除</li>
+<li>强制过期：源站更新图片后<code>CDN</code>是不会更新的，需要通过<code>CDN</code>管理后台强制刷新缓存</li>
+<li>命中率：即缓存的读取命中率</li>
+</ul>
+<h2 id="浏览器缓存">浏览器缓存</h2>
+<p>浏览器缓存是浏览器将用户请求过的静态资源(<code>html</code>、<code>css</code>、<code>js</code>、图片等)，存储到电脑本地磁盘中，当浏览器再次访问时，就可以直接从本地加载了，不需要再去服务端请求。</p>
+<p>缓存的优点：</p>
+<ul>
+<li>减少了冗余的数据传输</li>
+<li>减少服务器的负担，提升网站性能</li>
+<li>加快了客户端加载网页的速度</li>
+</ul>
+<h3 id="缓存流程">缓存流程</h3>
+<p>我们可以理解为，浏览器里有一个专门存放缓存规则的数据库，也可以说是一个映射表，把缓存资源信息同电脑磁盘中的实际文件的地址对应起来。<br>
+<img src="https://ajie825.github.io/post-images/1707445566639.png" alt="" loading="lazy"></p>
+<p>而这个缓存规则的表，在浏览器中是可以看到的，在谷歌浏览器的地址栏输入<code>chrome://version/</code>可以查看浏览器保存文件的位置，谷歌浏览器默认的缓存文件位于：<code>C:\Users\Administrator\AppData\Local\Google\Chrome\User Data\Default\Cache</code>。<br>
+<img src="https://ajie825.github.io/post-images/1707817247174.png" alt="" loading="lazy"></p>
+<p>上面所说的缓存规则，就是声明所请求的资源要采取哪种缓存策略？缓存多久时间？等等……，而这个规则，是在<code>http</code>的<code>response header</code>中返回来的。<br>
+<img src="https://ajie825.github.io/post-images/1707447002350.png" alt="" loading="lazy"></p>
+<h3 id="缓存规则">缓存规则</h3>
+<p>强缓存和协商缓存。</p>
+<h4 id="强缓存"><strong>强缓存</strong></h4>
+<p>强缓存是指在缓存期内，浏览器直接从本地磁盘中获取资源，而不会向服务器发送请求，强缓存可以通过设置响应头中的<code>Cache-Control</code>和<code>Expires</code>字段来实现。<br>
+<img src="https://ajie825.github.io/post-images/1707449033627.png" alt="" loading="lazy"></p>
+<p>主要看<code>Cache-Control</code>字段，图中的<code>max-age=xxxx</code>，表示在这些秒内都使用缓存，超过了就继续请求服务器，而和<code>Cache-Control</code>并列的，还有一个<code>Expires</code>字段，<code>Expires</code>是<code>HTTP/1.0</code>中定义的缓存控制字段，已经基本淘汰了，可以忽略。</p>
+<p><code>max-age=xxxx</code>只是有效时间长，也就是说它需要有一个时间作为起始时间，即有效时间+起始时间=过期时间，而这个起始时间是响应头内的<code>Date</code>字段。</p>
+<p><code>Cache-Control</code>的几个取值含义：</p>
+<pre><code class="language-bash">private：        #仅浏览器可以缓存
+public：         #浏览器和代理服务器都可以缓存
+max-age：        #过期时间(重要)
+no-cache：       #不进行强缓存(重要)
+no-store：       #不强缓存，也不协商缓存，使用的地方比较少
+#注意：值可以同时使用多个
+Cache-Control:public,max-age=86400
+</code></pre>
+<p>所以，判断资源是否命中强缓存，就看<code>Cache-Control</code>的值，如果有<code>max-age=xxx</code>，则命中强缓存，如果<code>Cache-Control</code>的值是<code>no-cache</code>，说明没命中强缓存，走协商缓存。</p>
+<p><strong>强缓存流程</strong></p>
+<ol>
+<li>第一次请求<code>a.js</code>，缓存表中没该信息，直接请求后端服务器。</li>
+<li>后端服务器返回了<code>a.js</code>，且<code>response header</code>中<code>cache-control</code>为<code>max-age=xxx</code>，说明是强缓存规则，存入缓存表中。</li>
+<li>第二次请求<code>a.js</code>，缓存表中是<code>max-age</code>，那么命中强缓存，然后判断是否过期，如果没过期，直接读取缓存<code>a.js</code>，如果过期了，则执行协商缓存的步骤。</li>
+</ol>
+<p><code>max-age=0</code>和<code>no-cache</code>两个值的区别：<code>no-cache</code>是不进行强缓存，走协商缓存，而<code>max-age=0</code>是进行强缓存，但是缓存过期了，需要更新，实际上两者效果是一样的。</p>
+<h4 id="协商缓存"><strong>协商缓存</strong></h4>
+<p>协商缓存是指在响应头不进行强缓存或者缓存过期，浏览器向服务器发送请求，服务器通过比较资源的最后修改时间或者唯一标识符等信息，判断是否需要更新缓存，协商缓存可以通过在响应头中设置<code>ETag</code>和<code>Last-Modified</code>字段来实现。</p>
+<p><code>ETag</code></p>
+<p>表示资源的唯一标识符，可以是任意字符串，可以看似<code>md5</code>值，当浏览器发送请求时，会在请求头中添加<code>If-None-Match</code>字段，告诉服务器当前缓存资源的唯一标识符，服务器收到请求后，会将当前资源的唯一标识符与请求头中的<code>If-None-Match</code>字段进行比较，如果相同，就返回<code>304 Not Modified</code>状态码，表示资源未更新，浏览器可以继续使用缓存，如果资源有更改，返回<code>200</code>，返回最新的资源。</p>
+<p><code>Last-Modified</code></p>
+<p>表示资源的最后修改时间，当浏览器发送请求时，会在请求头中添加<code>If-Modified-Since</code>字段，告诉服务器当前缓存资源的最后修改时间，服务器在收到请求后，会将当前资源的最后修改时间与请求头中的<code>If-Modified-Since</code>字段进行比较，如果相同，就返回<code>304 Not Modified</code>状态码，表示资源未更新，浏览器可以继续使用缓存，如果资源有更改，返回<code>200</code>，返回最新的资源。</p>
+<p><code>ETag</code>是<code>HTTP1.1</code>中出现的，主要是为了解决<code>Last-Modified</code>无法解决的一些问题：</p>
+<ol>
+<li>某些服务器不能精确得到文件的最后修改时间，无法判断文件是否更新了。</li>
+<li>某些文件修改非常频繁，在秒以下时间内进行修改，<code>Last-Modified</code>只能精确到秒。</li>
+<li>一些文件的最后修改时间变了，但内容并未改变。</li>
+</ol>
+<h3 id="缓存命中显示">缓存命中显示</h3>
+<p>1、从服务器获取新的资源<br>
+<img src="https://ajie825.github.io/post-images/1707791015454.png" alt="" loading="lazy"></p>
+<p>2、命中强缓存，且资源没过期，直接读取本地缓存<br>
+<img src="https://ajie825.github.io/post-images/1707791261626.png" alt="" loading="lazy"></p>
+<p>3、命中协商缓存，且资源未更改，读取本地缓存<br>
+<img src="https://ajie825.github.io/post-images/1707791468129.png" alt="" loading="lazy"></p>
+<p>注意：协商缓存都要向服务端发请求，资源未更改时，返回的只是<code>header</code>信息，所以<code>size</code>很小，状态码为<code>304</code>，而资源有更改时，返回的是<code>body</code>数据，所以<code>size</code>比较大，状态码为<code>200</code>。</p>
+<h2 id="cdn技术">CDN技术</h2>
+<h3 id="什么是cdn">什么是CDN</h3>
+<p>内容分发网络(<code>CDN</code>)，是建立并覆盖在承载网上，由不同区域的服务器组成的分布式网络，将源站资源缓存到全国各地的边缘服务器，利用全球调度系统使用户能够就近获取，有效降低访问延迟，降低源站压力，提升服务可用性。<br>
+<img src="https://ajie825.github.io/post-images/1707879580500.png" alt="" loading="lazy"><br>
+<code>CDN</code>功能：</p>
+<ol>
+<li>降低机房的使用带宽，因为很多资源通过<code>CDN</code>就直接返回给用户。</li>
+<li>解决不同运行商之间的互联，可用让联通的网络访问联通，让电信的网络访问电信，起到加速用户访问的目的。</li>
+<li>解决用户访问的地域问题，就近返回给用户资源。</li>
+</ol>
+<p>常见的<code>CDN</code>服务商：</p>
+<ul>
+<li><a href="https://cloud.baidu.com/product/cdn.html">百度CDN：</a></li>
+<li><a href="https://www.aliyun.com/product/cdn?spm=5176.8269123.416540.50.728y8n">阿里CDN：</a></li>
+<li><a href="https://www.qcloud.com/product/cdn">腾讯CDN：</a></li>
+<li><a href="https://cloud.tencent.com/document/product/228/2949">腾讯CDN收费介绍：</a></li>
+<li><a href="https://security.meteversecloud.com/">网宿：</a></li>
+<li><a href="https://portal.greypanel.com/">灰域：</a></li>
+<li><a href="https://portal.toffstech.com/">TOFFS：</a></li>
+</ul>
+<h3 id="用户请求cdn流程">用户请求CDN流程</h3>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1707891902219.png" alt="" loading="lazy"></figure>
+<ol>
+<li>当用户在浏览器输入网站的<code>URL</code>并回车，经过本地<code>DNS</code>系统解析，<code>DNS</code>系统会最终将域名的解析权交给<code>CDN</code>的专用<code>DNS</code>服务器。</li>
+<li><code>CDN</code>的<code>DNS</code>服务器将全局负载均衡服务器的<code>IP</code>地址返回给用户。</li>
+<li>用户向全局负载均衡服务器发起<code>URL</code>访问请求。</li>
+<li>全局负载均衡服务器根据用户<code>IP</code>地址，以及用户请求内容的<code>URL</code>，选择一台用户所属区域的负载均衡服务器，告诉用户向这台服务器发起请求。</li>
+<li>区域负载均衡服务器会为用户选择一台合适的缓存服务器提供服务，选择依据包括：根据用户<code>IP</code>地址，判断哪一台服务器距离用户最近；根据用户所请求的<code>URL</code>携带的内容名称，判断哪一台服务器有用户所需内容；查询各个服务器当前的负载情况，判断哪一台服务器尚有服务能力，基于以上这些条件的综合分析之后，区域负载均衡服务器会向全局负载均衡服务器返回一台缓存服务器的<code>IP</code>地址。</li>
+<li>全局负载均衡服务器把服务器的<code>IP</code>地址返回给用户。</li>
+<li>用户向缓存服务器发起请求，缓存服务器响应用户请求，如果缓存服务器没有用户想要的内容，那么缓存服务器就向它的上一级缓存服务器发起请求，直至追溯到网站的源服务器将内容拉取到本地，然后<code>DNS</code>服务器将域名解析成相应节点的缓存服务器<code>IP</code>地址，从而实现用户就近访问。</li>
+</ol>
+<h3 id="cdn主要优势">CDN主要优势</h3>
+<ol>
+<li>提前对静态内容进行预缓存，避免大量的请求回源，导致主站网络带宽被打满数据无法更新。</li>
+<li>根据数据访问的热度不同而进行不同级别的缓存，例如访问量最高的资源访问<code>CDN</code>边缘节点的内存，其次的可以放在<code>SSD</code>或者<code>SATA</code>硬盘，再其次的可以放在云存储，这样兼顾了速度与成本。</li>
+<li>安全相关：抵御<code>DDOS</code>或<code>CC</code>等恶意攻击。</li>
+</ol>
+<h2 id="cookie与session">cookie与session</h2>
+<h3 id="什么是cookie和session">什么是cookie和session</h3>
+<p><code>cookie</code>是服务器发送给用户浏览器并保存在本地的一小块数据，它会在浏览器下次向同一服务器发起请求时被携带并发送到服务器上，通常它用于告知服务端两个请求是否来自同一浏览器，<code>cookie</code>使基于无状态的<code>HTTP</code>协议记录稳定的状态信息成为了可能。</p>
+<p><code>cookie</code>主要用于以下三个方面：</p>
+<ul>
+<li>会话状态管理(如用户登录状态、购物车、游戏分数或其它需要记录的信息)</li>
+<li>个性化设置(如用户自定义设置、主题等)</li>
+<li>浏览器行为跟踪(如跟踪分析用户行为等)</li>
+</ul>
+<p><code>session</code>代表服务器和客户端一次会话的过程，<code>session</code>对象用来存储特定用户会话所需的属性及配置信息，这样，当用户在应用程序的<code>web</code>页面之间跳转时，存储在<code>session</code>对象中的变量将不会丢失，而是在整个用户会话中一直存在下去，当客户端关闭会话，或者<code>session</code>超时失效时会话结束。</p>
+<h3 id="cookie和session的不同">cookie和session的不同</h3>
+<ul>
+<li>作用范围不同，<code>cookie</code>保存在客户端(浏览器)，<code>session</code>保存在服务端。</li>
+<li>存取方式不同，<code>cookie</code>只能保存文本文件格式，<code>session</code>可以存任意数据类型，一般情况下可以在<code>session</code>中保存一些常用变量信息，比如说<code>UserID</code>等。</li>
+<li>有效期不同，<code>cookie</code>可设置为长时间保存，比如经常使用的默认登录功能，<code>session</code>一般失效时间较短，客户端关闭或者<code>session</code>超时都会失效。</li>
+<li>隐私策略不同，<code>cookie</code>存储在客户端，比较容易遭到不法获取，早期有人将用户的登录名和密码存储在<code>cookie</code>中导致信息被窃取，<code>session</code>存储在服务端，安全性相对<code>cookie</code>更好一些。</li>
+<li>存储大小不同，单个<code>cookie</code>保存的数据不能超过<code>4k</code>，<code>session</code>可存储数据远高于<code>cookie</code>。</li>
+</ul>
+<h3 id="为什么需要cookie和session及关联性">为什么需要cookie和session及关联性</h3>
+<p><code>HTTP</code>协议是一种无状态的协议，即每次服务端接收到客户端的请求时，都是一个全新的请求，服务器并不知道客户端的历史请求记录，那这套机制的实现就需要<code>cookie</code>和<code>session</code>的配合。<br>
+<img src="https://ajie825.github.io/post-images/1707966198265.png" alt="" loading="lazy"></p>
+<p>浏览器第一次请求服务器的时候，服务器根据用户提交的相关信息，创建对应的<code>session</code>，请求返回时将此<code>session</code>的唯一标识<code>sessionID</code>返回给浏览器，浏览器接收到服务器返回的<code>sessionID</code>信息后，会将此信息存入到<code>cookie</code>中，同时<code>cookie</code>记录<code>sessionID</code>属于哪个域名。</p>
+<p>当浏览器第二次访问服务器的时候，浏览器会自动判断此域名下是否存在<code>cookie</code>信息，如果存在则自动将此<code>cookie</code>信息也发送给服务端，服务端会从<code>cookie</code>中获取<code>sessionID</code>，再根据<code>sessionID</code>查找对应的<code>session</code>信息，如果没有找到说明用户没有登录或者登录失效，如果找到证明用户已经登录可执行后面操作。</p>
+<p>根据以上流程可知，<code>sessionID</code>是连接<code>cookie</code>和<code>session</code>的一道桥梁，大部分系统也是根据此原理来验证用户登录状态。</p>
+<h3 id="如何考虑分布式-session">如何考虑分布式 Session</h3>
+<p>在互联网公司为了可以支撑更大的流量，后端往往需要多台服务器共同来支撑前端用户请求，那么如果用户在<code>A</code>服务器登录了，第二次请求跑到<code>B</code>服务器就会出现登录失效问题。</p>
+<p>分布式<code>session</code>一般会有以下几种解决方案：</p>
+<ul>
+<li><code>ip_hash</code>策略，服务端使用<code>nginx</code>代理，每个请求按访问<code>IP</code>的<code>hash</code>分配，这样来自同一<code>IP</code>固定访问一个后台服务器，避免了在服务器<code>A</code>创建<code>session</code>，第二次分发到服务器<code>B</code>的现象。</li>
+<li><code>session</code>复制，任何一个服务器上的<code>session</code>发送改变(增删改)，该节点会把这个<code>session</code>的所有内容序列化，然后广播给所有其它节点。</li>
+<li>共享<code>session</code>，服务端无状态话，将用户的<code>session</code>等信息使用缓存中间件来统一管理，保证分发到每一个服务器的响应结果都是一致的。</li>
+</ul>
+<p>建议采用第三种方案。</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[helm v3版管理k8s集群]]></title>
+        <id>https://ajie825.github.io/post/helm v3版管理k8s集群/</id>
+        <link href="https://ajie825.github.io/post/helm v3版管理k8s集群/">
+        </link>
+        <updated>2024-01-29T08:20:18.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="helm官方文档"><a href="https://v3.helm.sh/zh/docs/">helm官方文档</a></h2>
+<h2 id="helm是什么">helm是什么</h2>
+<p><code>helm</code>是<code>kubernetes</code>的包管理器，包管理器类似于在<code>Ubuntu</code>中使用的<code>apt</code>、<code>Centos</code>中使用的<code>yum</code>一样，能快速查找、下载和安装软件包，能够将一组资源对象打包统一管理，是查找、共享和使用为<code>k8s</code>构建软件的最佳方式。</p>
+<p><code>helm</code>类似于<code>yum</code>安装指令，统一对安装服务进行管理，使得用户不需要关心服务之间的依赖关系。</p>
+<h2 id="helm解决了什么痛点">helm解决了什么痛点</h2>
+<p>在<code>kubernetes</code>中部署一个应用，需要涉及到很多的资源对象共同协作，比如安装<code>WordPress</code>博客，用到的资源对象包括<code>Deployment</code>部署应用、<code>Service</code>提供服务发现、<code>Secret</code>配置<code>WordPress</code>的用户名和密码，可能还需要<code>pv</code>和<code>pvc</code>来提供持久化服务，并且<code>WordPress</code>数据是存储在<code>mariadb</code>数据库里面，所以需要<code>mariadb</code>数据库启动就绪后才能启动<code>WordPress</code>，这些<code>k8s</code>资源过于分散，不方便进行管理，直接通过<code>kubectl</code>来管理应用，会发现十分的麻烦和繁琐。</p>
+<p>所以在<code>k8s</code>中部署一个应用，通常面临以下几个问题：</p>
+<ul>
+<li>如何统一管理、配置和更新这些分散的<code>k8s</code>应用资源文件</li>
+<li>如何分发和复用一套应用模板</li>
+<li>如何将应用的一系列资源当做一个软件包管理</li>
+</ul>
+<p><code>kubernetes</code>有非常多的资源对象，在部署服务的时候，往往需要操作多个服务资源对象，且资源对象相互依赖，非常不好管理，<code>helm</code>帮助管理资源对象。</p>
+<p>对于使用者，使用<code>helm</code>后不用需要了解<code>kubernetes</code>的<code>yaml</code>语法并编写应用部署文件，可以通过<code>helm</code>下载并在集群上安装需要的应用。</p>
+<h2 id="helm相关组件及术语">helm相关组件及术语</h2>
+<h3 id="helm">helm</h3>
+<p><code>helm</code>是一个命令行的客户端工具，主要用于应用程序<code>Chart</code>的创建、打包、发布以及管理本地和远程的<code>Chart</code>仓库。</p>
+<h3 id="tiller">Tiller</h3>
+<p><code>Tiller</code>是<code>Helm</code>的服务端，用于接收<code>Helm</code>的请求，并根据<code>chart</code>生成资源声明文件<code>release</code>，然后提交给<code>API</code>创建应用，<code>Tiller</code>还提供了<code>release</code>的升级、删除、回滚等一系统功能。</p>
+<p><code>helm3</code>版本移除了<code>Tiller</code>，直接在客户端就对<code>chart</code>进行解析，然后调用<code>API</code>部署资源声明文件，同时将<code>release</code>的版本信息保存至应用所在名称空间下的<code>secret</code>中。</p>
+<h3 id="chart">Chart</h3>
+<p><code>Chart</code>是<code>helm</code>的软件包，采用<code>TAR</code>格式，其中包含了运行应用所需要的镜像、依赖和资源文件(<code>YAML</code>)等，还可能包含集群中的服务定义，类似<code>APT</code>的<code>DEB</code>或者<code>YUM</code>的<code>RPM</code>包。</p>
+<h3 id="repoistory">Repoistory</h3>
+<p><code>helm</code>的软件仓库，本质上是一个<code>web</code>服务器，该服务器保存了一系列的<code>Chart</code>软件包以供用户查询和下载，<code>helm</code>可以同时管理多个不同的<code>Repoistory</code>。</p>
+<h3 id="release">Release</h3>
+<p>使用<code>helm install</code>命令在集群中部署的<code>Chart</code>实例称为<code>Release</code>，在同一个集群中，一个<code>Chart</code>可以安装很多次，每次安装都会创建一个新的<code>Release</code>，会有自己的<code>Release</code>名称。</p>
+<p>注：<code>Helm</code>中提到的<code>Release</code>和版本有所不同，这里的<code>Release</code>可以理解为<code>Helm</code>使用<code>Chart</code>包部署的一个应用实例。</p>
+<h2 id="helm工作流程">helm工作流程</h2>
+<p>这里使用的是<code>helm3</code>版本，该版本没有了<code>tiller</code>服务端，直接通过<code>kubeconfig</code>连接<code>apiserver</code>，使用更加简单和灵活的架构，简化安全模块，降低了用户的使用壁垒：<br>
+<img src="https://ajie825.github.io/post-images/1706677853015.png" alt="" loading="lazy"></p>
+<ol>
+<li>开发者首先创建并编辑<code>chart</code>的配置</li>
+<li>接着打包并发布至<code>helm</code>的仓库<code>repository</code></li>
+<li>当集群管理员使用<code>helm</code>命令安装时，相关的依赖会从仓库下载</li>
+<li>接着<code>helm</code>会根据下载的配置部署资源至<code>k8s</code></li>
+</ol>
+<h2 id="安装helm">安装helm</h2>
+<p>可以从<code>helm</code>官方网站下载适合自己平台的二进制文件，或使用包管理器安装<code>helm</code>，这里采用二进制安装。</p>
+<pre><code class="language-bash">[root@master1 ~]# tar zxvf helm-v3.6.3-linux-amd64.tar.gz 
+[root@master1 ~]# mv linux-amd64/helm /usr/bin/
+#查看helm版本
+[root@master1 ~]# helm version
+version.BuildInfo{Version:&quot;v3.6.3&quot;, GitCommit:&quot;d506314abfb5d21419df8c7e7e68012379db2354&quot;, GitTreeState:&quot;clean&quot;, GoVersion:&quot;go1.16.5&quot;}
+</code></pre>
+<h3 id="helm命令自动补全">helm命令自动补全</h3>
+<pre><code class="language-bash">helm completion bash
+source &lt;(helm completion bash)
+echo &quot;source &lt;(helm completion bash)&quot; &gt;&gt; ~/.bashrc
+</code></pre>
+<h2 id="远程chart仓库的管理">远程chart仓库的管理</h2>
+<h3 id="添加远程chart仓库">添加远程chart仓库</h3>
+<pre><code class="language-bash">#添加官方稳定仓库
+helm repo add stable https://charts.helm.sh/stable
+&quot;stable&quot; has been added to your repositories
+#添加阿里云的chart仓库
+helm repo add aliyun https://kubernetes.oss-cn-hangzhou.aliyuncs.com/charts
+&quot;aliyun&quot; has been added to your repositories
+#添加bitnami的chart仓库
+helm repo add bitnami https://charts.bitnami.com/bitnami
+&quot;bitnami&quot; has been added to your repositories
+#添加微软的chart仓库
+helm repo add azure http://mirror.azure.cn/kubernetes/charts/
+&quot;azure&quot; has been added to your repositories
+</code></pre>
+<h3 id="查看当前所有远程chart仓库">查看当前所有远程chart仓库</h3>
+<pre><code class="language-bash">helm repo list
+stable  https://charts.helm.sh/stable                         
+aliyun  https://kubernetes.oss-cn-hangzhou.aliyuncs.com/charts
+bitnami https://charts.bitnami.com/bitnami                    
+azure   http://mirror.azure.cn/kubernetes/charts/
+</code></pre>
+<h3 id="删除指定的charts仓库">删除指定的charts仓库</h3>
+<pre><code class="language-bash">helm repo rm/remove 远程仓库别名
+</code></pre>
+<h3 id="更新chart仓库">更新chart仓库</h3>
+<pre><code class="language-bash">helm repo update 
+</code></pre>
+<h2 id="charts的管理">charts的管理</h2>
+<h3 id="搜索和下载chart">搜索和下载chart</h3>
+<pre><code class="language-bash">#查看阿里云chart仓库的memcached
+[root@master1 ~]# helm search repo aliyun|grep memcached
+aliyun/mcrouter                 0.1.0           0.36.0          Mcrouter is a memcached protocol 
+aliyun/memcached                2.0.1                           Free &amp; open 
+#查看chart信息
+[root@master1 ~]# helm show chart aliyun/memcached 
+apiVersion: v1
+description: Free &amp; open source, high-performance, distributed memory object caching
+  system.
+home: http://memcached.org/
+icon: https://upload.wikimedia.org/wikipedia/en/thumb/2/27/Memcached.svg/1024px-Memcached.svg.png
+keywords:
+- memcached
+- cache
+maintainers:
+- email: gtaylor@gc-taylor.com
+  name: Greg Taylor
+name: memcached
+sources:
+- https://github.com/docker-library/memcached
+version: 2.0.1
+</code></pre>
+<pre><code class="language-bash">#下载chart包到本地
+[root@master1 ~]# helm pull aliyun/memcached 
+[root@master1 ~]# tar zxvf memcached-2.0.1.tgz
+#chart目录结构
+[root@master1 ~]# tree memcached/
+memcached/
+├── Chart.yaml                 #包含chartd版本和名字等基本信息
+├── README.md
+├── templates                  #模板文件目录，存放k8s部署资源模板，通过渲染变量得到部署文件
+│   ├── _helpers.tpl           #存放子模板信息的文件
+│   ├── NOTES.txt              #为用户提供一个关于chart部署后使用说明的文件
+│   ├── pdb.yaml
+│   ├── statefulset.yaml
+│   └── svc.yaml
+└── values.yaml                #存放渲染模板的全局变量，templates目录下的文件可以调用
+</code></pre>
+<h3 id="部署chart">部署chart</h3>
+<p><code>helm</code>部署<code>memcached</code>服务</p>
+<pre><code class="language-bash">1) #导入镜像，查看values.yaml文件使用的镜像为memcached:1.4.36-alpine
+[root@node1 ~]# docker load -i memcache_1_4_36.tar.gz 
+[root@node2 ~]# docker load -i memcache_1_4_36.tar.gz 
+2）#修改statefulset.yaml文件
+[root@master1 memcached]# vim templates/statefulset.yaml
+apiVersion: apps/v1    #修改为apps/v1
+kind: StatefulSet
+metadata:
+#spec下添加selector字段，和pod的labels保持一致
+spec:
+  selector:
+    matchLabels:
+      app:  { { template &quot;memcached.fullname&quot; . } }
+      chart: &quot;{ { .Chart.Name }}-{{ .Chart.Version } }&quot;
+      release: &quot;{ { .Release.Name } }&quot;
+      heritage: &quot;{ { .Release.Service } }&quot;
+#删除affinity亲和性配置
+3）#安装memcached服务
+[root@master1 memcached]# helm install memcached ./      
+NAME: memcached
+LAST DEPLOYED: Thu Feb  1 00:38:25 2024
+NAMESPACE: default
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+  export POD_NAME=$(kubectl get pods --namespace default -l &quot;app=memcached-memcached&quot; -o jsonpath=&quot;{.items[0].metadata.name}&quot;)
+  kubectl port-forward $POD_NAME 11211
+  
+In another tab, attempt to set a key:
+  echo -e set mykey 0 60 5\r\nhello\r | nc localhost 11211
+You should see:
+  STORED  
+4) #验证memcached是否部署成功
+[root@master1 memcached]# kubectl get pods -o wide|grep memcached
+memcached-memcached-0    1/1     Running   0    3m34s   10.244.104.30    node2
+memcached-memcached-1    1/1     Running   0    2m47s   10.244.104.31    node2
+memcached-memcached-2    1/1     Running   0    2m34s   10.244.166.150   node1
+5）#测试memcached服务是否正常
+[root@master1 memcached]# yum install nc -y
+[root@master1 memcached]# export POD_NAME=$(kubectl get pods --namespace default -l &quot;app=memcached-memcached&quot; -o jsonpath=&quot;{.items[0].metadata.name}&quot;)
+[root@master1 memcached]# kubectl port-forward $POD_NAME 11211
+[root@master1 ~]# echo -e 'set mykey 0 60 5\r\nhello\r' | nc localhost 11211
+STORED
+</code></pre>
+<h2 id="release相关操作">release相关操作</h2>
+<pre><code class="language-bash">#查看release发布状态
+[root@master1 memcached]# helm list
+NAME            NAMESPACE       REVISION         STATUS          CHART           
+memcached       default         1                deployed        memcached-2.0.1 
+#删除release
+[root@master1 memcached]# helm uninstall memcached 
+#删除release也会删除对应的资源
+[root@master1 memcached]# kubectl get pods|grep memcached
+</code></pre>
+<h2 id="自定义chart">自定义chart</h2>
+<h3 id="自定义chart模板">自定义chart模板</h3>
+<p>当安装好<code>helm</code>之后可以自定义<code>chart</code>，需要先创建一个模板如下：</p>
+<pre><code class="language-bash">[root@master1 helm]# helm create myapp
+[root@master1 helm]# cd myapp/
+[root@master1 myapp]# tree ./
+./
+├── charts                             #存放所依赖的子chart
+├── Chart.yaml                         #描述chart的相关信息，包括名字、描述信息、版本等
+├── templates                          #模板目录，存放k8s部署资源模板，通过渲染变量得到部署文件
+│   ├── deployment.yaml                #deployment资源的go模板文件
+│   ├── _helpers.tpl                   #存放子模板信息的文件
+│   ├── hpa.yaml                       #自动扩缩容go模板文件
+│   ├── ingress.yaml                   #七层代理go模板文件
+│   ├── NOTES.txt
+│   ├── serviceaccount.yaml
+│   ├── service.yaml                   #service的go模板文件
+│   └── tests
+│       └── test-connection.yaml
+└── values.yaml                        #存放渲染模板的全局变量的值文件，这些值会应用到go模板生成部署文件
+</code></pre>
+<h3 id="chartyaml编写规则">Chart.yaml编写规则</h3>
+<p><code>Chart.yaml</code>文件主要用来描述对应<code>chart</code>的相关属性信息</p>
+<pre><code class="language-bash">[root@master1 myapp]# grep -v '#' Chart.yaml &gt; Chart.yaml.bak
+[root@master1 myapp]# \cp Chart.yaml.bak Chart.yaml
+[root@master1 myapp]# cat Chart.yaml 
+apiVersion: v2                            #使用的api版本，默认是v2版本
+name: myapp                               #chart的名称
+description: A Helm chart for Kubernetes  #chart的简单描述信息
+type: application                         #说明是应用程序还是库文件，应用程序类型可以运行为实例，库类型不可以
+version: 0.1.0                            #chart的版本
+appVersion: &quot;1.16.0&quot;                      #内部程序的版本信息
+</code></pre>
+<h3 id="go模板文件渲染">go模板文件渲染</h3>
+<p>部署清单模板文件主要用<code>go</code>语言来写的，通常都是从<code>values.yaml </code>文件中加载对应字段的值作为模板文件相关属性的值。</p>
+<pre><code class="language-bash">[root@master1 myapp]# cat templates/deployment.yaml 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  #取myapp的全名
+  name: { { include &quot;myapp.fullname&quot; . } }
+  labels:
+    #nindent 4表示首行缩进4个字母
+    { {- include &quot;myapp.labels&quot; . | nindent 4 } }
+spec:
+  replicas: { { .Values.replicaCount } }
+  selector:
+    matchLabels:
+      { {- include &quot;myapp.selectorLabels&quot; . | nindent 6 } }
+  template:
+    metadata:
+      labels:
+        { {- include &quot;myapp.selectorLabels&quot; . | nindent 8 } }
+    spec:
+      serviceAccountName: { { include &quot;myapp.serviceAccountName&quot; . } }
+      containers:
+        - name: { { .Chart.Name } }
+          #读取当前目录下values.yaml文件中对应字段的值，或者读取Chart.yaml文件中对应字段的值
+          image: &quot;{ { .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion } }&quot;
+          imagePullPolicy: { { .Values.image.pullPolicy } }
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+[root@master1 myapp]# cat templates/service.yaml 
+apiVersion: v1
+kind: Service
+metadata:
+  name: { { include &quot;myapp.fullname&quot; . } }
+  labels:
+    { {- include &quot;myapp.labels&quot; . | nindent 4 } }
+spec:
+  #读取当前目录values.yaml文件中service.type字段的值
+  type: { { .Values.service.type } }
+  ports:
+    #读取当前目录values.yaml文件中service.port字段的值
+    - port: { { .Values.service.port } }
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    { {- include &quot;myapp.selectorLabels&quot; . | nindent 4 } }
+</code></pre>
+<h3 id="valuesyaml-文件编写">values.yaml 文件编写</h3>
+<pre><code class="language-bash">[root@master1 myapp]# grep -v '#' values.yaml &gt; values.yaml.bak
+[root@master1 myapp]# \cp values.yaml.bak values.yaml
+[root@master1 myapp]# cat values.yaml
+replicaCount: 1
+image:
+  repository: nginx
+  pullPolicy: IfNotPresent
+  tag: &quot;&quot;
+
+imagePullSecrets: []
+nameOverride: &quot;&quot;
+fullnameOverride: &quot;&quot;
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: &quot;&quot;
+
+podAnnotations: {}
+podSecurityContext: {}
+securityContext: {}
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  className: &quot;&quot;
+  annotations: {}
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+
+resources: {}
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+nodeSelector: {}
+tolerations: []
+affinity: {}
+</code></pre>
+<h3 id="部署release">部署release</h3>
+<pre><code class="language-bash">[root@master1 myapp]# helm install  myapp .
+NAME: myapp
+LAST DEPLOYED: Fri Feb  2 02:03:20 2024
+NAMESPACE: default
+STATUS: deployed
+REVISION: 1
+NOTES:
+1. Get the application URL by running these commands:
+  export POD_NAME=$(kubectl get pods --namespace default -l &quot;app.kubernetes.io/name=myapp,app.kubernetes.io/instance=myapp&quot; -o jsonpath=&quot;{.items[0].metadata.name}&quot;)
+  export CONTAINER_PORT=$(kubectl get pod --namespace default $POD_NAME -o jsonpath=&quot;{.spec.containers[0].ports[0].containerPort}&quot;)
+  echo &quot;Visit http://127.0.0.1:8080 to use your application&quot;
+  kubectl --namespace default port-forward $POD_NAME 8080:$CONTAINER_PORT
+  
+[root@master1 myapp]# kubectl get pods|grep myapp
+myapp-777f4ccb8c-vwzz5             1/1     Running
+</code></pre>
+<h2 id="helm常用命令演示">helm常用命令演示</h2>
+<h3 id="检查chart语法格式">检查chart语法格式</h3>
+<pre><code class="language-bash">[root@master1 ~]#  helm lint /data/helm/myapp/
+==&gt; Linting /data/helm/myapp/
+[INFO] Chart.yaml: icon is recommended
+
+1 chart(s) linted, 0 chart(s) failed
+#通过上面可看到语法正确
+</code></pre>
+<h3 id="upgrade升级release">upgrade升级release</h3>
+<pre><code class="language-bash">[root@master1 myapp]# kubectl get svc|grep myapp
+myapp          ClusterIP   10.96.182.84     &lt;none&gt;     80/TCP 
+
+#在命令行使用--set选项给出的值会被直接替换
+[root@master1 myapp]# helm upgrade --set service.type=&quot;NodePort&quot; myapp .
+Release &quot;myapp&quot; has been upgraded. Happy Helming!
+NAME: myapp
+LAST DEPLOYED: Fri Feb  2 21:23:51 2024
+NAMESPACE: default
+STATUS: deployed
+REVISION: 2
+NOTES:
+1. Get the application URL by running these commands:
+  export NODE_PORT=$(kubectl get --namespace default -o jsonpath=&quot;{.spec.ports[0].nodePort}&quot; services myapp)
+  export NODE_IP=$(kubectl get nodes --namespace default -o jsonpath=&quot;{.items[0].status.addresses[0].address}&quot;)
+  echo http://$NODE_IP:$NODE_PORT
+
+#可以看到Service的type类型已经变成了nodePort
+[root@master1 myapp]# kubectl get svc|grep myapp
+myapp                 NodePort    10.96.182.84     &lt;none&gt;        80:30953/TCP
+</code></pre>
+<h3 id="回滚release">回滚release</h3>
+<pre><code class="language-bash">#查看历史版本
+[root@master1 myapp]# helm history myapp 
+REVISION        STATUS          CHART           APP VERSION     DESCRIPTION     
+1               superseded      myapp-0.1.0     1.16.0          Install complete
+2               deployed        myapp-0.1.0     1.16.0          Upgrade complete
+</code></pre>
+<pre><code class="language-bash">#把myapp回滚到版本1
+[root@master1 myapp]# helm rollback myapp 1
+Rollback was a success! Happy Helming!
+[root@master1 myapp]# kubectl get svc|grep myapp
+myapp          ClusterIP   10.96.182.84     &lt;none&gt;     80/TCP 
+</code></pre>
+<h3 id="打包chart">打包chart</h3>
+<pre><code class="language-bash">[root@master1 ~]# helm package /data/helm/myapp/
+Successfully packaged chart and saved it to: /root/myapp-0.1.0.tgz
+</code></pre>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[k8s安全管理：认证、授权、准入控制]]></title>
+        <id>https://ajie825.github.io/post/k8s安全管理：认证、授权、准入控制/</id>
+        <link href="https://ajie825.github.io/post/k8s安全管理：认证、授权、准入控制/">
+        </link>
+        <updated>2024-01-15T02:33:25.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="k8s认证-授权-准入控制概述">k8s认证、授权、准入控制概述</h2>
+<p><code>k8s</code>对整个系统的认证、授权、访问控制做了精密的设置，<code>apiserver</code>是整个集群系统的网关，是访问及管理资源对象的唯一入口，它默认监听<code>TCP</code>的6443端口，通过<code>HTTPS</code>协议暴露了一个<code>RESTful</code>风格的接口，所有需要访问集群资源的组件或客户端，包括<code>controller-manager</code>、<code>scheduler</code>、<code>kubelet</code>和<code>proxy</code>等集群基础组件，<code>CoreDNS</code>等集群的附加组件，以及此前使用的<code>kubectl</code>命令等都必须要经此网关请求与集群进行通信，所有客户端均要经过<code>apiserver</code>访问或改变集群状态以及完成数据存储，并且<code>apiserver</code>会对每一次的访问请求进行合法性检验，包括用户身份鉴别、操作权限验证以及操作是否符合全局规范的约束等，所有检查均正常完成且对象配置信息合法性检验无误之后才能访问或存入数据到后端存储系统<code>etcd</code>中，我们在<code>k8s</code>集群之上部署的应用程序，可以通过宿主机暴露的<code>NodePort</code>端口访问里面的程序，用户访问<code>k8s</code>集群需要经历如下认证过程：认证—&gt;授权—&gt;准入控制。</p>
+<p>1、认证(<code>Authenticating</code>)是对客户端的认证，通俗点就是对用户名和密码验证。</p>
+<p>2、授权(<code>Authorization</code>)是对资源的授权，<code>k8s</code>中的资源无非是容器，最终其实就是容器中的计算、网络、存储资源，当一个请求经过认证后，需要访问某一个资源(比如创建一个<code>pod</code>)，授权检查会根据授权规则判断该资源是否是该客户可以访问的。</p>
+<p>3、准入控制(<code>Admission Control</code>)：准入控制是一个准入控制器插件列表，位于<code>apiserver</code>中，它会在请求通过认证和鉴权之后，发送到<code>apiserver</code>的请求都需要经过这个列表中的每个准入控制器插件的检查，如果某一个控制器插件准入失败，就准入失败，准入控制器可以执行验证和变更操作，变更控制器可以根据被其接受的请求更改相关的对象，验证控制器则不行。<br>
+<img src="https://ajie825.github.io/post-images/1705547479542.png" alt="" loading="lazy"><br>
+其中包含两个特殊的控制器：<code>MutatingAdmissionWebhook</code>和<code>ValidatingAdmissionWebhook</code>，它们分别用来执行变更和验证准入控制<code>webhook</code>。</p>
+<p>准入控制器是在<code>API Server</code>的启动参数配置的，一个准入控制器可能属于以上两者中的一种，也可能两者都属于，当请求到达<code>API Server</code>时，首先执行变更准入控制，然后再执行验证准入控制，如果两个阶段之一的任何一个控制器拒绝了某请求，则整个请求将立即被拒绝，并向最终用户返回错误。</p>
+<p>我们在部署<code>k8s</code>集群的时候都会默认开启一系列的准入控制器，如果没有设置这些准入控制器的话，可以说你的<code>k8s</code>集群就是在裸奔，应该只有集群管理员可以修改集群中的准入控制器，例如，我会默认开启如下的准入控制器。</p>
+<pre><code class="language-bash">--admission-control=ServiceAccount,NamespaceLifecycle,NamespaceExists,LimitRanger,ResourceQ uota,MutatingAdmissionWebhook,ValidatingAdmissionWebhook
+</code></pre>
+<pre><code class="language-bash">[root@master1 ~]# kubectl exec -it -n kube-system kube-apiserver-master1 -- kube-apiserver -h|grep enable-admission-plugins
+#默认开启的插件有：
+NamespaceLifecycle, LimitRanger, ServiceAccount, TaintNodesByCondition, Priority, 
+DefaultTolerationSeconds, DefaultStorageClass, StorageObjectInUseProtection, 
+PersistentVolumeClaimResize, RuntimeClass, CertificateApproval, CertificateSigning, 
+CertificateSubjectRestriction, DefaultIngressClass, MutatingAdmissionWebhook, 
+ValidatingAdmissionWebhook, ResourceQuota.
+</code></pre>
+<p><code>AlwaysPullImages</code>：</p>
+<p>该准入控制器会修改新创建的<code>pod</code>，将其镜像拉取策略设置为<code>Always</code>，这样用户就可以放心，他们的私有镜像只能被那些有凭证的人使用，如果没有这个准入控制器，一旦镜像被拉取到节点上，任何用户的<code>pod</code>都可以通过已了解到的镜像名称来使用它，而不需要对镜像进行任何鉴权检查，启用这个准入控制器后，启动容器之前拉取镜像需要有效的凭证。</p>
+<p><code>NamespaceLifecycle</code>：</p>
+<p>该准入控制器禁止在被终止的<code>Namespace</code>中创建新对象，并确保针对不存在的名称空间的请求被拒绝，该准入控制器还会禁止删除三个系统保留的名称空间，即<code>default</code>、<code>kube-system</code>和<code>kube-public</code>。</p>
+<p><code>LimitRanger</code>：</p>
+<p>此准入控制器会监测传入的请求，并且确保请求不会违反<code>Namespace</code>中<code>LimitRange</code>所设置的任何约束，<code>LimitRanger</code>还可以用于将默认资源请求应用到没有设定资源约束的<code>pod</code>，当前，默认的<code>LimitRanger</code>对<code>default</code>名称空间中的所有<code>pod</code>都设置<code>0.1cpu</code>需求。</p>
+<p><code>ServiceAccount</code>：</p>
+<p>用于实现服务账户管控机制的自动化，实现创建<code>pod</code>对象时自动为其附加相关的<code>Service Account</code>对象。</p>
+<p><a href="https://kubernetes.io/zh-cn/docs/reference/access-authn-authz/admission-controllers/">其它的准入控制器介绍可以参考官方文档</a></p>
+<p><code>k8s</code>的整体架构也是一个微服务的架构，所有的请求都是通过一个<code>GateWay</code>，也就是<code>apiserver</code>这个组件(对外提供<code>REST</code>服务)，<code>k8s</code>客户端有两类，一种是普通用户，一种是集群内的<code>pod</code>，这两种客户端的认证机制略有不同，但无论是哪一种，都需要依次经过认证、授权、准入这三个机制。</p>
+<h3 id="认证">认证</h3>
+<p><strong>认证支持多种插件</strong></p>
+<p>1）令牌(<code>token</code>)认证：</p>
+<p>双方有一个共享密钥，服务器上先创建一个密码，客户端登录的时候拿这个密码登录即可，这个就是对称密钥认证方式；<code>k8s</code>提供了一个<code>restful</code>风格的接口，它的所有服务都是通过<code>http</code>协议提供的，因此认证信息只能经由<code>http</code>协议的首部进行传递，这种认证首部进行传递通常叫做令牌。</p>
+<p>2）<code>ssl</code>认证：</p>
+<p>对于<code>k8s</code>访问来讲，<code>ssl</code>认证能让客户端确认服务器的认证身份，客户端在跟服务器通信的时候，需要服务器发过来一个证书，客户端需要确认这个证书是不是<code>ca</code>签署的，如果该证书是客户端认可的<code>ca</code>签署的，里面的<code>subj</code>信息与客户端访问的目标主机信息保持一致，那么客户端就认为服务器的身份得到认证，<code>k8s</code>中最重要的是服务器还需要认证客户端的信息，<code>kubectl</code>也应该有一个证书，这个证书也是服务器所认可的<code>ca</code>签署的证书，双方需要互相认证，实现加密通信，这就是<code>ssl</code>认证。</p>
+<p><strong><code>kubernetes</code>上的账号</strong></p>
+<p>客户端对<code>apiserver</code>发起请求，<code>apiserver</code>要识别这个用户是否有请求的权限，要识别用户本身能否通过<code>apiserver</code>执行相应的操作，那么需要哪些信息才能够识别用户，从而来完成对用户的相关访问控制呢？</p>
+<p><code>kubectl explain pods.spec</code>可以看到有一个字段<code>serviceAccountName</code>(服务账号名称)，这个就是<code>pod</code>连接<code>apiserver</code>时使用的账号，因此整个<code>kubernetes</code>集群中的账号有两类，<code>Service Account </code>(服务账号)，<code>User account</code>(用户账号)。</p>
+<p><code>User account</code>：使用主体是现实中的&quot;人&quot;，客户端想对<code>apiserver</code>发起请求，<code>apiserver</code>要识别这个客户端是否有请求的权限，那么不同的用户就会有不同的权限，靠用户账号表示，叫做<code>username</code>，一般由外部的用户管理系统存储和管理，<code>kubernets</code>本身并不维护这一类的任何用户账户信息，它们不会存储到<code>apiserver</code>中。</p>
+<p><code>ServiceAccount</code>：使用主体是&quot;应用程序&quot;，是<code>k8s</code>中的一种资源，方便<code>pod</code>里面的进程调用<code>k8s API</code>或其它外部服务而设计的。</p>
+<p>1）<code>ServiceAccount</code></p>
+<p><code>Service Account</code>账号是为了方便<code>pod</code>里面的进程调用<code>Kubernetes API</code>或者其它外部服务而设计的，它与<code>User account</code>不同，<code>User account</code>是为现实中的人设计的，是跨名称空间的，而<code>Service Account</code>则是仅局限它所在的名称空间，开启 <code>ServiceAccount Admission Controller</code> 后，每个名称空间都会自动创建一个名称为<code>default</code>的<code>Service Account</code>。</p>
+<ol>
+<li><code>pod</code>创建后都会自动设置<code>spec.serviceAccount</code>为<code>default</code>(除非指定了其它<code>ServiceAccount</code>)。</li>
+<li>验证<code>pod</code>引用的<code>ServiceAccount</code>已经存在，否则拒绝创建。</li>
+</ol>
+<pre><code class="language-bash">[root@master1 ~]# kubectl get pods
+NAME                               READY       STATUS    
+nfs-provisioner-5448d86c75-tqd9z   1/1        Running   
+pod-secret                         1/1        Running  
+pod-secret-volume                  1/1        Running  
+web-0                              1/1        Running   
+web-1                              1/1        Running
+</code></pre>
+<pre><code class="language-bash">[root@master1 ~]# kubectl get pods pod-secret -o yaml|grep &quot;serviceAccountName&quot;
+  serviceAccountName: default
+</code></pre>
+<pre><code class="language-bash">[root@master1 ~]# kubectl describe pods pod-secret|grep &quot;Volume&quot; -A 4
+Volumes:
+  default-token-pjqrk:
+    Type:        Secret (a volume populated by a Secret)
+    SecretName:  default-token-pjqrk
+    Optional:    false
+</code></pre>
+<p>从上面可以看到每个<code>pod</code>无论定义与否都会有一个存储卷，这个存储卷为<code>default-token-***</code>，<code>pod</code>和<code>apiserver</code>的认证信息通过<code>secret</code>进行定义，由于认证信息属于敏感信息，所以需要保存在<code>secret</code>资源当中，并以存储卷的方式挂载到<code>pod</code>当中，从而让<code>pod</code>内运行的应用通过对应的<code>secret</code>中的信息来连接<code>apiserver</code>，并完成认证，每个名称空间中都有一个默认的<code>default</code>的<code>serviceaccount</code>资源，查看名称空间内的<code>secret</code>，也可以看到对应的<code>default-token</code>，让该名称空间中所有的<code>pod</code>在连接<code>apiserver</code>时可以使用的预制认证信息，从而保证<code>pod</code>之间的通信。</p>
+<pre><code class="language-bash">[root@master1 ~]# kubectl get sa
+NAME              SECRETS   AGE
+default           1         44d
+[root@master1 ~]# kubectl get secrets 
+NAME                          TYPE                                  DATA   AGE
+default-token-pjqrk           kubernetes.io/service-account-token   3      44d
+</code></pre>
+<p>默认的<code>serviceAccount</code>仅仅只能获取当前<code>pod</code>自身的相关属性，无法观察到其它名称空间<code>pod</code>的相关属性信息，假设有一个<code>pod</code>需要用于管理其它<code>pod</code>或者资源对象，就需要手动创建一个<code>serviceAccount</code>，并在创建<code>pod</code>时进行定义，那么<code>serviceAccount</code>该如何创建呢？<code>serviceAccount</code>也属于<code>k8s</code>的标准资源，示例如下：</p>
+<pre><code class="language-bash">[root@master1 ~]# kubectl create serviceaccount test
+serviceaccount/test created
+[root@master1 ~]# kubectl get sa|grep test
+test              1         12s
+#可以看到已经创建了名为test的serviceaccount
+[root@master1 ~]# kubectl describe sa test
+Name:                test
+Namespace:           default
+Labels:              &lt;none&gt;
+Annotations:         &lt;none&gt;
+Image pull secrets:  &lt;none&gt;
+Mountable secrets:   test-token-7jc9k
+Tokens:              test-token-7jc9k
+Events:              &lt;none&gt;
+#可以看到生成了一个test-token-7jc9k的secret和test-token-7jc9k的token
+[root@master1 ~]# kubectl get secrets|grep test
+test-token-7jc9k              kubernetes.io/service-account-token   3      8m34s
+[root@master1 ~]# kubectl describe secrets test-token-7jc9k 
+Name:         test-token-7jc9k
+Namespace:    default
+Labels:       &lt;none&gt;
+Annotations:  kubernetes.io/service-account.name: test
+              kubernetes.io/service-account.uid: 393dcbaa-56e1-45b2-8e40-c9a4072cd58b
+
+Type:  kubernetes.io/service-account-token
+
+Data
+====
+ca.crt:     1066 bytes
+namespace:  7 bytes
+token:      
+----
+</code></pre>
+<p>上面可以看到生成了<code>test-token-7jc9k</code>的<code>token</code>详细信息，这个<code>token</code>就是<code>sa</code>连接<code>apiserver</code>的认证信息，这个<code>token</code>也是登录<code>dashboard</code>的<code>token</code>，这些只是一个认证信息，但是不能做别事情，不代表权限，想要做其它事情，还需要授权。</p>
+<p>2）<code>kubeconfig</code>文件</p>
+<p>在<code>kubernetes</code>集群中，每一个客户端对资源的访问都是需要经过<code>apiserver</code>进行通信认证才能进行访问的，那么在此机制当中，对资源的访问可以是<code>token</code>，也可以通过配置文件的方式进行保存和使用认证信息，可以通过<code>kubectl config</code>进行查看配置，如下：</p>
+<pre><code class="language-bash">[root@master1 ~]# kubectl config view
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: DATA+OMITTED
+    server: https://192.168.40.180:6443            #apiserver的地址
+  name: kubernetes                                 #集群的名字
+contexts:
+- context:
+    cluster: kubernetes
+    namespace: default
+    user: kubernetes-admin
+  name: kubernetes-admin@kubernetes                #上下文的名字
+current-context: kubernetes-admin@kubernetes       #当前上下文的名字
+kind: Config
+preferences: {}
+users:
+- name: kubernetes-admin                           #用户
+  user:
+    client-certificate-data: REDACTED
+    client-key-data: REDACTED
+</code></pre>
+<p>在上面的配置文件当中，定义了集群、上下文以及用户，其中<code>Config</code>也是<code>k8s</code>的标准资源之一，在该配置文件当中定义了一个集群列表，指定的集群可以有多个，用户列表也可以有多个，而在上下文列表当中，是进行定义可以使用哪个用户访问哪个集群，以及当前使用的上下文是什么。</p>
+<pre><code class="language-bash">[root@master1 ~]# kubectl get pods --kubeconfig=.kube/config
+NAME                               READY   STATUS    
+nfs-provisioner-5448d86c75-tqd9z   1/1     Running   
+pod-secret                         1/1     Running   
+pod-secret-volume                  1/1     Running   
+web-0                              1/1     Running   
+web-1                              1/1     Running
+</code></pre>
+<h3 id="授权">授权</h3>
+<p>在<code>kubernetes</code>中，所有的资源对象都是通过<code>apiserver</code>进行操作，它们保存在<code>etcd</code>里，如果用户通过认证，什么权限都没有，需要一些后续的授权操作，如对资源的增删改查等，<code>kubernetes 1.6</code>版本之后开始有<code>RBAC</code>(基于角色的访问控制)授权检查机制。</p>
+<p><code>kubernetes</code>的授权是基于插件形成的，其常用的授权插件有以下几种：</p>
+<ol>
+<li><code>Node</code>(节点认证)</li>
+<li><code>ABAC</code>(基于属性的访问控制)</li>
+<li><code>RBAC</code>(基于角色的访问控制)  ******</li>
+<li><code>Webhook</code>(基于<code>http</code>回调机制的访问控制)</li>
+</ol>
+<p>什么是<code>RBAC</code>(基于角色的访问控制)？</p>
+<p>让一个用户(<code>User</code>)属于一个角色(<code>Role</code>)，角色拥有权限，从而让用户拥有这样的权限，随后在授权机制当中，只需要将权限授予某个角色，从而实现角色的访问控制，如图：<br>
+<img src="https://ajie825.github.io/post-images/1705730753813.png" alt="" loading="lazy"><br>
+在<code>k8s</code>的授权机制当中，采用<code>RBAC</code>的方式进行授权，其工作逻辑是，把对象的操作权限定义到一个角色当中，再将用户绑定到该角色，从而使用户得到对应角色的权限，如果通过<code>rolebinding</code>绑定角色，只能对<code>rolebinding</code>所在的名称空间的资源有权限，上图<code>user1</code>这个用户绑定到<code>role1</code>上，只对<code>role1</code>这个名称空间的资源有权限，对其它名称空间资源没有权限，属于名称空间级别的。</p>
+<p>另外，<code>k8s</code>还有一种集群级别的授权机制，就是定义一个集群角色(<code>ClusterRole</code>)，对集群内的所有资源都可操作的权限，从而将<code>User2</code>通过<code>ClusterRoleBinding</code>到集群角色，<code>User2</code>拥有集群的操作权限。</p>
+<p><code>Role</code>、<code>RoleBinding</code>、<code>ClusterRole</code>和<code>ClusterRoleBinding</code>的关系如下图：<br>
+<img src="https://ajie825.github.io/post-images/1705731333948.png" alt="" loading="lazy"></p>
+<p>上图可以看到，可以通过<code>rolebinding</code>绑定角色，<code>rolebinding</code>绑定集群角色，<code>clusterrolebinding</code>绑定集群角色。</p>
+<p>上面说了两个角色绑定：</p>
+<ol>
+<li>用户通过<code>rolebinding</code>绑定角色</li>
+<li>用户通过<code>clusterrolebinding</code>绑定集群角色</li>
+</ol>
+<p>还有一种：<code>rolebinding</code>绑定集群角色，<code>rolebinding</code>绑定集群角色的好处：</p>
+<p>假如有6个名称空间，每个名称空间的用户都需要对自己的名称空间有管理员权限，那么需要定义6个角色和<code>rolebinding</code>，然后依次绑定，如果名称空间更多，我们需要定义更多的角色，这个是很麻烦的，所以我们引入了集群角色，定义一个集群角色，对集群角色授予所有权限，然后用户通过<code>rolebinding</code>绑定集群角色，就会拥有自己名称空间的管理员权限了。</p>
+<p>注意：<code>rolebinding</code>仅仅对当前名称空间有对应的权限。</p>
+<h2 id="serviceaccount介绍">ServiceAccount介绍</h2>
+<p><code>kubernetes</code>中账户区分为：<code>User Accounts</code>(用户账户)和<code>Service Accounts</code>(服务账户)两种。</p>
+<p><code>UserAccount</code>是给<code>kubernetes</code>集群外部用户使用的，例如运维或者集群的管理人员，<code>kubeadm</code>安装的<code>k8s</code>，会在用户家目录下创建一个认证配置文件<code>.kube/config</code>，默认用户账号是<code>kubernetes-admin</code>，这里面保存了客户端访问<code>apiserver</code>的密钥相关信息，当用<code>kubectl</code>访问<code>k8s</code>时，它就会自动读取该配置文件，向<code>apiserver</code>发起认证，然后完成操作请求。</p>
+<pre><code class="language-bash">[root@master1 ~]# cat .kube/config  
+...
+users:
+- name: kubernetes-admin
+  user:
+...
+</code></pre>
+<p><code>ServiceAccount</code>简称<code>sa</code>，是<code>pod</code>使用的账号，<code>pod</code>容器里的进程访问<code>apiserver</code>时使用的就是<code>sa</code>账户，<code>sa</code>仅局限它所在的名称空间，每个名称空间创建时都会有一个<code>default</code>的<code>sa</code>，创建<code>pod</code>时，如果没有指定<code>sa</code>，<code>pod</code>则会使用<code>default</code>的<code>sa</code>。</p>
+<h2 id="rbac认证授权策略">RBAC认证授权策略</h2>
+<p><code>RBAC</code>介绍</p>
+<p>在<code>kubernetes</code>中，所有资源对象都是通过<code>API</code>进行操作，它们保存在<code>etcd</code>里，而对<code>etcd</code>的操作需要通过访问<code>apiserver</code>来实现，<code>ServiceAccount</code>就是<code>apiserver</code>的认证账号，而授权机制是通过<code>RBAC</code>(基于角色的访问控制)来实现。</p>
+<p><code>RBAC</code>有四个资源对象：分别是<code>Role</code>、<code>ClusterRole</code>、<code>RoleBinding</code>、<code>ClusterRoleBinding</code>。</p>
+<h3 id="role角色">Role角色</h3>
+<p><code>RBAC</code>的<code>Role</code>或<code>ClusterRole</code>中包含一组代表相关权限的规则，<code>Role</code>用来在某个名称空间内设置访问权限，在创建<code>Role</code>时，必须指定该<code>Role</code>所在的名称空间，例如：定义一个角色用来读取名称空间内<code>pod</code>的权限。</p>
+<pre><code class="language-bash">apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pod-read
+  namespace: rbac
+rules:
+- apiGroups: [&quot;&quot;]
+  resources: [&quot;pods&quot;]
+  resourceNames: []
+  verbs: [&quot;get&quot;,&quot;watch&quot;,&quot;list&quot;]
+  
+kubectl describe role -n rbac
+Name:         pod-read
+Labels:       &lt;none&gt;
+Annotations:  &lt;none&gt;
+PolicyRule:
+  Resources  Non-Resource URLs  Resource Names  Verbs
+  ---------  -----------------  --------------  -----
+  pods       []                 []              [get watch list]
+</code></pre>
+<p><code>rules</code>中的参数说明：</p>
+<ol>
+<li><code>apiGroups</code>：支持的<code>API</code>组列表，例如<code>apiVersion: batch/v1</code>等。</li>
+<li><code>resources</code>：支持的资源对象列表，例如<code>pods</code>、<code>deployment</code>、<code>jobs</code>等。</li>
+<li><code>resourcesNames</code>：指定<code>resources</code>中具体特定资源对象的名称。</li>
+<li><code>verbs</code>：对资源对象的操作方法列表。</li>
+</ol>
+<h3 id="clusterrole集群角色">ClusterRole集群角色</h3>
+<p><code>ClusterRole</code>是一个集群作用域的资源，它还可以用于以下特殊元素的授权：</p>
+<ol>
+<li>集群范围的资源，例如<code>Node</code>。</li>
+<li>非资源型的路径，例如<code>/healthz</code>。</li>
+<li>包含全部名称空间的资源，例如<code>pods</code>。</li>
+</ol>
+<p>例如：定义一个集群角色可让用户访问任意<code>secrets</code>。</p>
+<pre><code class="language-bash">apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: secret-reader
+  #namespace被忽略
+rules:
+- apiGroups: [&quot;&quot;]
+  resources: [&quot;secrets&quot;]
+  verbs: [&quot;get&quot;,&quot;watch&quot;,&quot;list&quot;]
+  
+kubectl describe clusterrole secret-reader        
+Name:         secret-reader
+Labels:       &lt;none&gt;
+Annotations:  &lt;none&gt;
+PolicyRule:
+  Resources  Non-Resource URLs  Resource Names  Verbs
+  ---------  -----------------  --------------  -----
+  secrets    []                 []              [get watch list]
+</code></pre>
+<h3 id="rolebinding和clusterrolebinding">RoleBinding和ClusterRoleBinding</h3>
+<p><code>RoleBinding</code>是将角色中定义的权限赋予一个或一组用户，它包含若干主体(<code>Subject</code>)，可以是<code>User</code>、<code>Group</code>、<code>ServiceAccount</code>，<code>RoleBinding</code>在指定的名称空间中执行授权，而<code>ClusterRoleBinding</code>在集群范围内执行授权。</p>
+<p>例如：将<code>rbac</code>名称空间的<code>pod-read</code>角色授予用户<code>es</code>。</p>
+<pre><code class="language-bash">apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pod-read-bind
+  namespace: rbac
+subjects:        #可以指定不止一个&quot;subject(主体)&quot;
+- kind: User
+  name: es
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: pod-read #必须与绑定的Role或ClusterRole名称匹配
+  apiGroup: rbac.authorization.k8s.io
+  
+kubectl describe rolebindings.rbac.authorization.k8s.io -n rbac   
+Name:         pod-read-bind
+Labels:       &lt;none&gt;
+Annotations:  &lt;none&gt;
+Role:
+  Kind:  Role
+  Name:  pod-read
+Subjects:
+  Kind  Name  Namespace
+  ----  ----  ---------
+  User  es 
+  
+#注意：如果rolebinding不加名称空间，则是将default名称空间的pod-read角色授予给用户es
+</code></pre>
+<p><code>RoleBinding</code>也可以引用<code>ClusterRole</code>，以将<code>ClusterRole</code>中定义的角色访问权限授予<code>RoleBinding</code>所在名称空间的资源，这种引用使得可以跨整个集群定义一组通用的角色，之后在多个名称空间中复用。</p>
+<p>例如：下面的<code>RoleBinding</code>引用的是一个<code>ClusterRole</code>，<code>es</code>用户只能访问<code>rbac</code>名称空间中的<code>Secret</code>对象，因为<code>RoleBinding</code>所在的名称空间是<code>rbac</code>。</p>
+<pre><code class="language-bash">apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: read-secrets
+  namespace: rbac              #RoleBinding的名称空间决定了访问权限的授予范围
+subjects:  
+- kind: User
+  name: es
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: secrets-clusterrole    #必须与ClusterRole的名称匹配
+  apiGroup: rbac.authorization.k8s.io
+</code></pre>
+<p>要跨整个集群完成访问权限的授予，可以使用<code>ClusterRoleBinding</code>。</p>
+<p>例如：允许<code>manager</code>组的用户读取所有名称空间的<code>secrets</code>。</p>
+<pre><code class="language-bash">apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: read-secret-global
+subjects:  
+- kind: Group
+  name: manager
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: secrets-clusterrole
+  apiGroup: rbac.authorization.k8s.io
+</code></pre>
+<h2 id="资源的引用方式">资源的引用方式</h2>
+<p>在<code>kubernetes API</code>中，大多数资源都是使用对象名称的字符串表示来呈现与访问的，例如，对于<code>pod</code>应使用<code>&quot;pods&quot;</code>，<code>RBAC</code>使用对应<code>API</code>端点的<code>URL</code>中呈现的名字来引用资源，有一些<code>kubernetes API</code>涉及子资源，例如<code>pod</code>的日志，对<code>pod</code>日志的请求看起来像这样：<code>GET /api/v1/namespaces/{namespace}/pods/{podname}/log</code>，</p>
+<p>在这里，<code>pods</code>对应名称空间作用域的<code>pod</code>资源，而<code>log</code>是<code>pods</code>的子资源，<code>RBAC</code>表达子资源时，使用斜线(<code>&quot;/&quot;</code>)来分隔资源和子资源，要允许某主体读取<code>pods</code>同时访问这些<code>pod</code>的<code>log</code>子资源，可以这样写：</p>
+<pre><code class="language-bash">apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: default
+  name: pod-logs-reader
+rules:
+- apiGroups: [&quot;&quot;]
+  resources: [&quot;pods&quot;, &quot;pods/log&quot;]
+  verbs: [&quot;get&quot;, &quot;list&quot;]
+</code></pre>
+<p>对于某些请求，还可以通过资源名称(<code>ResourceName</code>)进行引用，指定资源名称后，使用<code>get</code>、<code>delete</code>、<code>update</code>、<code>patch</code>请求，就会被限制在这个资源实例范围内。</p>
+<p>例如：让一个主体只能对名为<code>my-configmap</code>的<code>Configmap</code>进行<code>get</code>和<code>update</code>操作：</p>
+<pre><code class="language-bash">apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: default
+  name: configmap-updater
+rules:
+- apiGroups: [&quot;&quot;]
+  resources: [&quot;configmaps&quot;]
+  resourceNames: [&quot;my-configmap&quot;]
+  verbs: [&quot;update&quot;, &quot;get&quot;]
+</code></pre>
+<h2 id="常见角色示例">常见角色示例</h2>
+<p>以下示例均从<code>Role</code>或<code>ClusterRole</code>对象中截取出来，仅展示其<code>rules</code>部分。</p>
+<p>1、允许读取核心<code>API</code>组的<code>Pod</code>资源</p>
+<pre><code class="language-bash">rules:
+- apiGroups: [&quot;&quot;]
+  #在HTTP层，用来访问Pod资源的名称为&quot;pods&quot;
+  resources: [&quot;pods&quot;]
+  verbs: [&quot;get&quot;,&quot;list&quot;,&quot;watch&quot;]
+</code></pre>
+<p>2、允许在<code>extensions</code>和<code>apps</code>两个<code>API</code>组中读/写<code>deployment</code>资源</p>
+<pre><code class="language-bash">rules:
+- apiGroups: [&quot;extensions&quot;,&quot;apps&quot;]
+  #在HTTP层面，用来访问Deployment资源的名称为&quot;deployments&quot;
+  resources: [&quot;deployments&quot;]
+  verbs: [&quot;get&quot;,&quot;list&quot;,&quot;watch&quot;,&quot;create&quot;,&quot;update&quot;,&quot;patch&quot;,&quot;delete&quot;]
+</code></pre>
+<p>3、允许读取核心组中的<code>pod</code>和读写<code>extensions</code>和<code>batch</code>两个<code>API</code>组中<code>job</code>资源</p>
+<pre><code class="language-bash">rules:
+- apiGroups: [&quot;&quot;]
+  resources: [&quot;pods&quot;]
+  verbs: [&quot;get&quot;,&quot;list&quot;,&quot;watch&quot;]
+- apiGroups: [&quot;batch&quot;,&quot;extensions&quot;]
+  #在HTTP层面，用来访问Job资源的名称为&quot;jobs&quot;
+  resources: [&quot;jobs&quot;]
+  verbs: [&quot;get&quot;,&quot;list&quot;,&quot;watch&quot;,&quot;create&quot;,&quot;update&quot;,&quot;patch&quot;,&quot;delete&quot;]
+</code></pre>
+<p>4、允许读取名为<code>my-config</code>的<code>ConfigMap</code>(必须通过<code>RoleBinding</code>限制到某个名称空间的<code>ConfigMap</code>)</p>
+<pre><code class="language-bash">rules:
+- apiGroups: [&quot;&quot;]
+  #在HTTP层面，用来访问ConfigMap资源的名称为&quot;configmaps&quot;
+  resources: [&quot;configmaps&quot;]
+  resourceNames: [&quot;my-configmap&quot;]
+  verbs: [&quot;get&quot;]
+</code></pre>
+<p>5、读取核心组的<code>Node</code>资源(<code>Node</code>属于集群级别资源，必须使用<code>ClusterRoleBinding</code>绑定到集群角色）</p>
+<pre><code class="language-bash">rules:
+- apiGroups: [&quot;&quot;]
+  #在HTTP层面，用来访问Node资源的名称为&quot;nodes&quot;
+  resources: [&quot;nodes&quot;]
+  verbs: [&quot;get&quot;,&quot;list&quot;,&quot;watch&quot;]
+</code></pre>
+<p>6、允许对非资源端点<code>/healthz</code>及其子路径进行<code>GET</code>和<code>POST</code>操作(必须使用<code>ClusterRoleBinding</code>绑定到集群角色)</p>
+<pre><code class="language-bash">rules:
+  #nonResourceURL中的'*'是一个全局通配符
+- nonResourceURLs: [&quot;/healthz&quot;,&quot;/healthz/*&quot;]
+  verbs: [&quot;get&quot;,&quot;post&quot;]
+</code></pre>
+<h2 id="常见角色绑定示例">常见角色绑定示例</h2>
+<p><code>RoleBinding</code>或者<code>ClusterRoleBinding</code>可以绑定角色到某主体(<code>Subject</code>)上，主体可以是组、用户或者服务账户，<code>kubernetes</code>用字符串来表示用户名，如<code>&quot;alice&quot;</code>，注意，前缀<code>system:</code>是<code>kubernetes</code>系统保留的，所以要确保配置的用户名或者组名不能出现<code>system:</code>前缀，服务账户(<code>ServiceAccount</code>)的前缀为<code>system:serviceaccount:</code>，属于前缀为 <code>system:serviceaccounts:</code> 的用户组。</p>
+<p>下面的示例是<code>RoleBinding</code>中的片段，仅展示其<code>subjects</code>的部分。</p>
+<p>1、用户名<code>alice</code></p>
+<pre><code class="language-bash">subjects:
+- kind: User
+  name: alice
+  apiGroup: rbac.authorization.k8s.io
+</code></pre>
+<p>2、组名<code>alice</code></p>
+<pre><code class="language-bash">subjects:
+- kind: Group
+  name: alice
+  apiGroup: rbac.authorization.k8s.io
+</code></pre>
+<p>3、<code>kube-system</code>名称空间中默认服务账户<code>default</code></p>
+<pre><code class="language-bash">subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: kube-system
+</code></pre>
+<p>4、<code>qa</code>名称空间中的所有服务账户</p>
+<pre><code class="language-bash">subjects:        
+- kind: Group
+  name: system:serviceaccounts
+  namespace: qa
+  apiGroup: rbac.authorization.k8s.io
+</code></pre>
+<p>5、任何名称空间中的服务账户</p>
+<pre><code class="language-bash">subjects:
+- kind: Group
+  name: system:serviceaccounts
+  apiGroup: rbac.authorization.k8s.io
+</code></pre>
+<p>6、所有已经过身份认证的用户</p>
+<pre><code class="language-bash">subjects:
+- kind: Group
+  name: system:authenticated
+  apiGroup: rbac.authorization.k8s.io
+</code></pre>
+<p>7、所有未通过身份认证的用户</p>
+<pre><code class="language-bash">subjects:
+- kind: Group
+  name: system:unauthenticated
+  apiGroup: rbac.authorization.k8s.io
+</code></pre>
+<p>8、所有用户</p>
+<pre><code class="language-bash">subjects:
+- kind: Group
+  name: system:authenticated
+  apiGroup: rbac.authorization.k8s.io
+- kind: Group
+  name: system:unauthenticated
+  apiGroup: rbac.authorization.k8s.io
+</code></pre>
+<h2 id="服务账户权限">服务账户权限</h2>
+<p><code>ServiceAccount</code>也是一种账户，给运行在<code>pod</code>里面的进程提供了必要的身份证明，需要在创建<code>pod</code>时指明引用的<code>ServiceAccount</code>，这样就可以对<code>pod</code>进行授权操作。</p>
+<p>例如：允许<code>pod</code>内的进程获取<code>rbac</code>名称空间的所有<code>pod</code>资源，<code>pod-reader-sc</code>是绑定了名为<code>pod-read</code>角色的<code>ServiceAccount</code>。</p>
+<pre><code class="language-bash">apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+  namespace: rbac
+spec:
+  serviceAccountName: pod-reader-sc
+  containers:
+  - name: nginx
+    image: nginx
+    imagePullPolicy: IfNotPresent
+    ports:
+    - containerPort: 80
+</code></pre>
+<p>默认的<code>RBAC</code>策略仅对控制面组件、节点和控制器授予了权限，但不会对<code>kube-system</code>名称空间之外的服务账户授予权限，这使得可以根据需要向特定的<code>ServiceAccount</code>授予特定权限，细粒度的角色绑定可带来更好的安全性，但需要更多精力管理，粗粒度的授权可能导致<code>ServiceAccount</code>被授予不必要的<code>API</code>访问权限，但更易于管理，下面按最安全到最不安全的顺序，存在以下方法：</p>
+<p>1、将角色授予名称空间中的特定应用服务账户(最佳实践)</p>
+<p>这要求应用在其<code>pod</code>的<code>spec</code>中指定<code>serviceAccountName</code>，并额外创建服务账户(包括通过<code>API</code>、应用程序清单、<code>kubectl create serviceaccount</code>等)。</p>
+<p>例如：在名称空间<code>my-namespace</code>中授予服务账户<code>my-sa</code>只读权限。</p>
+<pre><code class="language-bash">kubectl create rolebinding my-sa-view \
+  --clusterrole=view \
+  --serviceaccount=my-namespace:my-sa \
+  --namespace=my-namespace
+</code></pre>
+<p>2、将角色授予名称空间中的<code>default</code>服务账户</p>
+<p>如果某应用没有指定<code>serviceAccountName</code>，那么将使用<code>default</code>服务账户，注意，<code>default</code>服务账户所具有的权限会被授予给名称空间中所有未指定<code>serviceAccountName</code>的<code>pod</code>。</p>
+<p>例如：在名称空间<code>my-namespace</code>中授予服务账户<code>default</code>只读权限。</p>
+<pre><code class="language-bash">kubectl create rolebinding default-view \
+  --clusterrole=view \
+  --serviceaccount=my-namespace:default \
+  --namespace=my-namespace
+</code></pre>
+<p>许多插件组件在<code>kube-system</code>名称空间中以<code>default</code>服务账户运行，要允许这些插件组件以超级用户权限运行，需要将集群的<code>cluster-admin</code>权限授予<code>kube-system</code>名称空间中的<code>default</code>服务账户，启用这一配置意味着在<code>kube-system</code>名称空间中包含以超级用户账号来访问集群<code>API</code>的<code>secret</code>。</p>
+<pre><code class="language-bash">kubectl create clusterrolebinding add-on-cluster-admin \
+  --clusterrole=cluster-admin \
+  --serviceaccount=kube-system:default
+</code></pre>
+<p>3、将角色授予名称空间中的所有服务账户</p>
+<p>如果想要名称空间中所有应用都具有某角色，无论它们使用的是什么服务账户，可以将角色授予该名称空间的服务账户组。</p>
+<p>例如：将名称空间<code>my-namespace</code>的只读权限授予该名称空间中的所有服务账户。</p>
+<pre><code class="language-bash">kubectl create rolebinding serviceaccounts-view \
+  --clusterrole=view \
+  --group=system:serviceaccounts:my-namespace \
+  --namespace=my-namespace
+</code></pre>
+<p>4、将一个受限角色授予集群范围内的所有服务账户(不鼓励)</p>
+<pre><code class="language-bash">kubectl create clusterrolebinding serviceaccounts-view \
+  --clusterrole=view \
+  --group=system:serviceaccounts
+</code></pre>
+<p>5、将超级用户访问权限授予集群范围内的所有服务账户(禁止)</p>
+<pre><code class="language-bash">kubectl create clusterrolebinding serviceaccounts-cluster-admin \
+  --clusterrole=cluster-admin \
+  --group=system:serviceaccounts
+</code></pre>
+<h2 id="限制不同的用户操作k8s集群">限制不同的用户操作k8s集群</h2>
+<h3 id="生成证书">生成证书</h3>
+<p>1、生成私钥</p>
+<pre><code class="language-bash"> cd /etc/kubernetes/pki/
+ umask 077;openssl genrsa -out ajie.key 2048
+</code></pre>
+<p>2、生成证书请求</p>
+<pre><code class="language-bash">openssl req -new -key ajie.key -out ajie.csr -subj &quot;/CN=ajie&quot; 
+</code></pre>
+<p>3、生成证书</p>
+<pre><code class="language-bash">openssl x509 -req -in ajie.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out ajie.crt -days 3650 
+</code></pre>
+<h3 id="在kubeconfig新增ajie用户">在kubeconfig新增ajie用户</h3>
+<p>1、将<code>ajie</code>用户添加到<code>kubernetes</code>集群中，用来认证<code>apiserver</code>的连接</p>
+<pre><code class="language-bash">kubectl config set-credentials ajie --client-certificate=./ajie.crt --client-key=./ajie.key --embed-certs=true
+User &quot;ajie&quot; set.
+</code></pre>
+<p>2、配置上下文，使<code>ajie</code>用户可以访问<code>kubernetes</code>集群</p>
+<pre><code class="language-bash">kubectl config set-context ajie@kubernetes --cluster=kubernetes --user=ajie
+Context &quot;ajie@kubernetes&quot; created.
+</code></pre>
+<p>3、配置当前上下文，使用<code>ajie</code>用户访问集群，默认没有任何权限</p>
+<pre><code class="language-bash">kubectl config use-context ajie@kubernetes 
+Switched to context &quot;ajie@kubernetes&quot;.
+kubectl config use-context kubernetes-admin@kubernetes #这个用户是kubernetes集群管理员用户
+</code></pre>
+<h3 id="将ajie用户通过rolebinding绑定到clusterrole上授予ajie名称空间管理员权限">将ajie用户通过rolebinding绑定到clusterrole上，授予ajie名称空间管理员权限</h3>
+<pre><code class="language-bash">1）#将ajie用户通过rolebinding绑定到clusterrole上
+kubectl create ns ajie
+kubectl create rolebinding ajie -n ajie --clusterrole=cluster-admin --user=ajie
+</code></pre>
+<pre><code class="language-bash">2）#切换到ajie用户
+kubectl config use-context ajie@kubernetes 
+Switched to context &quot;ajie@kubernetes&quot;.
+</code></pre>
+<pre><code class="language-bash">3）#测试是否有权限
+#有权限操作ajie名称空间的资源对象
+kubectl get pod -n ajie 
+No resources found in ajie namespace.
+#没有权限操作其它名称空间的资源对象
+kubectl get pod
+User &quot;ajie&quot; cannot list resource &quot;pods&quot; in API group &quot;&quot; in the namespace &quot;default&quot;
+</code></pre>
+<h3 id="添加一下ajie的普通用户">添加一下ajie的普通用户</h3>
+<pre><code class="language-bash">useradd ajie
+cp -ar /root/.kube/ /home/ajie/
+chown -R ajie. /home/ajie/
+</code></pre>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Job&&CronJob调度pod]]></title>
+        <id>https://ajie825.github.io/post/job和cronjob调度pod/</id>
+        <link href="https://ajie825.github.io/post/job和cronjob调度pod/">
+        </link>
+        <updated>2024-01-08T09:30:48.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="job概念与原理解读">Job概念与原理解读</h2>
+<p><code>Job</code>控制器用于批量处理短暂的一次性任务，即仅执行一次的任务，它保证批处理任务的一个或者多个<code>pod</code>成功结束，比如说我们对数据库备份，可以直接在<code>k8s</code>上启动一个<code>mysqldump</code>备份程序，也可以启动一个<code>pod</code>，这个<code>pod</code>对象专门用来做备份的，备份结束<code>pod</code>就可以终止了，不需要重启，而是将<code>pod</code>对象置于<code>Completed</code>(完成)状态，若容器中的进程因错误而终止，则需要按照重启策略确定配置是否重启，未运行完成的<code>pod</code>对象因其所在的节点故障而意外终止后会被调度，<code>Job</code>控制器的<code>pod</code>对象的状态转换如下图所示：<br>
+<img src="https://ajie825.github.io/post-images/1704707606550.png" alt="" loading="lazy"></p>
+<p>0：完成状态、非0：错误状态；以非0状态码退出就会重启<code>pod</code>。</p>
+<h3 id="job三种使用类型">Job三种使用类型</h3>
+<ol>
+<li>非并行任务：只启动一个<code>pod</code>，<code>pod</code>成功，<code>job</code>正常结束。</li>
+<li>并行任务同时指定成功个数：<code>.spec.completions</code>为运行的作业指定成功的个数，可以指定也可以不指定，<code>spec.parallelism</code>(指定&gt;1，会有多个任务并行运行)，当成功个数达到<code>.spec.completions</code>，任务结束。</li>
+<li>有工作队列的并行任务：<code>.spec.completions</code>默认为1，<code>spec.parallelism</code>为大于0的整数，此时并行启动多个<code>pod</code>，只要有一个成功，任务结束，所有<code>pod</code>结束。</li>
+</ol>
+<h3 id="适用场景">适用场景</h3>
+<p><code>Job</code>不是设计用来完成通信密集型的并行程序，如科学计算领域常见的场景，它支持并行地处理一组独立但相关的<code>work item</code>，如发送邮件、渲染帧、转码文件和扫描<code>NoSql</code>数据库中的<code>key</code>。</p>
+<p>相关配置：</p>
+<pre><code class="language-bash">[root@master1 ~]# kubectl explain Job.spec
+completions：           #完成该job需要执行成功的pod数
+parallelism：           #能够同时运行的pod数
+backoffLimit：          #允许执行失败的pod数，默认是6，0表示不允许pod执行失败，如果pod的restartPolicy为Nerver，则失败后会创建新的pod
+                        #如果是OnFailed，则会重启pod，不管是哪种情况，只要pod失败一次就计算一次，当失败的次数达到该限制时，整个job随机结束，
+                        #所有正在运行的pod都会被删除
+activeDeadlineSeconds： #job的超时时间，一旦一个job运行的时间超出该限制，则job失败，所有运行中的pod会被结束并删除，不指定则不会超出            
+</code></pre>
+<p><code>Job</code>控制器的<code>spec</code>内嵌必要字段只有<code>template</code>，不需要定义标签选择器，控制器会自动关联，除了这一点与<code>Deployment</code>控制器不同，其它别无二致。</p>
+<h2 id="cronjob概念-原理解读">CronJob概念、原理解读</h2>
+<p><code>CronJob</code>跟<code>Job</code>完成的工作是一样的，只不过<code>CronJob</code>添加了定时任务可以在指定的时间，实现周期性运行，<code>Job</code>、<code>CronJob</code>和<code>Deployment</code>、<code>DaemonSet</code>显著区别在于不需要持续在后台运行，<code>Deployment</code>用于管理无状态的应用(<code>k8s</code>集群有一些<code>pod</code>，某一个<code>pod</code>出现故障，删除之后会启动一个新的<code>pod</code>，那么<code>k8s</code>集群中<code>pod</code>数量就正常了，更多关注的是群体，这就是无状态应用)。</p>
+<h3 id="使用场景">使用场景</h3>
+<ol>
+<li>在给定时间点只运行一次。</li>
+<li>在给定时间点周期性地运行。</li>
+</ol>
+<h3 id="cronjob的典型用法">CronJob的典型用法</h3>
+<ol>
+<li>在给定的时间点调度<code>Job</code>运行。</li>
+<li>创建周期性运行的<code>Job</code>，例如数据库备份、发送邮件。</li>
+</ol>
+<h2 id="job控制器资源清单编写技巧">Job控制器资源清单编写技巧</h2>
+<p>查看<code>Job</code>资源对象由哪几部分组成</p>
+<pre><code class="language-bash">[root@master1 ~]# kubectl explain Job
+KIND:     Job
+VERSION:  batch/v1
+
+FIELDS：
+  apiVersion    &lt;string&gt;
+  kind          &lt;string&gt;
+  metadata      &lt;Object&gt;          #元数据，定义资源的名字和所在名称空间
+  spec          &lt;Object&gt;
+  status        &lt;Object&gt;
+</code></pre>
+<p>查看<code>Job</code>下的<code>spec</code>字段</p>
+<pre><code class="language-bash">[root@master1 ~]# kubectl explain Job.spec
+FIELDS：
+ activeDeadlineSeconds  &lt;integer&gt;  #通过指定job存活时间，来结束一个job。当job运行时间达到activeDeadlineSeconds指定的时间后
+                                   #job会停止由它启动的所有任务如：pod，并设置job的状态为failed
+ backoffLimit           &lt;integer&gt;  #job建议指定pod的重启策略为never，然后通过job的backoffLimit来指定失败重试次数，在达到backoffLimit指定的次数后
+　　　　　　　　　　　　　　　　      #job状态设置为failed(默认为 6 次)
+
+completionMode          &lt;string&gt; 
+completions             &lt;integer&gt;  #指定job启动的任务(如：pod)成功运行completions次，job才算成功结束
+manualSelector          &lt;boolean&gt;
+parallelism             &lt;integer&gt;  #指定job同时运行的任务(如：pod)个数，Parallelism默认为1， 如果设置为0，则job会暂定
+
+podFailurePolicy        &lt;Object&gt; 
+selector                &lt;Object&gt;
+suspend                 &lt;boolean&gt;
+template                &lt;Object&gt; -required-
+ttlSecondsAfterFinished &lt;integer&gt; #默认情况下，job异常或者成功结束后，包括job启动的任务pod，都不会被清理掉，因为你可以依据保存的job和pod
+                                  #查看状态、日志，以及调试等。这些用户可以手动删除，用户手动删除job，job controller会级联删除对应的pod
+                                  #除了手动删除，通过指定参数ttlSecondsAfterFinished也可以实现自动删除job，以及级联的资源，如pod
+                                  #如果设置为0，job会被立即删除，如果不指定，job 则不会被删除
+</code></pre>
+<p><code>job</code>的<code>restart</code>策略：</p>
+<ul>
+<li><code>Nerver</code>：只要任务没有完成，则是新创建<code>pod</code>运行，直到<code>job</code>完成，会产生多个<code>pod</code>。</li>
+<li><code>OnFailure</code>：只要<code>pod</code>没有完成，则会重启<code>pod</code>，直到<code>job</code>完成。</li>
+</ul>
+<h3 id="实战job使用案例-创建一个一次性任务">实战：Job使用案例-创建一个一次性任务</h3>
+<pre><code class="language-bash">1）#编写资源清单文件
+[root@master1 job]# cat job-demo.yaml 
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: busybox-job
+spec:
+  completions: 6      #job结束需要成功运行的pod个数，即状态为Completed的pod数
+  parallelism: 3      #一次运行3个pod，这个值不会超过completions个数
+  backoffLimit: 6     #如果job失败，重试次数
+  template:
+    metadata:
+      labels:
+        app: test
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: container-job
+        image: busybox:1.28
+        imagePullPolicy: IfNotPresent
+        command: [&quot;sh&quot;,&quot;-c&quot;]
+        args: [echo &quot;Welcome to xc&quot;; sleep 60; echo &quot;Next to Meet you&quot;]
+        
+ [root@master1 job]# kubectl apply -f job-demo.yaml 
+job.batch/busybox-job created    
+</code></pre>
+<pre><code class="language-bash">2）#打开另一个终端查看pod的创建过程，启动了3个pod，completed后又启动了3个
+[root@master1 ~]# kubectl get pods -l app=test -w
+NAME                READY   STATUS    RESTARTS   AGE
+busybox-job-fxx7z   0/1     Pending   0          0s
+busybox-job-bsbfd   0/1     Pending   0          0s
+busybox-job-qcqct   0/1     Pending   0          0s
+busybox-job-bsbfd   0/1     Pending   0          0s
+busybox-job-fxx7z   0/1     Pending   0          0s
+busybox-job-qcqct   0/1     Pending   0          0s
+busybox-job-fxx7z   0/1     ContainerCreating   0          0s
+busybox-job-bsbfd   0/1     ContainerCreating   0          0s
+busybox-job-qcqct   0/1     ContainerCreating   0          0s
+busybox-job-bsbfd   0/1     ContainerCreating   0          1s
+busybox-job-qcqct   0/1     ContainerCreating   0          2s
+busybox-job-fxx7z   0/1     ContainerCreating   0          2s
+busybox-job-bsbfd   1/1     Running             0          2s
+busybox-job-qcqct   1/1     Running             0          2s
+busybox-job-fxx7z   1/1     Running             0          2s
+busybox-job-bsbfd   0/1     Completed           0          61s
+busybox-job-tq84p   0/1     Pending             0          0s
+busybox-job-tq84p   0/1     Pending             0          0s
+busybox-job-tq84p   0/1     ContainerCreating   0          0s
+busybox-job-bsbfd   0/1     Completed           0          61s
+busybox-job-tq84p   0/1     ContainerCreating   0          1s
+busybox-job-tq84p   1/1     Running             0          1s
+busybox-job-qcqct   0/1     Completed           0          63s
+busybox-job-kdhrp   0/1     Pending             0          0s
+busybox-job-kdhrp   0/1     Pending             0          0s
+busybox-job-kdhrp   0/1     ContainerCreating   0          0s
+busybox-job-fxx7z   0/1     Completed           0          63s
+busybox-job-mfbbw   0/1     Pending             0          0s
+busybox-job-mfbbw   0/1     Pending             0          0s
+busybox-job-mfbbw   0/1     ContainerCreating   0          0s
+busybox-job-qcqct   0/1     Completed           0          63s
+busybox-job-fxx7z   0/1     Completed           0          63s
+busybox-job-kdhrp   0/1     ContainerCreating   0          1s
+busybox-job-mfbbw   0/1     ContainerCreating   0          1s
+busybox-job-mfbbw   1/1     Running             0          2s
+busybox-job-kdhrp   1/1     Running             0          2s
+busybox-job-tq84p   0/1     Completed           0          62s
+busybox-job-tq84p   0/1     Completed           0          62s
+busybox-job-mfbbw   0/1     Completed           0          62s
+busybox-job-kdhrp   0/1     Completed           0          62s
+busybox-job-mfbbw   0/1     Completed           0          62s
+busybox-job-kdhrp   0/1     Completed           0          62s
+</code></pre>
+<pre><code class="language-bash">[root@master1 ~]# kubectl get pods
+NAME                               READY   STATUS      RESTARTS   
+busybox-job-bsbfd                  0/1     Completed      0          
+busybox-job-fxx7z                  0/1     Completed      0          
+busybox-job-kdhrp                  0/1     Completed      0         
+busybox-job-mfbbw                  0/1     Completed      0        
+busybox-job-qcqct                  0/1     Completed      0       
+busybox-job-tq84p                  0/1     Completed      0
+</code></pre>
+<pre><code class="language-bash">3）#查看pod的日志
+[root@master1 ~]# kubectl logs busybox-job-bsbfd
+Welcome to xc
+Next to Meet you
+</code></pre>
+<h2 id="cronjob控制器资源清单编写技巧">CronJob控制器资源清单编写技巧</h2>
+<p>查看<code>CronJob</code>资源对象由哪几部分组成</p>
+<pre><code class="language-bash">[root@master1 ~]# kubectl explain cronjob
+KIND:     CronJob
+VERSION:  batch/v1beta1
+DESCRIPTION:
+     #CronJob表示单个cron作业的配置
+
+FIELDS:
+   apiVersion   &lt;string&gt;
+   kind         &lt;string&gt;
+   metadata     &lt;Object&gt;
+   spec         &lt;Object&gt;
+   status       &lt;Object&gt;
+</code></pre>
+<p>查看<code>CronJob</code>下的<code>spec</code>字段</p>
+<pre><code class="language-bash">[root@master1 ~]# kubectl explain cronjob.spec
+KIND:     CronJob
+VERSION:  batch/v1beta1
+RESOURCE: spec &lt;Object&gt;
+DESCRIPTION:
+    #cron作业所需行为的规范，包括时间表
+FIELDS:
+   jobTemplate  &lt;Object&gt; -required-
+        #job控制器模板，指定在执行CronJob时创建的作业
+   schedule     &lt;string&gt; -required-
+        #Cron格式的作业调度运行时间点，用于控制任务在什么时间执行
+</code></pre>
+<h3 id="实战cronjob使用案例-创建周期性定时任务">实战：CronJob使用案例-创建周期性定时任务</h3>
+<pre><code class="language-bash">[root@master1 job]# cat cronjob-demo.yaml 
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: hello-cronjob
+spec:
+  schedule: &quot;*/1 * * * *&quot;
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+             app: cro
+        spec:
+          containers:
+          - name: hello-container
+            image: busybox:1.28
+            imagePullPolicy: IfNotPresent
+            command:
+            - /bin/sh
+            - -c
+            - date; echo Hello from the Kubernetes cluster
+          restartPolicy: OnFailure
+[root@master1 job]# kubectl apply -f cronjob-demo.yaml  
+cronjob.batch/hello-cronjob created
+</code></pre>
+<pre><code class="language-bash">[root@master1 ~]# kubectl get cronjob -w
+NAME            SCHEDULE      SUSPEND   ACTIVE   LAST SCHEDULE   AGE
+hello-cronjob   */1 * * * *   False     0        &lt;none&gt;          0s
+hello-cronjob   */1 * * * *   False     1        0s              43s
+hello-cronjob   */1 * * * *   False     0        10s             53s
+hello-cronjob   */1 * * * *   False     1        0s              103s
+hello-cronjob   */1 * * * *   False     0        10s             113s
+</code></pre>
+<pre><code class="language-bash">[root@master1 ~]# kubectl get job -w
+NAME                       COMPLETIONS   DURATION   AGE
+hello-cronjob-1704791640   0/1                      0s
+hello-cronjob-1704791640   0/1           0s         0s
+hello-cronjob-1704791640   1/1           3s         3s
+hello-cronjob-1704791700   0/1                      0s
+hello-cronjob-1704791700   0/1           0s         0s
+hello-cronjob-1704791700   1/1           1s         1
+</code></pre>
+<pre><code class="language-bash">[root@master1 job]# kubectl get pods
+NAME                               READY   STATUS      RESTARTS   AGE
+hello-cronjob-1704791700-gzskd     0/1     Completed   0          2m53s
+hello-cronjob-1704791760-96k25     0/1     Completed   0          113s
+hello-cronjob-1704791820-g4t4j     0/1     Completed   0          52s
+[root@master1 job]# kubectl logs  hello-cronjob-1704791700-gzskd
+Tue Jan  9 09:14:02 UTC 2024
+Hello from the Kubernetes cluster
+</code></pre>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[持续集成教程 (八)]]></title>
+        <id>https://ajie825.github.io/post/持续集成教程(八)/</id>
+        <link href="https://ajie825.github.io/post/持续集成教程(八)/">
+        </link>
+        <updated>2023-10-19T08:56:43.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="什么是jenkins-pipeline">什么是<code>Jenkins pipeline</code></h2>
+<p><code>pipeline</code>是一套运行在<code>Jenkins</code>上的工作流框架，<code>Jenkins 2.X</code>版本的核心功能，主要是将一个大的工作流拆分成多个独立的功能模块，实现单个任务难以完成的复杂流程编排和可视化。</p>
+<p><code>Jenkins pipeline</code>也是实现<code>CICD As file</code>的一个重要工具，将<code>pipeline</code>编写成<code>Jenkinsfile</code>与业务代码一起存放。</p>
+<p><code>pipeline</code>支持两种语法：</p>
+<ol>
+<li>
+<p>声明式语法</p>
+<p><code>Jenkins</code>新加入的语法规则，在<code>Jenkinsfile</code>固定的关键字之内，所采用的语法风格大多与<code>shell</code>类似，这种风格更加符合日常的阅读习惯，也更简单，以后都将采用这种方式进行介绍以及深入。</p>
+</li>
+<li>
+<p>脚本式语法</p>
+<p>不是<code>shell</code>脚本形式，而是基于<code>Groovy</code>语言的语法风格，学习成本相对较高</p>
+</li>
+</ol>
+<p>建议直接使用声明式语法清晰简单明了，适合大部分人入门</p>
+<h2 id="pipeline和freestyle对比"><code>pipeline</code>和<code>FreeStyle</code>对比</h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>灵活方式</th>
+<th>显示形式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>FreeStyle</code></td>
+<td>图形化操作，适合入门操作，后期流程多后，不易于快速构建</td>
+<td>只有统一日志展示，没有完整阶段流程信息展示</td>
+</tr>
+<tr>
+<td><code>Pipeline</code></td>
+<td>结构化代码语法，易于阅读和管理，可以实现<code>CICD as Code</code></td>
+<td>阶段流程信息展示清晰，每个阶段构建时间和对应的构建日志清晰可读</td>
+</tr>
+</tbody>
+</table>
+<h2 id="从一个简单的项目开始">从一个简单的项目开始</h2>
+<p>日常工作中的持续集成，最简单的，莫过于一些前端项目，只需要将开发的代码同步到远程主机定义好的目录即可，因此这里就创建一个简单的文件，模拟这种发布情景，暂不纠结复杂的编译之类的事情，先从简单的构建开始，以学习语法规范为要。</p>
+<h3 id="准备工作">准备工作</h3>
+<p><strong>主机分布</strong></p>
+<table>
+<thead>
+<tr>
+<th>主机</th>
+<th>软件</th>
+<th>IP</th>
+<th>版本</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CentOS 7.9.2009 (Core)</code></td>
+<td><code>Gitlab</code></td>
+<td>192.168.40.181</td>
+<td>12.3.5</td>
+</tr>
+<tr>
+<td><code>CentOS 7.9.2009 (Core)</code></td>
+<td><code>Jenkins</code></td>
+<td>192.168.40.182</td>
+<td>2.401</td>
+</tr>
+</tbody>
+</table>
+<p><strong>安装软件</strong></p>
+<p>安装软件的工作，这里就不再说明，另外两台主机都需要安装如下基础软件：</p>
+<pre><code class="language-shell">yum -y install git rsync ntpdate &amp;&amp; ntpdate -u cn.pool.ntp.org
+</code></pre>
+<p><strong>创建项目</strong></p>
+<p>为后边实验顺利，这里先在<code>gitlab</code>创建一个测试项目，项目地址如下：</p>
+<pre><code class="language-shell">http://192.168.40.181/oldboy/hello-world.git
+</code></pre>
+<p>里边只有一个<code>readme</code>文件，用于验证简单发布的一些结果。</p>
+<p><strong>密钥安排</strong></p>
+<p>同样是为了后边实验顺利，这里提前将各处需要的密钥给安排妥当。在<code>Jenkins</code>创建密钥对，然后将公钥放到<code>gitlab</code>管理员账号的<code>SSH Key</code>里边进行配置，认证完成之后，在<code>Jenkins</code>主机，拉取一下刚刚项目的代码，做一下简单的连通性工作，否则后边在添加了代码<code>URL</code>之后会一直认证不过去，就是因为没有初始认证的缘故：</p>
+<pre><code class="language-shell">[root@jenkins opt]# git clone git@192.168.40.181:oldboy/hello-world.git
+</code></pre>
+<h3 id="配置项目"><strong>配置项目</strong></h3>
+<p><strong>简单配置</strong></p>
+<p>现在直接去<code>Jenkins</code>里边，创建一个<code>pipelne</code>风格的项目：<br>
+<img src="https://ajie825.github.io/post-images/1697771475218.png" alt="" loading="lazy"></p>
+<p>进入项目的配置，直接在最下边的流水线处，按如下内容配置：<br>
+<img src="https://ajie825.github.io/post-images/1697772324416.png" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1697772340213.png" alt="" loading="lazy"></p>
+<p>将项目仓库地址填入，然后脚本路径一般写成默认的<code>Jenkinsfile</code>，就这么简单的配置可以了，直接点击保存即可。</p>
+<p>现在需要准备编写<code>Jenkinsfile</code>了，事实在日常流程中，这个文件应该是准备好了之后，再来创建项目的，只不过这里为了便于理解整个流程，特别把顺序做了调整。</p>
+<p>现在来到项目的根目录中：</p>
+<pre><code class="language-shell">[root@git hello-world]# ls
+Jenkinsfile  README.md
+[root@git hello-world]# cat README.md 
+Jenkins pipeline test。
+</code></pre>
+<p>接着是<code>Jenkinsfile</code>的内容：</p>
+<pre><code class="language-shell">pipeline {
+    agent any
+    environment {
+        git_url     = &quot;git@192.168.40.181:oldboy/hello-world.git&quot;
+        remote_ip   = &quot;192.168.40.182&quot;
+        remote_dir  = &quot;/opt/hello/&quot;
+    }
+    options {
+        // 表示保留10次构建历史
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        // 不允许同时执行流水线，被用来防止同时访问共享资源等
+        disableConcurrentBuilds()
+        // 设置流水线运行的超时时间，在此之后，Jenkins将中止流水线
+        timeout(time: 10, unit: 'MINUTES')
+        // 输出构建的时间信息
+        timestamps()
+    }
+    stages {
+        stage('rsync') {
+            steps {
+                echo 'rsync'
+                sh '''
+                   rsync -avz --progress -e 'ssh -p 22' --exclude='Jenkinsfile' --exclude='.git' --delete ${WORKSPACE}/  root@$remote_ip:$remote_dir
+                '''
+            }
+        }
+        stage('delete') {
+            steps {
+                echo '清理工作目录'
+                cleanWs()
+            }
+        }
+    }
+    post {
+        success {
+            sh &quot;echo 成功了&quot;
+        }
+        failure {
+            sh &quot;echo 失败了&quot;
+        }
+    }
+}
+</code></pre>
+<p>如上的参数内容暂时先不讲解，去做一下构建看看效果。</p>
+<p><strong>手动构建</strong></p>
+<p>构建日志内容如下：</p>
+<pre><code class="language-shell">Started by user admin
+Obtained Jenkinsfile from git git@192.168.40.181:oldboy/hello-world.git
+[Pipeline] Start of Pipeline
+[Pipeline] node
+Running on Jenkins in /var/lib/jenkins/workspace/hello-world
+[Pipeline] {
+[Pipeline] stage
+[Pipeline] { (Declarative: Checkout SCM)
+[Pipeline] checkout
+Selected Git installation does not exist. Using Default
+The recommended git tool is: NONE
+using credential jenkins
+Cloning the remote Git repository
+Cloning repository git@192.168.40.181:oldboy/hello-world.git
+ &gt; git init /var/lib/jenkins/workspace/hello-world # timeout=10
+Fetching upstream changes from git@192.168.40.181:oldboy/hello-world.git
+ &gt; git --version # timeout=10
+ &gt; git --version # 'git version 1.8.3.1'
+using GIT_SSH to set credentials 
+Verifying host key using known hosts file
+ &gt; git fetch --tags --progress git@192.168.40.181:oldboy/hello-world.git +refs/heads/*:refs/remotes/origin/* # timeout=10
+ &gt; git config remote.origin.url git@192.168.40.181:oldboy/hello-world.git # timeout=10
+ &gt; git config --add remote.origin.fetch +refs/heads/*:refs/remotes/origin/* # timeout=10
+Avoid second fetch
+ &gt; git rev-parse refs/remotes/origin/master^{commit} # timeout=10
+Checking out Revision caa7c6e8354b262875cb927bcad317f98f7cae19 (refs/remotes/origin/master)
+ &gt; git config core.sparsecheckout # timeout=10
+ &gt; git checkout -f caa7c6e8354b262875cb927bcad317f98f7cae19 # timeout=10
+Commit message: &quot;modify Jenkinsfile&quot;
+ &gt; git rev-list --no-walk 2d7cb5e5762c9243707bda7cfeedb5682d5d6ddf # timeout=10
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] withEnv
+[Pipeline] {
+[Pipeline] withEnv
+[Pipeline] {
+[Pipeline] timeout
+Timeout set to expire in 10 min
+[Pipeline] {
+[Pipeline] timestamps
+[Pipeline] {
+[Pipeline] stage
+[Pipeline] { (rsync)
+[Pipeline] echo
+14:30:36  rsync
+[Pipeline] sh
+14:30:37  + rsync -avz --progress -e 'ssh -p 22' --exclude=Jenkinsfile --exclude=.git --delete /var/lib/jenkins/workspace/hello-world/ root@192.168.40.182:/opt/hello/
+14:30:37  sending incremental file list
+14:30:37  created directory /opt/hello
+14:30:37  ./
+14:30:37  README.md
+14:30:37  
+             24 100%    0.00kB/s    0:00:00  
+             24 100%    0.00kB/s    0:00:00 (xfr#1, to-chk=0/2)
+14:30:37  
+14:30:37  sent 166 bytes  received 71 bytes  158.00 bytes/sec
+14:30:37  total size is 24  speedup is 0.10
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (delete)
+[Pipeline] echo
+14:30:37  清理工作目录
+[Pipeline] cleanWs
+14:30:37  [WS-CLEANUP] Deleting project workspace...
+14:30:37  [WS-CLEANUP] Deferred wipeout is used...
+14:30:37  [WS-CLEANUP] done
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Declarative: Post Actions)
+[Pipeline] sh
+14:30:37  + echo 成功了
+14:30:37  成功了
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] }
+[Pipeline] // timestamps
+[Pipeline] }
+[Pipeline] // timeout
+[Pipeline] }
+[Pipeline] // withEnv
+[Pipeline] }
+[Pipeline] // withEnv
+[Pipeline] }
+[Pipeline] // node
+[Pipeline] End of Pipeline
+Finished: SUCCESS
+</code></pre>
+<p><img src="https://ajie825.github.io/post-images/1698048233671.png" alt="" loading="lazy"><br>
+刚刚的结果，其实是将代码同步到<code>Jenkins</code>本机了，那么去看一眼效果是否如我们所想：</p>
+<pre><code class="language-shell">[root@jenkins hello]# cd
+[root@jenkins ~]# cd /opt/hello/
+[root@jenkins hello]# ls
+README.md
+[root@jenkins hello]# cat README.md 
+Jenkins pipeline test
+</code></pre>
+<p>一个简单的项目就配置好了，这种将配置<code>code</code>化的方式，不仅优雅，节约了大量的配置时间，而且提高了不少的效率。</p>
+<h3 id="配置讲解">配置讲解</h3>
+<ul>
+<li>
+<p><code>pipeline</code></p>
+<p>用于声明表示流水线的标识，表示这里将采用声明式的语法风格，与之对应的还有另外一种，叫做脚本式。</p>
+</li>
+<li>
+<p><code>agent</code></p>
+<p>此关键字用于表示当前流水线将要执行的位置，当我们的<code>Jenkins</code>是主从那种集群的时候，可以通过<code>agent</code>进行指定，同时也可以基于<code>docker</code>容器的构建，后边会详细介绍，这里的<code>any</code>表示任一客户端，因为当前<code>Jenkins</code>是单机的，因此就在当前主机执行。</p>
+</li>
+<li>
+<p><code>environment</code></p>
+<p>用于设置环境变量，以便于代码复用的时候，更加清晰明了的简化工作内容，只要项目是类似的，那么直接在<code>environment</code>区域进行配置即可，而无需穿梭到复杂的内容里更改配置。需要注意的一点是，变量的声明可以在<code>pipeline</code>以及<code>stage</code>区域当中，与大多数语言一样，不同的区域作用域也是不一样的。</p>
+</li>
+<li>
+<p><code>options</code></p>
+<p>用来配置<code>Jenkins</code>应用自身的一些配置项，这个地方简单列举了几个，后面在详解参数配置的文章里边，会详细介绍。</p>
+</li>
+<li>
+<p><code>stages</code></p>
+<p>用于表示流水线各个步骤的声明，其下一层级是<code>stage</code>，通常<code>stages</code>只有1个，里面包含多个<code>stage</code>。</p>
+</li>
+<li>
+<p><code>stage</code></p>
+<p>表示实际构建的阶段，阶段必须命名，因为<code>Jenkins</code>将在界面上显示每个阶段，每个阶段做不同的事情，一般分为拉取代码、编译构建、部署等阶段。</p>
+</li>
+<li>
+<p><code>steps</code></p>
+<p>标识阶段之中具体的构建步骤，在<code>stage</code>中有且只能有一个<code>steps</code>，里面是<code>shell</code>脚本、<code>git</code>拉取代码、<code>ssh</code>远程发布等任意内容。</p>
+</li>
+<li>
+<p><code>post</code></p>
+<p>用于定义在整个流水线执行结果的情况，通常可配合通知进行对项目构建状态的告知。</p>
+</li>
+</ul>
+<p>目前，这个项目所用到的语法，就是这些，一开始学习的时候，实在不必于纠结每一个语法的原理或者深意，只需大致了解，然后专注于自己所想要的，只要完成自己所想的，就是最好的。</p>
+<p>比如基于上边只有<code>rsync</code>单步骤情景，往<code>Java</code>项目上套，也是很简单的，只需要将日常构建的几个步骤，一个个<code>stage</code>来表示，这样，一个简单好用的流水线就完成了，在完成基础功能构建之后，再去深入各个参数，进行比较花哨的配置应用。</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[持续集成教程 (七)]]></title>
+        <id>https://ajie825.github.io/post/chi-xu-ji-cheng-jiao-cheng-qi/</id>
+        <link href="https://ajie825.github.io/post/chi-xu-ji-cheng-jiao-cheng-qi/">
+        </link>
+        <updated>2023-10-14T05:49:06.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="配置jenkins权限管理">配置Jenkins权限管理</h2>
+<p>默认<code>Jenkins</code>用户可以执行所有操作，为了更好的分层控制，可以实现基于角色的权限管理，先创建角色和用户，给角色授权，然后把用户管理到角色。</p>
+<h3 id="查看默认的权限设置">查看默认的权限设置</h3>
+<p>我们可以从系统管理---&gt;全局安全设置看到，默认的权限为登录用户可以做任何事<br>
+<img src="https://ajie825.github.io/post-images/1697263051209.png" alt="" loading="lazy"></p>
+<h3 id="安装插件">安装插件</h3>
+<p><code>Jenkins</code>需要安装一个<code>Role-based Authorization Strategy </code>插件来实现精准的权限控制，在系统管理---&gt;插件管理里安装此插件<br>
+<img src="https://ajie825.github.io/post-images/1697265911519.png" alt="" loading="lazy"></p>
+<p>安装好插件后，重启<code>Jenkins</code>再次打开系统管理---&gt;全局安全配置，可以看到多了我们刚刚安装的插件，将授权策略勾选为<code>Role-Based Strategy</code>，然后点击保存<br>
+<img src="https://ajie825.github.io/post-images/1697267621273.png" alt="" loading="lazy"></p>
+<p>同时在系统管理中也多了<code>Manage and Assign Roles</code>菜单，在此处即可设置角色和权限<br>
+<img src="https://ajie825.github.io/post-images/1697267978899.png" alt="" loading="lazy"></p>
+<p>我们查看一下现有的项目，如下图，有<code>freestyle-job</code>和<code>maven-job</code>两个项目，我们需要实现给<code>test1</code>分配<code>freestyle-job</code>的项目，给<code>test02</code>分配<code>maven-job</code>项目<br>
+<img src="https://ajie825.github.io/post-images/1697268551204.png" alt="" loading="lazy"></p>
+<h3 id="创建新用户">创建新用户</h3>
+<p>进入系统管理---&gt;管理用户---&gt;新建用户，依次创建<code>test01</code>、<code>test02</code>两个用户<br>
+<img src="https://ajie825.github.io/post-images/1697269058552.png" alt="" loading="lazy"></p>
+<h3 id="创建角色和对角色分配权限">创建角色和对角色分配权限</h3>
+<p>打开系统管理---&gt;<code>Manage and Assign Roles</code>，我们主要用到管理角色和分配角色这两个菜单，我们先进入<code>Manage Roles</code><br>
+<img src="https://ajie825.github.io/post-images/1697269430000.png" alt="" loading="lazy"></p>
+<p>一个用户想要能正常控制项目，就必须要有两种角色，<code>Global roles</code>和<code>Item roles</code><br>
+<img src="https://ajie825.github.io/post-images/1697270136875.png" alt="" loading="lazy"></p>
+<p>首先添加一个全局角色<code>baserole</code>并勾选全部的<code>Read</code>权限<br>
+<img src="https://ajie825.github.io/post-images/1697270544348.png" alt="" loading="lazy"></p>
+<p>然后添加<code>Item roles</code>，此处相当于是给角色赋予项目权限，这里我将角色的名称设置成和用户名一致，这样方便给每个用户精准指定项目，在<code>Pattern</code>中可以使用正则表达式来匹配项目，多个项目使用竖线<code>|</code>分割<br>
+<img src="https://ajie825.github.io/post-images/1697273466773.png" alt="" loading="lazy"></p>
+<p>最后记得点<code>Save</code>保存</p>
+<h3 id="将用户关联到角色">将用户关联到角色</h3>
+<p>进入<code>Assign Roles</code>，此处是将用户和角色关联起来，在<code>Global roles</code>部分添加用户<code>test01</code>、<code>test02</code>并且勾选中<code>baserole</code>角色<br>
+<img src="https://ajie825.github.io/post-images/1697272042743.png" alt="" loading="lazy"></p>
+<p>在<code>Item roles</code>，中添加<code>test01</code>用户并和<code>test01</code>角色关联，添加<code>test02</code>用户并和<code>test02</code>角色关联<br>
+<img src="https://ajie825.github.io/post-images/1697272489419.png" alt="" loading="lazy"></p>
+<p>测试效果，登录<code>test01</code>用户，只能看到<code>freestyle-job</code>项目<br>
+<img src="https://ajie825.github.io/post-images/1697276132727.png" alt="" loading="lazy"></p>
+<p>登录<code>test02</code>用户，只能看到<code>maven-job</code>项目<br>
+<img src="https://ajie825.github.io/post-images/1697276362730.png" alt="" loading="lazy"></p>
+<h2 id="publish-over-ssh-插件"><code>publish Over SSH</code> 插件</h2>
+<p><code>Publish Over SSH</code>插件可以实现<code>jenkins</code>服务器免密访问其它服务器，执行一些操作和命令，进行远程部署服务。</p>
+<h3 id="生成ssh密钥并将公钥发布到各服务器">生成<code>SSH</code>密钥，并将公钥发布到各服务器</h3>
+<p>登录<code>Jenkins</code>服务器，执行<code>ssh-keygen</code>命令</p>
+<pre><code class="language-shell">[root@jenkins ~]# ssh-keygen
+Generating public/private rsa key pair.
+Enter file in which to save the key (/root/.ssh/id_rsa): 
+Enter passphrase (empty for no passphrase): 
+Enter same passphrase again: 
+Your identification has been saved in /root/.ssh/id_rsa.
+Your public key has been saved in /root/.ssh/id_rsa.pub.
+The key fingerprint is:
+SHA256:ErEP9ffd+VVbSlywRSxcQOpuRLs7mV3JYwqReYjLq8E root@web01
+The key's randomart image is:
++---[RSA 2048]----+
+|      . .    o+*=|
+|       + .   oo+.|
+|      +   o B +.o|
+|       + . O = o*|
+|      . S . * +o=|
+|      .. o + . =+|
+|       E  . =+o.o|
+|        .. .+o.  |
+|       ..   ..   |
++----[SHA256]-----+
+</code></pre>
+<p>这里会让你选择一个存放密钥的路径，使用了默认的<code>/root/.ssh/id_rsa</code>，还有<code>passphrase</code>，可以不加密码直接回车，生成成功后，进入到<code>/root/.ssh</code>目录下查看是否有密钥文件。</p>
+<pre><code class="language-shell">[root@jenkins ~]# cd .ssh/
+[root@jenkins .ssh]# ll
+total 12
+-rw------- 1 root root 1675 Oct 17 02:07 id_rsa
+-rw-r--r-- 1 root root  392 Oct 17 02:07 id_rsa.pub
+</code></pre>
+<p>然后将公钥发送到要远程的各服务器，执行<code>ssh-copy-id root@192.168.x.x</code>，<code>root</code>是远程服务器的登录名，<code>@</code>后面是<code>IP</code>。</p>
+<pre><code class="language-shell">[root@jenkins ~]# ssh-copy-id root@192.168.40.180
+/usr/bin/ssh-copy-id: INFO: Source of key(s) to be installed: &quot;/root/.ssh/id_rsa.pub&quot;
+/usr/bin/ssh-copy-id: INFO: attempting to log in with the new key(s), to filter out any that are already installed
+/usr/bin/ssh-copy-id: INFO: 1 key(s) remain to be installed -- if you are prompted now it is to install the new keys
+root@192.168.40.180's password: 
+Number of key(s) added: 1
+Now try logging into the machine, with:   &quot;ssh 'root@192.168.40.180'&quot;
+and check to make sure that only the key(s) you wanted were added.
+</code></pre>
+<p>可以用<code>ssh root@192.168.x.x</code>，验证下是否发布成功，如果成功登录到远程服务器，就<code>OK</code>了。</p>
+<h3 id="插件安装">插件安装</h3>
+<p>在<code>Jenkins</code>的插件管理模块，搜索<code>publish over ssh</code>，选择安装即可<br>
+<img src="https://ajie825.github.io/post-images/1697524094256.png" alt="" loading="lazy"></p>
+<h3 id="jenkins系统配置"><code>Jenkins</code>系统配置</h3>
+<p>在<code>Jenkins</code>的系统配置中拉到最下面，找到<code>Publish over SSH</code>，添加要远程的服务器，并进行配置<br>
+<img src="https://ajie825.github.io/post-images/1697525314832.png" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1697528675881.png" alt="" loading="lazy"></p>
+<p>完成配置后，点击下方的<code>Test configuration</code>，如果出现<code>success</code>说明通了<br>
+<img src="https://ajie825.github.io/post-images/1697525717525.png" alt="" loading="lazy"></p>
+<h3 id="jenkins-job中进行远程服务器配置"><code>Jenkins job</code>中进行远程服务器配置</h3>
+<ol>
+<li>在<code>Job</code>中新增一个&quot;构建后操作&quot;，选择<code>Send build artifacts over SSH</code></li>
+<li>在<code>SSH Server</code>---<code>Name</code>中选择配置的远程主机</li>
+<li>在<code>Source files</code>中填写源文件，相对路径，基于<code>Job</code>目录，我们的文件路径为<code>${WORKSPACE}/{Job}/target/dist.zip</code>，这里填写<code>target/*.zip</code>用于匹配<code>target</code>目录下的所有以<code>zip</code>结尾的文件</li>
+<li>在<code>Remove prefix</code>中填写需要删除的路径前缀，如果不填写，那么复制到远程主机的结构为<code>target/dist.zip</code>，我们不需要<code>target</code>这个目录，所以这里填写<code>target</code></li>
+<li>在<code>Remote directory</code>中填写远程目录路径，这个路径是基于在配置远程主机时填写的路径，前面我们填写的路径为<code>/opt/jenkins</code>，这里填写<code>target</code>，组合起来就是<code>/opt/jenkins/target</code>目录</li>
+<li>在<code>Exec command</code>中填写复制完成后需要在目标主机中执行的命令，如果命令过多，可以写一个脚本，在这里调用它<br>
+<img src="https://ajie825.github.io/post-images/1697609201141.png" alt="" loading="lazy"></li>
+</ol>
+<h2 id="jenkins参数化构建"><code>Jenkins</code>参数化构建</h2>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[持续集成教程 (六)]]></title>
+        <id>https://ajie825.github.io/post/chi-xu-ji-cheng-jiao-cheng-liu/</id>
+        <link href="https://ajie825.github.io/post/chi-xu-ji-cheng-jiao-cheng-liu/">
+        </link>
+        <updated>2023-10-12T07:05:44.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="jenkins创建maven项目"><code>Jenkins</code>创建<code>maven</code>项目</h2>
+<p><code>Jenkins</code>上安装<code>maven</code>插件，通过<code>Jenkins maven</code>去调用<code>linux</code>的<code>maven</code>。</p>
+<h3 id="gitlab创建java的代码仓库"><code>gitlab</code>创建<code>java</code>的代码仓库</h3>
+<p><img src="https://ajie825.github.io/post-images/1697095109755.png" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1697095137697.png" alt="" loading="lazy"></p>
+<h3 id="把代码推送到代码仓库">把代码推送到代码仓库</h3>
+<pre><code class="language-shell">[root@jenkins maven]# pwd
+/data/maven
+[root@jenkins maven]# tar xf jeesns.tar.gz
+[root@jenkins maven]# rm -f jeesns.tar.gz
+[root@jenkins maven]# cd jeesns/
+[root@jenkins jeesns]# ll
+total 12
+drwxr-xr-x 3 root root   32 Nov 19  2018 jeesns-common
+drwxr-xr-x 3 root root   32 Nov 19  2018 jeesns-core
+drwxr-xr-x 3 root root   32 Nov 19  2018 jeesns-dao
+drwxr-xr-x 2 root root   23 Nov 19  2018 jeesns-mobile
+drwxr-xr-x 3 root root   32 Nov 19  2018 jeesns-model
+drwxr-xr-x 3 root root   32 Nov 19  2018 jeesns-service
+drwxr-xr-x 5 root root   59 Nov 19  2018 jeesns-web
+-rw-r--r-- 1 root root 2530 Nov 19  2018 LICENSE
+-rw-r--r-- 1 root root 1120 Nov 19  2018 pom.xml
+-rw-r--r-- 1 root root 3876 Nov 19  2018 README.md
+[root@jenkins jeesns]# git init
+Reinitialized existing Git repository in /data/maven/jeesns/.git/
+[root@jenkins jeesns]# git remote add origin git@192.168.40.181:oldboy/maven.git
+[root@jenkins jeesns]# git add .
+[root@jenkins jeesns]# git commit -m &quot;Initial commit&quot;
+[root@jenkins jeesns]# git push -u origin master
+Counting objects: 1946, done.
+Compressing objects: 100% (1862/1862), done.
+Writing objects: 100% (1946/1946), 7.09 MiB | 0 bytes/s, done.
+Total 1946 (delta 285), reused 0 (delta 0)
+remote: Resolving deltas: 100% (285/285), done.
+To git@192.168.40.181:oldboy/maven.git
+ * [new branch]      master -&gt; master
+分支 master 设置为跟踪来自 origin 的远程分支 master。
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1697098327814.png" alt="" loading="lazy"></figure>
+<h3 id="jenkins配置maven路径"><code>Jenkins</code>配置<code>maven</code>路径</h3>
+<p>让<code>Jenkins maven</code>可以找到<code>linux</code>上的<code>maven</code>，打开系统管理---&gt;全局工具配置页面，下拉新增<code>maven</code>配置，选择不要自动安装<code>maven</code>，配置好保存<br>
+<img src="https://ajie825.github.io/post-images/1697102930757.png" alt="" loading="lazy"></p>
+<h3 id="创建maven项目">创建<code>maven</code>项目</h3>
+<p>回到<code>Jenkins</code>主页面，点击&quot;新建Item&quot;，进入创建<code>Job</code>页面<br>
+<img src="https://ajie825.github.io/post-images/1697168556719.png" alt="" loading="lazy"></p>
+<p>进入<code>job</code>配置页面，通用部分选择&quot;丢弃旧的构建&quot;<br>
+<img src="https://ajie825.github.io/post-images/1697168897996.png" alt="" loading="lazy"></p>
+<p>源码管理配置从<code>git</code>仓库获取<code>maven</code>代码，复制仓库地址到<code>Jenkins</code><br>
+<img src="https://ajie825.github.io/post-images/1697169230946.png" alt="" loading="lazy"></p>
+<p>配置要执行的<code>maven</code>命令，先清理工作区，然后再打包<br>
+<img src="https://ajie825.github.io/post-images/1697169575737.png" alt="" loading="lazy"></p>
+<p>保存配置，返回<code>job</code>主页面，执行立即构建，构建成功后在工作空间可以看到构建后的<code>war</code>包<br>
+<img src="https://ajie825.github.io/post-images/1697179194100.png" alt="" loading="lazy"></p>
+<pre><code class="language-shell">[root@jenkins target]# pwd
+/var/lib/jenkins/workspace/maven-job/jeesns-web/target
+[root@jenkins target]# ll jeesns-web.war 
+-rw-r--r-- 1 root root 26105995 Oct 12 23:42 jeesns-web.war
+</code></pre>
+<h3 id="web服务器部署tomcat和数据库"><code>web</code>服务器部署<code>tomcat</code>和数据库</h3>
+<pre><code class="language-shell">#上传压缩包
+[root@web01 opt]# ll
+total 174956
+-rw-r--r-- 1 root root   9128610 Oct  3 21:11 apache-tomcat-8.0.27.tar.gz
+-rw-r--r-- 1 root root 170023183 Apr  3  2022 jdk-8u181-linux-x64.rpm
+#安装JDK
+[root@web01 opt]# rpm -ivh jdk-8u181-linux-x64.rpm
+[root@web01 opt]# java -version
+java version &quot;1.8.0_181&quot;
+Java(TM) SE Runtime Environment (build 1.8.0_181-b13)
+Java HotSpot(TM) 64-Bit Server VM (build 25.181-b13, mixed mode)
+#解压tomcat
+[root@web01 opt]# mkdir /application
+[root@web01 opt]# tar xf apache-tomcat-8.0.27.tar.gz -C /application/
+#创建软连接
+[root@web01 opt]# ln -s /application/apache-tomcat-8.0.27/ /application/tomcat
+#修改以下文件，加速启动tomcat
+[root@web01 opt]# vim /usr/java/jdk1.8.0_181-amd64/jre/lib/security/java.security 
+ 117 securerandom.source=file:/dev/urandom 
+ #启动tomcat
+ [root@web01 opt]# /application/tomcat/bin/startup.sh 
+[root@web01 opt]# netstat -lnpt|grep java
+tcp6       0      0 :::8009                 :::*                    LISTEN      2527/java           
+tcp6       0      0 :::8080                 :::*                    LISTEN      2527/java           
+tcp6       0      0 127.0.0.1:8005          :::*                    LISTEN      2527/java  
+</code></pre>
+<p>使用浏览器访问：<code>http://192.168.40.180:8080</code><br>
+<img src="https://ajie825.github.io/post-images/1697248209991.png" alt="" loading="lazy"></p>
+<pre><code class="language-shell">#安装数据库，设置数据库root用户密码为root
+[root@web01 opt]# yum install mariadb-server -y
+[root@web01 opt]# systemctl start mariadb
+[root@web01 opt]# mysqladmin password 'root'
+# 创建jeesns库
+[root@web01 opt]# mysql -uroot -proot -e&quot;create database jeesns;&quot;
+# 将源代码的jeesns.sql文件传输到tomcat节点并进行导入
+[root@jenkins database]# pwd
+/data/maven/jeesns/jeesns-web/database
+[root@jenkins database]# ll
+total 40
+-rwxr-xr-x 1 root root 28667 Nov 19  2018 jeesns.sql
+-rw-r--r-- 1 root root  3491 Nov 19  2018 update_1.2.0to1.2.1.sql
+-rw-r--r-- 1 root root  1026 Nov 19  2018 update_1.2.1to1.3.sql
+-rw-r--r-- 1 root root  1344 Nov 19  2018 update_1.3to1.3.1.sql
+[root@jenkins database]# scp jeesns.sql root@192.168.40.180:/opt
+#将sql文件导入数据库
+[root@web01 opt]# mysql -uroot -proot jeesns &lt; /opt/jeesns.sql
+[root@web01 opt]# mysql -uroot -proot -e &quot;use jeesns; show tables&quot;
+</code></pre>
+<h3 id="jenkins将公钥分发给tomcat节点"><code>Jenkins</code>将公钥分发给<code>tomcat</code>节点</h3>
+<pre><code class="language-shell">[root@jenkins ~]# ssh-copy-id -i.ssh/id_rsa.pub 192.168.40.180
+</code></pre>
+<h3 id="jenkins配置构建后操作"><code>Jenkins</code>配置构建后操作</h3>
+<pre><code>ssh root@192.168.40.180 'mv /application/tomcat/webapps/* /opt'
+scp -rp /var/lib/jenkins/workspace/maven-job/jeesns-web/target/jeesns-web.war root@192.168.40.180:/application/tomcat/webapps/ROOT.war
+</code></pre>
+<figure data-type="image" tabindex="2"><img src="https://ajie825.github.io/post-images/1697252274824.png" alt="" loading="lazy"></figure>
+<h3 id="点击保存立即构建">点击保存，立即构建</h3>
+<figure data-type="image" tabindex="3"><img src="https://ajie825.github.io/post-images/1697252907920.png" alt="" loading="lazy"></figure>
+<p>浏览器访问<code>http://192.168.40.180:8080</code><br>
+<img src="https://ajie825.github.io/post-images/1697253151121.png" alt="" loading="lazy"></p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[持续集成教程 (五)]]></title>
+        <id>https://ajie825.github.io/post/chi-xu-ji-cheng-jiao-cheng-wu/</id>
+        <link href="https://ajie825.github.io/post/chi-xu-ji-cheng-jiao-cheng-wu/">
+        </link>
+        <updated>2023-10-09T06:02:01.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="maven简介"><code>maven</code>简介</h2>
+<p><code>maven</code>是一个项目管理和综合工具，<code>maven</code>提供给开发人员构建一个完整的生命周期框架，开发团队可以自动完成该项目的基础设施建设，<code>maven</code>使用标准的目录结构和默认构建生命周期。</p>
+<p><code>Apache</code>的开源项目主要服务于<code>Java</code>平台的构建、依赖管理、项目管理，<code>maven</code>可以对<code>java</code>代码进行编译、打包、测试、部署。</p>
+<p><code>Project object model</code>，项目对象模型，通过<code>xml</code>格式保存的<code>pom.xml</code>文件，该文件用于管理：源代码、配置文件、开发者的信息和角色、问题追踪系统、组织信息、项目授权、项目的<code>url</code>、项目的依赖关系等等。该文件是由开发维护，我们运维人员可以不用去关心。</p>
+<h2 id="安装maven">安装<code>maven</code></h2>
+<p>首先在<code>Linux</code>命令行能使用<code>maven</code>进行构建，然后<code>Jenkins</code>调用<code>maven</code>插件工具，对项目进行构建。</p>
+<p>官网：<code>http://maven.apache.org/download.cgi</code><br>
+清华镜像：<code>https://mirrors.tuna.tsinghua.edu.cn/apache/maven/</code></p>
+<p><code>maven</code>是<code>java</code>写的，所以需要安装<code>jdk</code>，可以使用<code>yum</code>方式安装<code>open JDK1.8</code>版本，也可以使用<code>rpm</code>安装，<code>maven</code>安装在<code>Jenkins</code>服务器，省略安装<code>jdk</code></p>
+<pre><code class="language-shell">[root@jenkins ~]# java -version
+java version &quot;1.8.0_212&quot;
+Java(TM) SE Runtime Environment (build 1.8.0_212-b10)
+Java HotSpot(TM) 64-Bit Server VM (build 25.212-b10, mixed mode)
+</code></pre>
+<pre><code class="language-shell">#上传maven软件包
+[root@jenkins opt]# ll
+total 8296
+-rw-r--r-- 1 root root 8491533 Oct  3 21:11 apache-maven-3.3.9-bin.tar.gz
+#解压软件包
+[root@jenkins opt]# tar xf apache-maven-3.3.9-bin.tar.gz 
+#移动包到/usr/local下
+[root@jenkins opt]# mv apache-maven-3.3.9 /usr/local/maven-3.3.9
+#建立软连接
+[root@jenkins opt]# ln -s /usr/local/maven-3.3.9/ /usr/local/maven
+[root@jenkins opt]# cd /usr/local/maven
+[root@jenkins maven]# ll
+total 32
+drwxr-xr-x 2 root root    97 Oct  9 16:44 bin
+drwxr-xr-x 2 root root    42 Oct  9 16:44 boot
+drwxr-xr-x 3 root root    63 Nov 10  2015 conf
+drwxr-xr-x 3 root root  4096 Oct  9 16:44 lib
+-rw-r--r-- 1 root root 19335 Nov 10  2015 LICENSE
+-rw-r--r-- 1 root root   182 Nov 10  2015 NOTICE
+-rw-r--r-- 1 root root  2541 Nov 10  2015 README.txt
+#设置环境变量
+[root@jenkins maven]# echo &quot;export PATH=/usr/local/maven/bin/:$PATH&quot;&gt;&gt;/etc/profile
+[root@jenkins maven]# source /etc/profile
+#查看结果
+[root@jenkins maven]# mvn -v
+Apache Maven 3.3.9 (bb52d8502b132ec0a5a3f4c09453c07478323dc5; 2015-11-10T11:41:47-05:00)
+Maven home: /usr/local/maven
+Java version: 1.8.0_212, vendor: Oracle Corporation
+Java home: /usr/java/jdk1.8.0_212-amd64/jre
+Default locale: en_US, platform encoding: UTF-8
+OS name: &quot;linux&quot;, version: &quot;3.10.0-1160.el7.x86_64&quot;, arch: &quot;amd64&quot;, family: &quot;unix&quot;
+</code></pre>
+<h2 id="maven安装目录"><code>maven</code>安装目录</h2>
+<ul>
+<li>
+<p><code>bin</code>：该目录包含了<code>mvn</code>运行的脚本，这些脚本用来配置<code>java</code>命令，准备好<code>classpath</code>和相关的<code>Java</code>系统属性，然后执行<code>Java</code>命令。其中<code>mvn</code>是基于<code>UNIX</code>平台的脚本，<code>mvn.cmd</code>是基于<code>Windows</code>平台的脚本。</p>
+</li>
+<li>
+<p><code>boot</code>：该目录只包含一个文件，该文件是一个类加载器框架，<code>maven</code>使用该框架加载自己的类库。</p>
+</li>
+<li>
+<p><code>conf</code>：该目录包含一个非常重要的文件<code>setting.xml</code>，用于全局定义<code>maven</code>的行为。全局配置文件也可以将该文件复制到<code>~/.m2/</code>目录下，在用户范围内定制<code>maven</code>行为。</p>
+</li>
+<li>
+<p><code>lib</code>：该目录包含了所有<code>maven</code>运行时需要的<code>Java</code>类库。</p>
+</li>
+</ul>
+<h2 id="常用maven命令">常用<code>maven</code>命令</h2>
+<p>上传一个的<code>java</code>项目包<code>hello-world.tar.gz</code>进行解压</p>
+<pre><code class="language-shell">[root@jenkins opt]# tar xf hello-world.tar.gz
+[root@jenkins opt]# cd hello-world/
+[root@jenkins hello-world]# ll
+total 4
+-rw-r--r-- 1 root root 1683 Aug 26  2010 pom.xml
+drwxr-xr-x 4 root root   30 Oct 10  2009 src
+[root@jenkins hello-world]# tree .
+.
+├── pom.xml                       #pom.xml是maven项目的核心，maven构建先去找pom.xml文件
+└── src                           #这是hello-world的源代码
+    ├── main
+    │   └── java
+    │       └── com
+    │           └── juvenxu
+    │               └── mvnbook
+    │                   └── helloworld
+    │                       └── HelloWorld.java
+    └── test                      #这是写的单元测试
+        └── java
+            └── com
+                └── juvenxu
+                    └── mvnbook
+                        └── helloworld
+                            └── HelloWorldTest.java
+</code></pre>
+<ul>
+<li><code>validate</code>（验证）：   验证项目正确，并且所有必要信息可用</li>
+<li><code>compile</code>（编译）：     编译项目源码</li>
+<li><code>test</code>（测试）：          使用合适的单元测试框架测试编译后的源码    ***</li>
+<li><code>package</code>（打包）：     源码编译之后，使用合适的格式(例如JAR格式)对编译后的源码进行打包    ***</li>
+<li><code>integration‐test</code>（集成测试）：如果由需要，把包处理并部署到可以运行集成测试的环境中去</li>
+<li><code>verify</code>（验证）：      把包安装到本地仓库，使该包可以作为其他本地项目的依赖</li>
+<li><code>install</code>（安装）：    把包安装到本地仓库，使该包可以作为其他本地项目的依赖  ***</li>
+<li><code>deploy</code>（部署）：     在集成或发布环境中完成，将最终软件包复制到远程存储库，以与其他开发人员和项目共享  ***</li>
+<li><code>mvn clean </code>(清除) ：     清除上次编译的结果</li>
+</ul>
+<pre><code class="language-shell">[root@jenkins hello-world]# mvn test
+Downloading: https://repo.maven.apache.org/maven2/org/apache/maven/plugins/maven-resources-plugin/2.6/maven-resources-plugin-2.6.pom
+Downloading: https://repo.maven.apache.org/maven2/org/apache/maven/plugins/maven-plugins/23/maven-plugins-23.pom
+Downloading: https://repo.maven.apache.org/maven2/org/apache/maven/maven-parent/22/maven-parent-22.pom
+Downloading: https://repo.maven.apache.org/maven2/org/apache/apache/11/apache-11.pom
+Downloading: https://repo.maven.apache.org/maven2/org/apache/maven/plugins/maven-resources-plugin/2.6/maven-resources-plugin-2.6.jar
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 1.539 s
+[INFO] Finished at: 2023-10-09T19:56:34-04:00
+[INFO] Final Memory: 9M/29M
+[INFO] ------------------------------------------------------------------------
+</code></pre>
+<p><code>mvn test</code>命令用于测试，用于执行<code>src/test/java/</code>下的测试用例，使用<code>-Dmaven.test.skip=true </code>参数可以跳过测试。</p>
+<p>一个项目目录由一套源码和一套测试代码（单元测试），当执行<code>mvn test</code>时，会自动调用测试代码去测试类是否有问题，如果没有问题，可以执行编译，如果有问题，会报错，解决错误后才能继续编译，生成的<code>target</code>目录没有<code>jar</code>包，只是做了测试通过与不通过。</p>
+<pre><code class="language-shell">[root@jenkins hello-world]# mvn package
+[INFO] Building Maven Hello World Project 1.0-SNAPSHOT
+[INFO] ------------------------------------------------------------------------
+Downloading: https://repo.maven.apache.org/maven2/org/apache/maven/plugins/maven-jar-plugin/2.4/maven-jar-plugin-2.4.pom
+Downloading: https://repo.maven.apache.org/maven2/org/apache/maven/plugins/maven-plugins/22/maven-plugins-22.pom
+Downloading: https://repo.maven.apache.org/maven2/org/apache/maven/plugins/maven-jar-plugin/2.4/maven-jar-plugin-2.4.jar
+Downloading: https://repo.maven.apache.org/maven2/org/apache/maven/plugins/maven-shade-plugin/1.2.1/maven-shade-plugin-1.2.1.pom
+Downloading: https://repo.maven.apache.org/maven2/org/apache/maven/plugins/maven-plugins/13/maven-plugins-13.pom
+Downloading: https://repo.maven.apache.org/maven2/org/apache/maven/plugins/maven-shade-plugin/1.2.1/maven-shade-plugin-1.2.1.jar
+[root@jenkins hello-world]# ll
+total 4
+-rw-r--r-- 1 root root 1683 Aug 26  2010 pom.xml
+drwxr-xr-x 4 root root   30 Oct 10  2009 src
+drwxr-xr-x 7 root root  188 Oct  9 20:00 target
+[root@jenkins hello-world]# cd target/
+[root@jenkins target]# ll
+total 8
+drwxr-xr-x 3 root root   17 Oct  9 19:55 classes
+-rw-r--r-- 1 root root 3131 Oct  9 20:00 hello-world-1.0-SNAPSHOT.jar
+drwxr-xr-x 2 root root   28 Oct  9 20:00 maven-archiver
+drwxr-xr-x 3 root root   35 Oct  9 19:55 maven-status
+-rw-r--r-- 1 root root 2873 Oct  9 20:00 original-hello-world-1.0-SNAPSHOT.jar
+drwxr-xr-x 2 root root  125 Oct  9 19:55 surefire-reports
+drwxr-xr-x 3 root root   17 Oct  9 19:55 test-classes
+</code></pre>
+<p><code>mvn package</code>命令用于项目打包，会在<code>target</code>目录生成<code>jar</code>或者<code>war</code>文件，<code>jar</code>包是可以执行的</p>
+<pre><code class="language-shell">[root@jenkins target]# java -jar hello-world-1.0-SNAPSHOT.jar 
+Hello Maven
+</code></pre>
+<p>我们可以看看源码，进入</p>
+<pre><code class="language-shell">[root@jenkins helloworld]# pwd
+/opt/hello-world/src/main/java/com/juvenxu/mvnbook/helloworld
+[root@jenkins helloworld]# vim HelloWorld.java 
+package com.juvenxu.mvnbook.helloworld;
+
+public class HelloWorld {
+
+        public String sayHello()
+        {
+                return &quot;Hello Maven&quot;;
+        }
+
+        public static void main(String[] args)
+        {
+                System.out.print( new HelloWorld().sayHello() );
+        }
+}
+</code></pre>
+<p><code>https://repo.maven.apache.org/</code>是<code>maven</code>中心仓库，当执行<code>mvn package</code>命令时候，<code>maven</code>首先会在<code>/root/.m2</code>本地仓库找相关构建的依赖包，如果本地仓库里面有依赖包，直接复制过来执行，如果本地仓库没有依赖包，就去<code>maven</code>中心仓库去下载依赖包到本地仓库<code>.m2</code>，然后再执行构建。</p>
+<p>从<code>maven</code>中心仓库下载依赖包比较包，为了解决这个问题，可以配置<code>maven</code>仓库为阿里云中央仓库或者部署<code>maven</code>私服<code>nexus</code>。</p>
+<pre><code class="language-shell">[root@jenkins hello-world]# mvn clean
+[INFO] Scanning for projects...                                                     
+[INFO] ------------------------------------------------------------------------
+[INFO] Building Maven Hello World Project 1.0-SNAPSHOT
+[INFO] ------------------------------------------------------------------------
+[INFO] 
+[INFO] --- maven-clean-plugin:2.5:clean (default-clean) @ hello-world ---
+[INFO] Deleting /opt/hello-world/target
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+</code></pre>
+<p><code>mvn clean</code>命令用于清理项目生产的临时文件，一般是模块下的<code>target</code>目录。</p>
+<h2 id="配置maven仓库为阿里云中央仓库">配置<code>maven</code>仓库为阿里云中央仓库</h2>
+<pre><code class="language-shell">[root@jenkins ~]# vim /usr/local/maven/conf/settings.xml
+#158行后添加
+&lt;mirror&gt;
+  &lt;id&gt;alimaven&lt;/id&gt;
+ &lt;name&gt;aliyun maven&lt;/name&gt;
+ &lt;url&gt;http://maven.aliyun.com/nexus/content/groups/public/&lt;/url&gt;
+ &lt;mirrorOf&gt;central&lt;/mirrorOf&gt;
+&lt;/mirror&gt;
+</code></pre>
+<p>重新打包，发现从阿里云中央仓库下载依赖包</p>
+<pre><code class="language-shell">[root@jenkins hello-world]# mvn package
+Downloading: http://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/plugins/maven-jar-plugin/2.4/maven-jar-plugin-2.4.pom
+Downloading: http://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/plugins/maven-plugins/22/maven-plugins-22.pom
+Downloading: http://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/maven-parent/21/maven-parent-21.pom
+Downloading: http://maven.aliyun.com/nexus/content/groups/public/org/apache/apache/10/apache-10.pom
+Downloading: http://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/plugins/maven-jar-plugin/2.4/maven-jar-plugin-2.4.jar
+</code></pre>
+<h2 id="利用nexus搭建私有maven库">利用<code>nexus</code>搭建私有<code>maven</code>库</h2>
+<p>所谓私服就是搭建在内网上，可以代替<code>maven</code>中央仓库，以后<code>maven</code>打包下载依赖包时，先在本地仓库<code>.m2</code>目录下找，如果本地仓库没有，然后去私服找依赖包，私服也没有的情况下再去<code>maven</code>中央仓库下载依赖包，在中央仓库下载完以后，依赖包会先缓存在私服上，然后执行构建任务，最后将依赖包缓存到本地<code>.m2</code>目录。</p>
+<h3 id="nexus介绍"><code>nexus</code>介绍</h3>
+<p><code>nexus</code>是一个强大的<code>maven</code>仓库管理器，它极大地简化了本地内部仓库的维护和外部仓库的访问，在代理远程仓库的同时维护本地仓库，以降低中央仓库的负荷，节省外网带宽和时间。</p>
+<p><code>nexus</code>支持<code>WebDAV</code>与<code>LDAP</code>的安全身份认证，还提供了强大的仓库管理功能，构件搜索功能，它基于<code>REST</code>，友好的<code>UI</code>是一个<code>extjs</code>的<code>REST</code>客户端，它占用较少的内存，基于简单文件系统而非数据库。</p>
+<h3 id="nexus安装配置启动"><code>nexus</code>安装配置启动</h3>
+<p><strong>安装<code>JDK</code></strong></p>
+<p>运行<code>nexus</code>需要<code>Java 8</code>的运行时环境支持，可以使用<code>yum</code>方式安装<code>open JDK1.8</code>版本，也可以使用<code>rpm</code>安装，我们使用<code>rpm</code>方式安装</p>
+<pre><code class="language-shell">[root@nexus tools]# rpm -ivh jdk-8u181-linux-x64.rpm
+[root@nexus tools]# java -version
+java version &quot;1.8.0_181&quot;
+Java(TM) SE Runtime Environment (build 1.8.0_181-b13)
+Java HotSpot(TM) 64-Bit Server VM (build 25.181-b13, mixed mode)
+</code></pre>
+<p><strong>安装<code>nexus</code></strong></p>
+<p>下载地址：<code>https://help.sonatype.com/repomanager3/product-information/download/download-archives---repository-manager-3</code></p>
+<pre><code class="language-shell">[root@nexus tools]# tar xf nexus-3.13.0-01-unix.tar.gz 
+[root@nexus tools]# mv nexus-3.13.0-01 /usr/local/
+[root@nexus local]# ln -s /usr/local/nexus-3.13.0-01/ /usr/local/nexus
+[root@nexus local]# /usr/local/nexus/bin/nexus start
+WARNING: ************************************************************
+WARNING: Detected execution as &quot;root&quot; user.  This is NOT recommended!
+WARNING: ************************************************************
+Starting nexus
+[root@nexus local]# netstat -lnpt|grep 8081
+tcp        0      0 0.0.0.0:8081            0.0.0.0:*               LISTEN      2561/java 
+</code></pre>
+<p>在浏览器访问<code>http://192.168.40.183:8081</code>，使用默认用户名<code>admin</code>，默认密码<code>admin123</code>进行登录<br>
+<img src="https://ajie825.github.io/post-images/1697012490652.png" alt="" loading="lazy"></p>
+<h3 id="配置maven项目使用nexus仓库">配置<code>maven</code>项目使用<code>nexus</code>仓库</h3>
+<p>第一种方法：</p>
+<p>在<code>maven</code>项目下的<code>pom.xml</code>文件配置，只对当前项目生效。</p>
+<p>第二种方法：</p>
+<p>在<code>maven</code>配置文件<code>setting.xml</code>配置，这种方式配置后所有项目都生效，配置文件<code>setting.xml</code>在<code>/usr/local/maven/conf</code>目录下。</p>
+<pre><code class="language-shell">[root@jenkins conf]# ll /usr/local/maven/conf/
+total 16
+drwxr-xr-x 2 root root    37 Nov 10  2015 logging
+-rw-r--r-- 1 root root 10216 Oct 11 01:35 settings.xml
+-rw-r--r-- 1 root root  3649 Nov 10  2015 toolchains.xml
+[root@jenkins conf]# vim settings.xml 
+</code></pre>
+<pre><code class="language-shell">#找到&lt;server&gt;&lt;/server&gt;标签，添加nexus认证信息：
+&lt;server&gt;
+   &lt;id&gt;releases&lt;/id&gt;
+   &lt;username&gt;admin&lt;/username&gt;
+   &lt;password&gt;admin123&lt;/password&gt;
+&lt;/server&gt;
+&lt;server&gt;
+   &lt;id&gt;snapshots&lt;/id&gt;
+   &lt;username&gt;admin&lt;/username&gt;
+   &lt;password&gt;admin123&lt;/password&gt;
+&lt;/server&gt;
+</code></pre>
+<pre><code class="language-shell">#找到&lt;mirror&gt;&lt;/mirror&gt;标签，添加镜像信息：
+&lt;mirror&gt;
+   &lt;id&gt;nexus&lt;/id&gt;
+   &lt;mirrorOf&gt;*&lt;/mirrorOf&gt;
+   &lt;!--*指的是访问任何仓库都使用我们的私服--&gt;
+   &lt;url&gt;http://192.168.40.183:8081/repository/maven-public/&lt;/url&gt;
+&lt;/mirror&gt;
+</code></pre>
+<p>其中<code>url</code>地址从<code>nexus web</code>页面取得，点击<code>maven-public</code>：<br>
+<img src="https://ajie825.github.io/post-images/1697088487105.png" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1697088500108.png" alt="" loading="lazy"></p>
+<pre><code class="language-shell">#找到&lt;profile&gt;&lt;/profile&gt;标签，添加仓库信息：
+&lt;profile&gt;
+   &lt;id&gt;nexus&lt;/id&gt; 
+   &lt;repositories&gt;
+   &lt;!-- 私有库地址--&gt;
+    &lt;repository&gt;
+    &lt;id&gt;nentral&lt;/id&gt;
+    &lt;url&gt;http://192.168.40.183:8081/repository/maven-public/&lt;/url&gt;
+    &lt;releases&gt;&lt;enabled&gt;true&lt;/enabled&gt;&lt;/releases&gt;
+    &lt;snapshots&gt;&lt;enabled&gt;true&lt;/enabled&gt;&lt;/snapshots&gt;
+  &lt;/repository&gt;
+&lt;/repositories&gt;
+&lt;pluginRepositories&gt;
+  &lt;!--插件库地址--&gt;
+  &lt;pluginRepository&gt;
+    &lt;id&gt;central&lt;/id&gt;
+    &lt;url&gt;http://192.168.40.183:8081/repository/maven-public/&lt;/url&gt;
+    &lt;releases&gt;&lt;enabled&gt;true&lt;/enabled&gt;&lt;/releases&gt;
+    &lt;snapshots&gt;&lt;enabled&gt;true&lt;/enabled&gt;&lt;/snapshots&gt;
+    &lt;/pluginRepository&gt;
+  &lt;/pluginRepositories&gt;
+&lt;/profile&gt;
+</code></pre>
+<pre><code class="language-shell">#激活仓库
+&lt;activeProfiles&gt;
+  &lt;activeProfile&gt;nexus&lt;/activeProfile&gt;
+&lt;/activeProfiles&gt;
+</code></pre>
+<p>配置完成后，对<code>hello-world</code>项目重新进行构建，执行前先删除<code>.m2</code>仓库，<code>mvn clean</code>清掉上次构建</p>
+<pre><code class="language-shell">[root@jenkins hello-world]# mvn package                                                               
+[INFO] ------------------------------------------------------------------------
+[INFO] Building Maven Hello World Project 1.0-SNAPSHOT
+[INFO] ------------------------------------------------------------------------
+Downloading: http://192.168.40.183:8081/repository/maven-public/org/apache/maven/plugins/maven-jar-plugin/2.4/maven-jar-plugin-2.4.pom
+Downloading: http://192.168.40.183:8081/repository/maven-public/org/apache/maven/plugins/maven-plugins/22/maven-plugins-22.pom
+Downloading: http://192.168.40.183:8081/repository/maven-public/org/apache/maven/plugins/maven-jar-plugin/2.4/maven-jar-plugin-2.4.jar
+Downloading: http://192.168.40.183:8081/repository/maven-public/org/apache/maven/plugins/maven-shade-plugin/1.2.1/maven-shade-plugin-1.2.1.pom
+Downloading: http://192.168.40.183:8081/repository/maven-public/org/apache/maven/plugins/maven-plugins/13/maven-plugins-13.pom
+</code></pre>
+<p>下载地址已经变成了私服的下载地址，私服下面也缓存有依赖包<br>
+<img src="https://ajie825.github.io/post-images/1697089478920.png" alt="" loading="lazy"></p>
+]]></content>
+    </entry>
+</feed>

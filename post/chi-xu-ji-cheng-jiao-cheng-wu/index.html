@@ -1,0 +1,454 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>持续集成教程 (五) | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">持续集成教程 (五)</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2023-10-09</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/orkaNU-rT/">
+                    devops
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="maven简介"><code>maven</code>简介</h2>
+<p><code>maven</code>是一个项目管理和综合工具，<code>maven</code>提供给开发人员构建一个完整的生命周期框架，开发团队可以自动完成该项目的基础设施建设，<code>maven</code>使用标准的目录结构和默认构建生命周期。</p>
+<p><code>Apache</code>的开源项目主要服务于<code>Java</code>平台的构建、依赖管理、项目管理，<code>maven</code>可以对<code>java</code>代码进行编译、打包、测试、部署。</p>
+<p><code>Project object model</code>，项目对象模型，通过<code>xml</code>格式保存的<code>pom.xml</code>文件，该文件用于管理：源代码、配置文件、开发者的信息和角色、问题追踪系统、组织信息、项目授权、项目的<code>url</code>、项目的依赖关系等等。该文件是由开发维护，我们运维人员可以不用去关心。</p>
+<h2 id="安装maven">安装<code>maven</code></h2>
+<p>首先在<code>Linux</code>命令行能使用<code>maven</code>进行构建，然后<code>Jenkins</code>调用<code>maven</code>插件工具，对项目进行构建。</p>
+<p>官网：<code>http://maven.apache.org/download.cgi</code><br>
+清华镜像：<code>https://mirrors.tuna.tsinghua.edu.cn/apache/maven/</code></p>
+<p><code>maven</code>是<code>java</code>写的，所以需要安装<code>jdk</code>，可以使用<code>yum</code>方式安装<code>open JDK1.8</code>版本，也可以使用<code>rpm</code>安装，<code>maven</code>安装在<code>Jenkins</code>服务器，省略安装<code>jdk</code></p>
+<pre><code class="language-shell">[root@jenkins ~]# java -version
+java version &quot;1.8.0_212&quot;
+Java(TM) SE Runtime Environment (build 1.8.0_212-b10)
+Java HotSpot(TM) 64-Bit Server VM (build 25.212-b10, mixed mode)
+</code></pre>
+<pre><code class="language-shell">#上传maven软件包
+[root@jenkins opt]# ll
+total 8296
+-rw-r--r-- 1 root root 8491533 Oct  3 21:11 apache-maven-3.3.9-bin.tar.gz
+#解压软件包
+[root@jenkins opt]# tar xf apache-maven-3.3.9-bin.tar.gz 
+#移动包到/usr/local下
+[root@jenkins opt]# mv apache-maven-3.3.9 /usr/local/maven-3.3.9
+#建立软连接
+[root@jenkins opt]# ln -s /usr/local/maven-3.3.9/ /usr/local/maven
+[root@jenkins opt]# cd /usr/local/maven
+[root@jenkins maven]# ll
+total 32
+drwxr-xr-x 2 root root    97 Oct  9 16:44 bin
+drwxr-xr-x 2 root root    42 Oct  9 16:44 boot
+drwxr-xr-x 3 root root    63 Nov 10  2015 conf
+drwxr-xr-x 3 root root  4096 Oct  9 16:44 lib
+-rw-r--r-- 1 root root 19335 Nov 10  2015 LICENSE
+-rw-r--r-- 1 root root   182 Nov 10  2015 NOTICE
+-rw-r--r-- 1 root root  2541 Nov 10  2015 README.txt
+#设置环境变量
+[root@jenkins maven]# echo &quot;export PATH=/usr/local/maven/bin/:$PATH&quot;&gt;&gt;/etc/profile
+[root@jenkins maven]# source /etc/profile
+#查看结果
+[root@jenkins maven]# mvn -v
+Apache Maven 3.3.9 (bb52d8502b132ec0a5a3f4c09453c07478323dc5; 2015-11-10T11:41:47-05:00)
+Maven home: /usr/local/maven
+Java version: 1.8.0_212, vendor: Oracle Corporation
+Java home: /usr/java/jdk1.8.0_212-amd64/jre
+Default locale: en_US, platform encoding: UTF-8
+OS name: &quot;linux&quot;, version: &quot;3.10.0-1160.el7.x86_64&quot;, arch: &quot;amd64&quot;, family: &quot;unix&quot;
+</code></pre>
+<h2 id="maven安装目录"><code>maven</code>安装目录</h2>
+<ul>
+<li>
+<p><code>bin</code>：该目录包含了<code>mvn</code>运行的脚本，这些脚本用来配置<code>java</code>命令，准备好<code>classpath</code>和相关的<code>Java</code>系统属性，然后执行<code>Java</code>命令。其中<code>mvn</code>是基于<code>UNIX</code>平台的脚本，<code>mvn.cmd</code>是基于<code>Windows</code>平台的脚本。</p>
+</li>
+<li>
+<p><code>boot</code>：该目录只包含一个文件，该文件是一个类加载器框架，<code>maven</code>使用该框架加载自己的类库。</p>
+</li>
+<li>
+<p><code>conf</code>：该目录包含一个非常重要的文件<code>setting.xml</code>，用于全局定义<code>maven</code>的行为。全局配置文件也可以将该文件复制到<code>~/.m2/</code>目录下，在用户范围内定制<code>maven</code>行为。</p>
+</li>
+<li>
+<p><code>lib</code>：该目录包含了所有<code>maven</code>运行时需要的<code>Java</code>类库。</p>
+</li>
+</ul>
+<h2 id="常用maven命令">常用<code>maven</code>命令</h2>
+<p>上传一个的<code>java</code>项目包<code>hello-world.tar.gz</code>进行解压</p>
+<pre><code class="language-shell">[root@jenkins opt]# tar xf hello-world.tar.gz
+[root@jenkins opt]# cd hello-world/
+[root@jenkins hello-world]# ll
+total 4
+-rw-r--r-- 1 root root 1683 Aug 26  2010 pom.xml
+drwxr-xr-x 4 root root   30 Oct 10  2009 src
+[root@jenkins hello-world]# tree .
+.
+├── pom.xml                       #pom.xml是maven项目的核心，maven构建先去找pom.xml文件
+└── src                           #这是hello-world的源代码
+    ├── main
+    │   └── java
+    │       └── com
+    │           └── juvenxu
+    │               └── mvnbook
+    │                   └── helloworld
+    │                       └── HelloWorld.java
+    └── test                      #这是写的单元测试
+        └── java
+            └── com
+                └── juvenxu
+                    └── mvnbook
+                        └── helloworld
+                            └── HelloWorldTest.java
+</code></pre>
+<ul>
+<li><code>validate</code>（验证）：   验证项目正确，并且所有必要信息可用</li>
+<li><code>compile</code>（编译）：     编译项目源码</li>
+<li><code>test</code>（测试）：          使用合适的单元测试框架测试编译后的源码    ***</li>
+<li><code>package</code>（打包）：     源码编译之后，使用合适的格式(例如JAR格式)对编译后的源码进行打包    ***</li>
+<li><code>integration‐test</code>（集成测试）：如果由需要，把包处理并部署到可以运行集成测试的环境中去</li>
+<li><code>verify</code>（验证）：      把包安装到本地仓库，使该包可以作为其他本地项目的依赖</li>
+<li><code>install</code>（安装）：    把包安装到本地仓库，使该包可以作为其他本地项目的依赖  ***</li>
+<li><code>deploy</code>（部署）：     在集成或发布环境中完成，将最终软件包复制到远程存储库，以与其他开发人员和项目共享  ***</li>
+<li><code>mvn clean </code>(清除) ：     清除上次编译的结果</li>
+</ul>
+<pre><code class="language-shell">[root@jenkins hello-world]# mvn test
+Downloading: https://repo.maven.apache.org/maven2/org/apache/maven/plugins/maven-resources-plugin/2.6/maven-resources-plugin-2.6.pom
+Downloading: https://repo.maven.apache.org/maven2/org/apache/maven/plugins/maven-plugins/23/maven-plugins-23.pom
+Downloading: https://repo.maven.apache.org/maven2/org/apache/maven/maven-parent/22/maven-parent-22.pom
+Downloading: https://repo.maven.apache.org/maven2/org/apache/apache/11/apache-11.pom
+Downloading: https://repo.maven.apache.org/maven2/org/apache/maven/plugins/maven-resources-plugin/2.6/maven-resources-plugin-2.6.jar
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 1.539 s
+[INFO] Finished at: 2023-10-09T19:56:34-04:00
+[INFO] Final Memory: 9M/29M
+[INFO] ------------------------------------------------------------------------
+</code></pre>
+<p><code>mvn test</code>命令用于测试，用于执行<code>src/test/java/</code>下的测试用例，使用<code>-Dmaven.test.skip=true </code>参数可以跳过测试。</p>
+<p>一个项目目录由一套源码和一套测试代码（单元测试），当执行<code>mvn test</code>时，会自动调用测试代码去测试类是否有问题，如果没有问题，可以执行编译，如果有问题，会报错，解决错误后才能继续编译，生成的<code>target</code>目录没有<code>jar</code>包，只是做了测试通过与不通过。</p>
+<pre><code class="language-shell">[root@jenkins hello-world]# mvn package
+[INFO] Building Maven Hello World Project 1.0-SNAPSHOT
+[INFO] ------------------------------------------------------------------------
+Downloading: https://repo.maven.apache.org/maven2/org/apache/maven/plugins/maven-jar-plugin/2.4/maven-jar-plugin-2.4.pom
+Downloading: https://repo.maven.apache.org/maven2/org/apache/maven/plugins/maven-plugins/22/maven-plugins-22.pom
+Downloading: https://repo.maven.apache.org/maven2/org/apache/maven/plugins/maven-jar-plugin/2.4/maven-jar-plugin-2.4.jar
+Downloading: https://repo.maven.apache.org/maven2/org/apache/maven/plugins/maven-shade-plugin/1.2.1/maven-shade-plugin-1.2.1.pom
+Downloading: https://repo.maven.apache.org/maven2/org/apache/maven/plugins/maven-plugins/13/maven-plugins-13.pom
+Downloading: https://repo.maven.apache.org/maven2/org/apache/maven/plugins/maven-shade-plugin/1.2.1/maven-shade-plugin-1.2.1.jar
+[root@jenkins hello-world]# ll
+total 4
+-rw-r--r-- 1 root root 1683 Aug 26  2010 pom.xml
+drwxr-xr-x 4 root root   30 Oct 10  2009 src
+drwxr-xr-x 7 root root  188 Oct  9 20:00 target
+[root@jenkins hello-world]# cd target/
+[root@jenkins target]# ll
+total 8
+drwxr-xr-x 3 root root   17 Oct  9 19:55 classes
+-rw-r--r-- 1 root root 3131 Oct  9 20:00 hello-world-1.0-SNAPSHOT.jar
+drwxr-xr-x 2 root root   28 Oct  9 20:00 maven-archiver
+drwxr-xr-x 3 root root   35 Oct  9 19:55 maven-status
+-rw-r--r-- 1 root root 2873 Oct  9 20:00 original-hello-world-1.0-SNAPSHOT.jar
+drwxr-xr-x 2 root root  125 Oct  9 19:55 surefire-reports
+drwxr-xr-x 3 root root   17 Oct  9 19:55 test-classes
+</code></pre>
+<p><code>mvn package</code>命令用于项目打包，会在<code>target</code>目录生成<code>jar</code>或者<code>war</code>文件，<code>jar</code>包是可以执行的</p>
+<pre><code class="language-shell">[root@jenkins target]# java -jar hello-world-1.0-SNAPSHOT.jar 
+Hello Maven
+</code></pre>
+<p>我们可以看看源码，进入</p>
+<pre><code class="language-shell">[root@jenkins helloworld]# pwd
+/opt/hello-world/src/main/java/com/juvenxu/mvnbook/helloworld
+[root@jenkins helloworld]# vim HelloWorld.java 
+package com.juvenxu.mvnbook.helloworld;
+
+public class HelloWorld {
+
+        public String sayHello()
+        {
+                return &quot;Hello Maven&quot;;
+        }
+
+        public static void main(String[] args)
+        {
+                System.out.print( new HelloWorld().sayHello() );
+        }
+}
+</code></pre>
+<p><code>https://repo.maven.apache.org/</code>是<code>maven</code>中心仓库，当执行<code>mvn package</code>命令时候，<code>maven</code>首先会在<code>/root/.m2</code>本地仓库找相关构建的依赖包，如果本地仓库里面有依赖包，直接复制过来执行，如果本地仓库没有依赖包，就去<code>maven</code>中心仓库去下载依赖包到本地仓库<code>.m2</code>，然后再执行构建。</p>
+<p>从<code>maven</code>中心仓库下载依赖包比较包，为了解决这个问题，可以配置<code>maven</code>仓库为阿里云中央仓库或者部署<code>maven</code>私服<code>nexus</code>。</p>
+<pre><code class="language-shell">[root@jenkins hello-world]# mvn clean
+[INFO] Scanning for projects...                                                     
+[INFO] ------------------------------------------------------------------------
+[INFO] Building Maven Hello World Project 1.0-SNAPSHOT
+[INFO] ------------------------------------------------------------------------
+[INFO] 
+[INFO] --- maven-clean-plugin:2.5:clean (default-clean) @ hello-world ---
+[INFO] Deleting /opt/hello-world/target
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+</code></pre>
+<p><code>mvn clean</code>命令用于清理项目生产的临时文件，一般是模块下的<code>target</code>目录。</p>
+<h2 id="配置maven仓库为阿里云中央仓库">配置<code>maven</code>仓库为阿里云中央仓库</h2>
+<pre><code class="language-shell">[root@jenkins ~]# vim /usr/local/maven/conf/settings.xml
+#158行后添加
+&lt;mirror&gt;
+  &lt;id&gt;alimaven&lt;/id&gt;
+ &lt;name&gt;aliyun maven&lt;/name&gt;
+ &lt;url&gt;http://maven.aliyun.com/nexus/content/groups/public/&lt;/url&gt;
+ &lt;mirrorOf&gt;central&lt;/mirrorOf&gt;
+&lt;/mirror&gt;
+</code></pre>
+<p>重新打包，发现从阿里云中央仓库下载依赖包</p>
+<pre><code class="language-shell">[root@jenkins hello-world]# mvn package
+Downloading: http://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/plugins/maven-jar-plugin/2.4/maven-jar-plugin-2.4.pom
+Downloading: http://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/plugins/maven-plugins/22/maven-plugins-22.pom
+Downloading: http://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/maven-parent/21/maven-parent-21.pom
+Downloading: http://maven.aliyun.com/nexus/content/groups/public/org/apache/apache/10/apache-10.pom
+Downloading: http://maven.aliyun.com/nexus/content/groups/public/org/apache/maven/plugins/maven-jar-plugin/2.4/maven-jar-plugin-2.4.jar
+</code></pre>
+<h2 id="利用nexus搭建私有maven库">利用<code>nexus</code>搭建私有<code>maven</code>库</h2>
+<p>所谓私服就是搭建在内网上，可以代替<code>maven</code>中央仓库，以后<code>maven</code>打包下载依赖包时，先在本地仓库<code>.m2</code>目录下找，如果本地仓库没有，然后去私服找依赖包，私服也没有的情况下再去<code>maven</code>中央仓库下载依赖包，在中央仓库下载完以后，依赖包会先缓存在私服上，然后执行构建任务，最后将依赖包缓存到本地<code>.m2</code>目录。</p>
+<h3 id="nexus介绍"><code>nexus</code>介绍</h3>
+<p><code>nexus</code>是一个强大的<code>maven</code>仓库管理器，它极大地简化了本地内部仓库的维护和外部仓库的访问，在代理远程仓库的同时维护本地仓库，以降低中央仓库的负荷，节省外网带宽和时间。</p>
+<p><code>nexus</code>支持<code>WebDAV</code>与<code>LDAP</code>的安全身份认证，还提供了强大的仓库管理功能，构件搜索功能，它基于<code>REST</code>，友好的<code>UI</code>是一个<code>extjs</code>的<code>REST</code>客户端，它占用较少的内存，基于简单文件系统而非数据库。</p>
+<h3 id="nexus安装配置启动"><code>nexus</code>安装配置启动</h3>
+<p><strong>安装<code>JDK</code></strong></p>
+<p>运行<code>nexus</code>需要<code>Java 8</code>的运行时环境支持，可以使用<code>yum</code>方式安装<code>open JDK1.8</code>版本，也可以使用<code>rpm</code>安装，我们使用<code>rpm</code>方式安装</p>
+<pre><code class="language-shell">[root@nexus tools]# rpm -ivh jdk-8u181-linux-x64.rpm
+[root@nexus tools]# java -version
+java version &quot;1.8.0_181&quot;
+Java(TM) SE Runtime Environment (build 1.8.0_181-b13)
+Java HotSpot(TM) 64-Bit Server VM (build 25.181-b13, mixed mode)
+</code></pre>
+<p><strong>安装<code>nexus</code></strong></p>
+<p>下载地址：<code>https://help.sonatype.com/repomanager3/product-information/download/download-archives---repository-manager-3</code></p>
+<pre><code class="language-shell">[root@nexus tools]# tar xf nexus-3.13.0-01-unix.tar.gz 
+[root@nexus tools]# mv nexus-3.13.0-01 /usr/local/
+[root@nexus local]# ln -s /usr/local/nexus-3.13.0-01/ /usr/local/nexus
+[root@nexus local]# /usr/local/nexus/bin/nexus start
+WARNING: ************************************************************
+WARNING: Detected execution as &quot;root&quot; user.  This is NOT recommended!
+WARNING: ************************************************************
+Starting nexus
+[root@nexus local]# netstat -lnpt|grep 8081
+tcp        0      0 0.0.0.0:8081            0.0.0.0:*               LISTEN      2561/java 
+</code></pre>
+<p>在浏览器访问<code>http://192.168.40.183:8081</code>，使用默认用户名<code>admin</code>，默认密码<code>admin123</code>进行登录<br>
+<img src="https://ajie825.github.io/post-images/1697012490652.png" alt="" loading="lazy"></p>
+<h3 id="配置maven项目使用nexus仓库">配置<code>maven</code>项目使用<code>nexus</code>仓库</h3>
+<p>第一种方法：</p>
+<p>在<code>maven</code>项目下的<code>pom.xml</code>文件配置，只对当前项目生效。</p>
+<p>第二种方法：</p>
+<p>在<code>maven</code>配置文件<code>setting.xml</code>配置，这种方式配置后所有项目都生效，配置文件<code>setting.xml</code>在<code>/usr/local/maven/conf</code>目录下。</p>
+<pre><code class="language-shell">[root@jenkins conf]# ll /usr/local/maven/conf/
+total 16
+drwxr-xr-x 2 root root    37 Nov 10  2015 logging
+-rw-r--r-- 1 root root 10216 Oct 11 01:35 settings.xml
+-rw-r--r-- 1 root root  3649 Nov 10  2015 toolchains.xml
+[root@jenkins conf]# vim settings.xml 
+</code></pre>
+<pre><code class="language-shell">#找到&lt;server&gt;&lt;/server&gt;标签，添加nexus认证信息：
+&lt;server&gt;
+   &lt;id&gt;releases&lt;/id&gt;
+   &lt;username&gt;admin&lt;/username&gt;
+   &lt;password&gt;admin123&lt;/password&gt;
+&lt;/server&gt;
+&lt;server&gt;
+   &lt;id&gt;snapshots&lt;/id&gt;
+   &lt;username&gt;admin&lt;/username&gt;
+   &lt;password&gt;admin123&lt;/password&gt;
+&lt;/server&gt;
+</code></pre>
+<pre><code class="language-shell">#找到&lt;mirror&gt;&lt;/mirror&gt;标签，添加镜像信息：
+&lt;mirror&gt;
+   &lt;id&gt;nexus&lt;/id&gt;
+   &lt;mirrorOf&gt;*&lt;/mirrorOf&gt;
+   &lt;!--*指的是访问任何仓库都使用我们的私服--&gt;
+   &lt;url&gt;http://192.168.40.183:8081/repository/maven-public/&lt;/url&gt;
+&lt;/mirror&gt;
+</code></pre>
+<p>其中<code>url</code>地址从<code>nexus web</code>页面取得，点击<code>maven-public</code>：<br>
+<img src="https://ajie825.github.io/post-images/1697088487105.png" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1697088500108.png" alt="" loading="lazy"></p>
+<pre><code class="language-shell">#找到&lt;profile&gt;&lt;/profile&gt;标签，添加仓库信息：
+&lt;profile&gt;
+   &lt;id&gt;nexus&lt;/id&gt; 
+   &lt;repositories&gt;
+   &lt;!-- 私有库地址--&gt;
+    &lt;repository&gt;
+    &lt;id&gt;nentral&lt;/id&gt;
+    &lt;url&gt;http://192.168.40.183:8081/repository/maven-public/&lt;/url&gt;
+    &lt;releases&gt;&lt;enabled&gt;true&lt;/enabled&gt;&lt;/releases&gt;
+    &lt;snapshots&gt;&lt;enabled&gt;true&lt;/enabled&gt;&lt;/snapshots&gt;
+  &lt;/repository&gt;
+&lt;/repositories&gt;
+&lt;pluginRepositories&gt;
+  &lt;!--插件库地址--&gt;
+  &lt;pluginRepository&gt;
+    &lt;id&gt;central&lt;/id&gt;
+    &lt;url&gt;http://192.168.40.183:8081/repository/maven-public/&lt;/url&gt;
+    &lt;releases&gt;&lt;enabled&gt;true&lt;/enabled&gt;&lt;/releases&gt;
+    &lt;snapshots&gt;&lt;enabled&gt;true&lt;/enabled&gt;&lt;/snapshots&gt;
+    &lt;/pluginRepository&gt;
+  &lt;/pluginRepositories&gt;
+&lt;/profile&gt;
+</code></pre>
+<pre><code class="language-shell">#激活仓库
+&lt;activeProfiles&gt;
+  &lt;activeProfile&gt;nexus&lt;/activeProfile&gt;
+&lt;/activeProfiles&gt;
+</code></pre>
+<p>配置完成后，对<code>hello-world</code>项目重新进行构建，执行前先删除<code>.m2</code>仓库，<code>mvn clean</code>清掉上次构建</p>
+<pre><code class="language-shell">[root@jenkins hello-world]# mvn package                                                               
+[INFO] ------------------------------------------------------------------------
+[INFO] Building Maven Hello World Project 1.0-SNAPSHOT
+[INFO] ------------------------------------------------------------------------
+Downloading: http://192.168.40.183:8081/repository/maven-public/org/apache/maven/plugins/maven-jar-plugin/2.4/maven-jar-plugin-2.4.pom
+Downloading: http://192.168.40.183:8081/repository/maven-public/org/apache/maven/plugins/maven-plugins/22/maven-plugins-22.pom
+Downloading: http://192.168.40.183:8081/repository/maven-public/org/apache/maven/plugins/maven-jar-plugin/2.4/maven-jar-plugin-2.4.jar
+Downloading: http://192.168.40.183:8081/repository/maven-public/org/apache/maven/plugins/maven-shade-plugin/1.2.1/maven-shade-plugin-1.2.1.pom
+Downloading: http://192.168.40.183:8081/repository/maven-public/org/apache/maven/plugins/maven-plugins/13/maven-plugins-13.pom
+</code></pre>
+<p>下载地址已经变成了私服的下载地址，私服下面也缓存有依赖包<br>
+<img src="https://ajie825.github.io/post-images/1697089478920.png" alt="" loading="lazy"></p>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/chi-xu-ji-cheng-jiao-cheng-si/">
+              <h3 class="post-title">
+                下一篇：持续集成教程 (四)
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

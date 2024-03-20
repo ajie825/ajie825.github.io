@@ -1,0 +1,571 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>deployment控制器 | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">deployment控制器</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-07-22</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/vN0im2GW5W/">
+                    k8s
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <p><a href="https://kubernetes.io/docs/concepts/workloads/controllers/deployment/"><code>Deployment</code>官方文档：</a></p>
+<h2 id="deployment概述">deployment概述</h2>
+<p><code>deployment</code>是<code>k8s</code>中常用的资源对象，为<code>replicaset</code>和<code>pod</code>的创建提供了一种声明式的定义方法，在<code>deployment</code>对象中描述一个期望状态，<code>deployment</code>控制器就会按照一定的控制速率把实际状态变成期望状态，通过定义<code>deployment</code>控制器会创建新的<code>replicaset</code>控制器，通过<code>replicaset</code>创建<code>pod</code>，删除<code>deployment</code>控制器，也会删除<code>deployment</code>控制器下对应的<code>replicaset</code>控制器和<code>pod</code>资源。</p>
+<p>使用<code>deployment</code>而不直接创建<code>replicaset</code>是因为<code>deployment</code>拥有许多<code>replicaset</code>没有的特性，例如滚动升级和回滚。</p>
+<p>扩展：声明式定义是指直接修改资源清单<code>yaml</code>文件，然后通过<code>kubectl apply -f</code>资源清单<code>yaml</code>文件，就可以更改资源。</p>
+<p><code>deployment</code>控制器是建立在<code>rs</code>之上的控制器，可以管理多个<code>rs</code>，每次更新镜像版本，都会生成一个新的<code>rs</code>，把旧的<code>rs</code>替换掉，多个<code>rs</code>同时存在，但是只有一个<code>rs</code>运行。<br>
+<img src="https://ajie825.github.io/post-images/1703049141033.png" alt="" loading="lazy"></p>
+<p>如上图所示：<code>rs v1</code>控制三个<code>pod</code>，当更新镜像重新应用资源时，首先删除一个<code>pod</code>，然后在<code>rs v2</code>上建立一个新的<code>pod</code>，依次类推，直到全部由<code>rs v2</code>控制，如果<code>rs v2</code>有问题，还可以回滚，<code>deployment</code>是建立在<code>rs</code>之上的，多个<code>rs</code>组成一个<code>deployment</code>，但是只有一个<code>rs</code>处于活跃状态。</p>
+<h2 id="deployment工作原理">deployment工作原理</h2>
+<p>如何管理<code>rs</code>和<code>pod</code>？</p>
+<p><code>deployment</code>可以使用声明式定义，直接在命令行通过纯命令的方式完成对资源版本内容的修改，也就是通过打补丁的方式进行修改；<code>deployment</code>能提供滚动式自定义控制的更新；对<code>deployment</code>来讲，在实现更新时还可以控制更新节奏和更新逻辑。</p>
+<p>什么叫做更新节奏和更新逻辑呢？</p>
+<p>比如说<code>deployment</code>控制5个<code>pod</code>副本，<code>pod</code>的期望值是5个，但是升级的时候需要额外多几个<code>pod</code>，那<code>deployment</code>控制器可以控制在5个<code>pod</code>副本之外还能再增加几个<code>pod</code>副本；比方说能多一个，但是不能少，那么升级的时候就是先增加一个，再删除一个，增加一个删除一个，始终保持<code>pod</code>副本数是5个；</p>
+<p>还有一种情况，最多允许多一个，最少允许少一个，也就是最多6个，最少4个，第一次加一个，删除两个，第二次加两个，删除两个，依次类推，可以控制更新方式，这种滚动更新需要加<code>readinessProbe</code>和<code>livenessProbe</code>探测，确保<code>pod</code>中容器里的应用都正常启动了才删除之前的<code>pod</code>，这就是可以自己控制节奏来更新的方法。</p>
+<p>通过<code>deployment</code>对象，你可以轻松的做到以下事情：</p>
+<ul>
+<li>创建<code>replicaset</code>和<code>pod</code></li>
+<li>滚动升级(不停止旧服务的状态下升级)和回滚应用(将应用回滚到之前的版本)</li>
+<li>平滑的扩容和缩容</li>
+<li>暂停和继续<code>deployment</code></li>
+</ul>
+<h2 id="deployment资源清单文件编写技巧">deployment资源清单文件编写技巧</h2>
+<pre><code class="language-bash">#查看Deployment资源对象由哪几部分组成
+[root@master1 ~]# kubectl explain deployment
+KIND:     Deployment
+VERSION:  apps/v1
+
+DESCRIPTION:
+     #Deployment支持Pod和ReplicaSet的声明式更新
+
+FIELDS:
+   apiVersion   &lt;string&gt;       #当前资源使用的api版本，跟apiVersion: apps/v1保持一致
+   kind         &lt;string&gt;       #资源类型，和kind: Deployment保持一致
+   metadata     &lt;Object&gt;       #元数据，包括资源的名称、名称空间、标签
+   spec         &lt;Object&gt;       #定义副本数、定义标签选择器、定义pod模板等
+   status       &lt;Object&gt;       #状态，不可修改
+</code></pre>
+<pre><code class="language-bash">#查看Deployment下的spec字段
+[root@master1 ~]# kubectl explain deployment.spec
+KIND:     Deployment
+VERSION:  apps/v1
+RESOURCE: spec &lt;Object&gt;
+DESCRIPTION:
+    
+FIELDS:
+   minReadySeconds          &lt;integer&gt;
+   #k8s在等待设置的时间后才进行升级，如果没有设置该值，k8s会假设该容器启动后就提供服务
+   paused                   &lt;boolean&gt;      #暂停，我们更新的时候创建的pod先暂停，不是立即更新
+   progressDeadlineSeconds  &lt;integer&gt;
+   #k8s在升级过程中可能由于各种原因升级被卡住(这个时候还没有明确升级失败)，比如在拉取被墙的镜像、权限不够等错误；
+   #这个时候就需要有deadline，在deadline之内如果还卡着，那么就上报这个情况，这个时候deployment状态被标记为Flase,
+   #并且注明原因，但是它不会阻止deployment继续进行卡住后面的操作，完全由用户进行控制
+   replicas              &lt;integer&gt;             #副本数
+   revisionHistoryLimit  &lt;integer&gt;             #保留的历史版本，默认是10
+   selector              &lt;Object&gt; -required-   #标签选择器，选择它关联的pod
+   strategy              &lt;Object&gt;              #更新策略
+   template              &lt;Object&gt; -required-   #定义pod的模板
+</code></pre>
+<pre><code class="language-bash">#查看Deployment下的spec.strategy字段
+[root@master1 ~]# kubectl explain deploy.spec.strategy
+KIND:     Deployment
+VERSION:  apps/v1
+RESOURCE: strategy  &lt;Object&gt;
+DESCRIPTION:
+
+FIELDS:
+   rollingUpdate    &lt;Object&gt;   
+   type             &lt;string&gt;
+     #支持两种更新，Recreate和RollingUpdate，Recreate是重建式更新，删除一个更新一个
+     #RollingUpdate滚动式更新，也就是pod能多几个，少几个，默认为滚动式更新
+</code></pre>
+<pre><code class="language-bash">#查看Deployment下的spec.strategy.rollingUpdate字段
+[root@master1 ~]# kubectl explain deploy.spec.strategy.rollingUpdate
+KIND:     Deployment
+VERSION:  apps/v1
+RESOURCE: rollingUpdate &lt;Object&gt;
+DESCRIPTION:
+
+FIELDS:
+   maxSurge        &lt;string&gt;
+     #我们更新的过程当中最多允许超出的指定目标副本数有几个；
+     #它有两种取值方式，第一种直接给定数量，第二种根据百分比，百分比表示原本是5个，最多可以超出20%，那就允许多一个
+   maxUnavailable  &lt;string&gt;  #最多允许几个不可用，假设5个副本，最多一个不可用，就表示最少4个可用 
+</code></pre>
+<h2 id="deployment使用案例">deployment使用案例</h2>
+<p><code>deployment</code>是一个三级结构，<code>deployment</code>管理<code>replicaset</code>，<code>replicaset</code>管理<code>pod</code>。</p>
+<pre><code class="language-bash">1）#把myapp-blue-v1.tar.gz和myapp-blue-v2.tar.gz上传到node1和node2上，手动解压：
+[root@node1 ~]# docker load -i myapp-blue-v1.tar.gz
+[root@node1 ~]# docker load -i myapp-blue-v2.tar.gz
+[root@node2 ~]# docker load -i myapp-blue-v1.tar.gz
+[root@node2 ~]# docker load -i myapp-blue-v2.tar.gz
+
+2）#编写资源清单文件
+[root@master1 ~]# cat deploy-demo.yaml 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp-v1
+  namespace: default
+  labels:
+    app: myapp
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+        version: v1
+    spec:
+      containers:
+      - name: myapp
+        image: janakiramm/myapp:v1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+
+3）#查看资源信息
+[root@master1 ~]# kubectl apply -f deploy-demo.yaml
+[root@master1 deployment]# kubectl get deployments.apps -o wide
+NAME       READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES                SELECTOR
+myapp-v1   2/2     2            2           30s   myapp        janakiramm/myapp:v1   app=myapp
+NAME：      #创建的控制器名字是myapp-v1
+READY：     #显示deployment有多少副本数，它遵循ready/desired的模式
+UP-TO-DATE：#显示已更新到所需状态的副本数
+AVAILABLE： #显示你可以使用多少个应用程序副本
+AGE：       #显示应用程序已运行的时间
+
+#查看deployment创建的rs信息
+[root@master1 ~]# kubectl get rs
+NAME                  DESIRED   CURRENT   READY   AGE
+myapp-v1-67fd9fc9c8   2         2         2       6m36s
+NAME：      #创建的RS控制器名称，由deployment的名称-随机数组成
+DESIRED：   #显示应用程序的所需副本数，这些副本数是在创建时定义的
+CURRENT：   #显示当前正在运行多少个副本
+READY：     #显示你的用户可以使用多少个应用程序副本
+AGE：       #显示应用程序已运行的时间
+
+#查看deployment创建的pod信息
+[root@master1 ~]# kubectl get pods -o wide
+NAME                        READY   STATUS    RESTARTS   AGE   IP               NODE   
+myapp-v1-67fd9fc9c8-96rwt   1/1     Running   0          15m   10.244.104.1     node2  
+myapp-v1-67fd9fc9c8-bkfpf   1/1     Running   0          15m   10.244.166.184   node1  
+#pod的名字是由RS的名字-随机数组成的
+[root@master1 ~]# curl -s 10.244.104.1|grep background
+background-color: blue;
+[root@master1 ~]# curl -s 10.244.166.184|grep background
+background-color: blue;
+</code></pre>
+<h3 id="资源清单文件详细解读">资源清单文件详细解读</h3>
+<pre><code class="language-bash">apiVersion: apps/v1                  #deployment对应的api版本
+kind: Deployment                     #创建的资源是deployment
+metadata:
+  name: myapp-v1                     #deployment的名字
+spec:
+  replicas: 2                        #deployment管理的pod副本数
+  selector:                          #标签选择器
+   matchLabels:                      #matchLabels下定义的标签需要跟template.metadata.labels定义的标签一致
+    app: myapp
+    version: v1
+  template:
+   metadata:
+    labels:
+     app: myapp
+     version: v1
+   spec:                             #定义容器的属性
+    containers:  
+    - name: myapp
+      image: janakiramm/myapp:v1     #容器使用的镜像
+      imagePullPolicy: IfNotPresent  #镜像拉取策略
+      ports:
+      - containerPort: 80            #容器里的应用的端口
+</code></pre>
+<h2 id="deployment管理pod扩容-缩容-滚动更新-回滚">deployment管理pod：扩容、缩容、滚动更新、回滚</h2>
+<h3 id="deployment实现pod扩容">deployment实现pod扩容</h3>
+<pre><code class="language-bash">#把pod副本数变成3，修改deploy-demo.yaml，将replicas: 2 修改为replicas: 3
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: myapp
+#修改之后保存退出，执行
+[root@master1 ~]# kubectl apply -f deploy-demo.yaml 
+deployment.apps/myapp-v1 configured
+[root@master1 ~]# kubectl get deployments.apps 
+NAME       READY   UP-TO-DATE   AVAILABLE   AGE
+myapp-v1   3/3     3            3           40m
+
+[root@master1 ~]# kubectl get rs
+NAME                  DESIRED   CURRENT   READY   AGE
+myapp-v1-67fd9fc9c8   3         3         3       40m
+
+[root@master1 ~]# kubectl get pod
+NAME                        READY   STATUS    RESTARTS   AGE
+myapp-v1-67fd9fc9c8-96rwt   1/1     Running   0          40m
+myapp-v1-67fd9fc9c8-bkfpf   1/1     Running   0          40m
+myapp-v1-67fd9fc9c8-sz95c   1/1     Running   0          34s
+#上面可以看到pod副本已经变成3个
+</code></pre>
+<h3 id="deployment实现pod缩容">deployment实现pod缩容</h3>
+<pre><code class="language-bash">#把pod副本数变成2，方法同扩容一致
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: myapp
+[root@master1 ~]# kubectl apply -f deploy-demo.yaml 
+[root@master1 ~]# kubectl get deployments.apps 
+NAME       READY   UP-TO-DATE   AVAILABLE   AGE
+myapp-v1   2/2     2            2           43m
+[root@master1 ~]# kubectl get rs
+NAME                  DESIRED   CURRENT   READY   AGE
+myapp-v1-67fd9fc9c8   2         2         2       43m
+[root@master1 ~]# kubectl get pods
+NAME                        READY   STATUS    RESTARTS   AGE
+myapp-v1-67fd9fc9c8-96rwt   1/1     Running   0          43m
+myapp-v1-67fd9fc9c8-bkfpf   1/1     Running   0          43m
+#deployment的扩容、缩容和replicaset的步骤、方法一致
+</code></pre>
+<h3 id="deployment实现滚动更新">deployment实现滚动更新</h3>
+<pre><code class="language-bash">1）#打开一个新的终端执行如下：
+[root@master1 ~]# kubectl get pods -l app=myapp -w
+NAME                        READY   STATUS    RESTARTS   AGE
+myapp-v1-67fd9fc9c8-96rwt   1/1     Running   0          64m
+myapp-v1-67fd9fc9c8-bkfpf   1/1     Running   0          64m
+
+2）#更改镜像版本，按如下操作：
+[root@master1 ~]# vim deploy-demo.yaml 
+#把image: janakiramm/myapp:v1 变成image: janakiramm/myapp:v2
+ spec:
+      containers:
+      - name: myapp
+        image: janakiramm/myapp:v2
+        imagePullPolicy: IfNotPresent
+[root@master1 ~]# kubectl apply -f deploy-demo.yaml 
+deployment.apps/myapp-v1 configured
+
+3）#回到刚才执行监测kubectl get pods -l app=myapp -w的那个窗口，可以看到信息如下：
+[root@master1 ~]# kubectl get pods -l app=myapp -w
+NAME                        READY   STATUS           RESTARTS     AGE
+myapp-v1-67fd9fc9c8-96rwt   1/1     Running             0          64m
+myapp-v1-67fd9fc9c8-bkfpf   1/1     Running             0          64m
+myapp-v1-75fb478d6c-xg757   0/1     Pending             0          0s
+myapp-v1-75fb478d6c-xg757   0/1     Pending             0          0s
+myapp-v1-75fb478d6c-xg757   0/1     ContainerCreating   0          0s
+myapp-v1-75fb478d6c-xg757   0/1     ContainerCreating   0          0s
+myapp-v1-75fb478d6c-xg757   1/1     Running             0          1s
+myapp-v1-67fd9fc9c8-bkfpf   1/1     Terminating         0          67m
+myapp-v1-75fb478d6c-f5br7   0/1     Pending             0          0s
+myapp-v1-75fb478d6c-f5br7   0/1     Pending             0          0s
+myapp-v1-75fb478d6c-f5br7   0/1     ContainerCreating   0          0s
+myapp-v1-67fd9fc9c8-bkfpf   1/1     Terminating         0          67m
+myapp-v1-75fb478d6c-f5br7   0/1     ContainerCreating   0          1s
+myapp-v1-67fd9fc9c8-bkfpf   0/1     Terminating         0          67m
+myapp-v1-75fb478d6c-f5br7   1/1     Running             0          2s
+myapp-v1-67fd9fc9c8-96rwt   1/1     Terminating         0          67m
+myapp-v1-67fd9fc9c8-96rwt   1/1     Terminating         0          67m
+#Pending表示正在进行调度，ContainerCreating表示正在创建一个pod，Running表示运行起一个pod，
+#Terminating表示停掉一个pod，以此类推，直到所有pod完成滚动升级
+
+4）#在另一个窗口执行
+[root@master1 ~]# kubectl get rs
+#显示如下，可以看到rs有两个，上面那个是升级之前的，已经被停掉，但是可以随时可以回滚
+NAME                  DESIRED   CURRENT   READY   AGE
+myapp-v1-67fd9fc9c8   0         0         0       73m
+myapp-v1-75fb478d6c   2         2         2       5m22s
+[root@master1 ~]# kubectl get pods -o wide
+NAME                        READY   STATUS    RESTARTS   AGE   IP               NODE  
+myapp-v1-75fb478d6c-f5br7   1/1     Running   0          52m   10.244.104.2     node2   
+myapp-v1-75fb478d6c-xg757   1/1     Running   0          52m   10.244.166.186   node1
+[root@master1 ~]# curl -s 10.244.104.2|grep background
+background-color: green;
+[root@master1 ~]# curl -s 10.244.166.186|grep background
+background-color: green;
+
+5）#查看myapp-v1这个deployment控制器的历史版本
+[root@master1 ~]# kubectl rollout history deployment myapp-v1 
+deployment.apps/myapp-v1 
+REVISION  CHANGE-CAUSE
+1         &lt;none&gt;
+2         &lt;none&gt;
+
+6）#回滚
+[root@master1 ~]# kubectl rollout undo deployment myapp-v1 --to-revision=1
+deployment.apps/myapp-v1 rolled backdeployment.apps/myapp-v1 rolled back
+[root@master1 ~]# kubectl rollout history deployment myapp-v1             
+deployment.apps/myapp-v1 
+REVISION  CHANGE-CAUSE
+2         &lt;none&gt;
+3         &lt;none&gt;
+[root@master1 ~]# kubectl get rs
+NAME                  DESIRED   CURRENT   READY   AGE
+myapp-v1-67fd9fc9c8   2         2         2       135m
+myapp-v1-75fb478d6c   0         0         0       68m
+[root@master1 ~]# kubectl get pods -o wide
+NAME                        READY   STATUS    RESTARTS   AGE     IP               NODE 
+myapp-v1-67fd9fc9c8-g8s84   1/1     Running   0          2m41s   10.244.166.187   node1 
+myapp-v1-67fd9fc9c8-m9vlj   1/1     Running   0          2m39s   10.244.104.4     node2
+[root@master1 ~]# curl -s 10.244.104.4|grep background
+background-color: blue;
+[root@master1 ~]# curl -s 10.244.166.187|grep background 
+background-color: blue;
+</code></pre>
+<h3 id="自定义滚动更新策略">自定义滚动更新策略</h3>
+<p><code>maxSurge</code>和<code>maxUnavailable</code>用来控制滚动更新的更新策略。</p>
+<p>1）取值范围<br>
+数值：<code>maxSurge</code> [0，副本数]，<code>maxUnavailable</code> [0，副本数]<br>
+注意：两者不能同时为0。</p>
+<p>比例：<br>
+<code>maxSurge</code>：           [0%，100%] 向上取整，比如10个副本，5%的话=0.5个，按计算1个；<br>
+<code>maxUnavailable</code>：[0%，100%] 向下取整，比如10个副本，5%的话=0.5个，按计算0个。<br>
+注意：两者不能同时为0。</p>
+<p>2）建议配置<br>
+<code>maxSurge</code> == 1<br>
+<code>maxUnavailable</code> == 0<br>
+这是我们生产环境提供给用户的默认配置，即 &quot;一上一下，先上后下&quot; 最平滑的原则；<br>
+1个新版本<code>pod</code> <code>ready</code>(结合<code>readiness</code>)后，才销毁旧版本<code>pod</code>，此配置适用场景是平滑更新、保证服务平稳，但也有缺点，就是 &quot;太慢&quot; 了。</p>
+<p>总结：<br>
+<code>maxSurge</code>：          和期望的副本数比，超过期望副本数量最大比例(或最大值)，这个值调的越大，副本更新速度越快。<br>
+<code>maxUnavailable</code>：和期望的副本数比，不可用副本数量最大比例(或最大值)，这个值越小，越能保证服务稳定，更新越平滑。</p>
+<pre><code class="language-bash">#自定义更新策略：maxUnavailable=1，maxSurge=1 
+[root@master1 ~]# cat deploy-demo.yaml 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp-v1
+  namespace: default
+  labels:
+    app: myapp
+spec:
+  replicas: 2
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+        version: v1
+    spec:
+      containers:
+      - name: myapp
+        image: janakiramm/myapp:v2
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+#或者采用打补丁的方法
+[root@master1 ~]# kubectl patch deployment myapp-v1 -p '{&quot;spec&quot;:{&quot;strategy&quot;:{&quot;rollingUpdate&quot;: {&quot;maxSurge&quot;:1,&quot;maxUnavailable&quot;:0}}}}'
+
+#查看myapp-v1这个控制器的详细信息
+[root@master1 ~]# kubectl describe deployments.apps myapp-v1 
+RollingUpdateStrategy:  0 max unavailable, 1 max surge
+#这就是通过控制RollingUpdateStrategy这个字段来设置滚动更新策略的
+</code></pre>
+<h2 id="deployment资源清单详解">deployment资源清单详解</h2>
+<pre><code class="language-bash">apiVersion: apps/v1
+kind: Deployment 
+metadata:
+  name: portal
+  namespace: ms 
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      project: ms
+      app: portal
+  template:
+    metadata:
+      labels:
+        project: ms 
+        app: portal
+    spec:
+      containers:
+      - name: portal
+        image: portal:v1
+        imagePullPolicy: Always
+        ports:
+          - protocol: TCP
+            containerPort: 8080 
+        resources:                  #资源配额
+          limits:                   #资源限制，最多可用的cpu和内存
+            cpu: 1
+            memory: 1Gi
+         requests：                 #最少需要多少资源才可以运行Pod
+            cpu: 0.5
+            memory: 1Gi
+        readinessProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 10
+</code></pre>
+<p><code>livenessProbe</code>    #存活性探测</p>
+<p>用于判断容器是否存活，即<code>pod</code>是否为<code>Running</code>状态，如果<code>livenessProbe</code>探针探测到容器不健康，则<code>kubelet</code>将<code>kill</code>掉容器，并根据容器的重启策略是否重启，如果一个容器不包含<code>livenessProbe</code>探针，则<code>kubelet</code>认为容器的<code>livenessProbe</code>探针的返回值永远成功。</p>
+<pre><code class="language-bash">tcpSocket: 
+  port: 8080               #检测8080端口是否存在
+initialDelaySeconds: 60    #Pod启动60s执行第一次检查
+periodSeconds: 10          #第一次检查后每隔10s检查一次
+</code></pre>
+<p><code>readinessProbe</code>   #就绪性探测</p>
+<p>有时应用程序可能暂时无法接受请求，比如<code>pod</code>已经<code>Running</code>，但是容器内应用程序尚未启动成功，在这种情况下，如果没有<code>readinessProbe</code>，则<code>k8s</code>认为它可以处理请求了，然而程序还没启动成功是不能接收用户请求的，所以不希望<code>k8s</code>把请求调度给它，则使用<code>readinessPorbe</code>探针，<code>readinessProbe</code>探针探测容器是否已准备就绪，如果未准备就绪则<code>k8s</code>不会将流量转发给此<code>pod</code>。</p>
+<pre><code class="language-bash">tcpSocket: 
+  port: 8080             
+initialDelaySeconds: 60  
+periodSeconds: 10     
+</code></pre>
+<p><code>livenessProbe</code>和<code>readinessProbe</code>使用相同探测方式，只是对<code>pod</code>的处置方式不同，<code>readinessProbe</code>是将<code>pod</code>的<code>IP：port</code>从对应的<code>EndPoint</code>列表中删除，而<code>livenessProbe</code>则<code>kill</code>容器并根据<code>pod</code>的重启策略来决定作出对应的措施。</p>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/replicaset-kong-zhi-qi/">
+              <h3 class="post-title">
+                下一篇：replicaset控制器
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

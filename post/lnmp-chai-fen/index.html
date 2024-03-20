@@ -1,0 +1,355 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>LNMP-拆分 | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">LNMP-拆分</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-08-02</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/YBDfkYHYeR/">
+                    nginx
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="拆分数据库">拆分数据库</h2>
+<h3 id="为什么进行数据库的拆分">为什么进行数据库的拆分</h3>
+<pre><code class="language-bash">由于单台服务器运行LNMP架构会导致网站访问缓慢，当内存被吃满时，很容易导致系统出现oom，从而kill掉mysql数据库，所以
+需要将web和数据库进行独立部署。
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1659510759022.png" alt="" loading="lazy"></figure>
+<h3 id="数据库拆分后解决了什么问题">数据库拆分后解决了什么问题</h3>
+<pre><code class="language-bash">1）缓解web网站的压力
+2）增强数据读写性能
+3）提供用户访问的速度
+</code></pre>
+<h3 id="数据库拆分环境规划">数据库拆分环境规划</h3>
+<pre><code class="language-bash">主机名称      应用环境        外网地址        内网地址
+web01        nginx+php      10.0.0.7       172.16.1.7
+db01         mysql                         172.16.1.51
+</code></pre>
+<h3 id="数据库拆分环境实验">数据库拆分环境实验</h3>
+<pre><code class="language-bash">1）备份172.16.1.7服务器上的mysql数据
+[root@web01 ~]# mysqldump -uroot -p'Bgx123.com' --all-databases --single-transaction &gt; mysql-all.sql
+#--single-transaction：保证数据一致性
+2）传输172.16.1.7的备份数据至172.16.1.51服务器上
+[root@web01 ~]# scp mysql-all.sql root@172.16.1.51:/tmp
+3）在172.16.1.51服务器上安装mysql服务，然后进行还原备份
+[root@db01 ~]# yum install mariadb-server mariadb -y
+[root@db01 ~]# systemctl enable mariadb
+[root@db01 ~]# systemctl start mariadb
+[root@db01 ~]# mysql &lt; /tmp/mysql-all.sql
+[root@db01 ~]# systemctl restart mariadb
+[root@db01 ~]# mysql
+ERROR 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)
+[root@db01 ~]# mysql -uroot -pBgx123.com
+MariaDB [(none)]&gt; show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| edusoho            |
+| mysql              |
+| performance_schema |
+| test               |
+| wordpress          |
+| zh                 |
++--------------------+
+7 rows in set (0.00 sec)
+</code></pre>
+<pre><code class="language-bash">4）将web程序连接的本地数据库修改到远程数据库
+#在172.165.1.7服务器停止mysql数据库服务
+[root@web01 ~]# systemctl disable mariadb
+[root@web01 ~]# systemctl stop mariadb
+#在172.16.1.51服务器授权远程主机能够连接mysql数据库
+[root@db01 ~]# mysql -uroot -pBgx123.com
+MariaDB [(none)]&gt; grant all privileges on *.* to oldboy@'%' identified by 'Bgx123.com'; 
+MariaDB [(none)]&gt; flush privileges;
+#在172.16.1.7服务器测试远程账户能否连接172.16.1.51的数据库
+[root@web01 ~]# yum install mariadb -y
+[root@web01 ~]# mysql -h 172.16.1.51 -uoldboy -pBgx123.com
+MariaDB [(none)]&gt; 
+#修改172.16.1.7服务器的wordpress连接远程到172.16.1.51数据库信息
+[root@web01 wordpress]# grep -R &quot;Bgx123.com&quot; *
+wp-config.php:define('DB_PASSWORD', 'Bgx123.com');
+[root@web01 wordpress]# cat /code/wordpress/wp-config.php
+/** WordPress数据库的名称 */
+define('DB_NAME', 'wordpress');
+/** MySQL数据库用户名 */
+define('DB_USER', 'oldboy');
+/** MySQL数据库密码 */
+define('DB_PASSWORD', 'Bgx123.com');
+/** MySQL主机 */
+define('DB_HOST', '172.16.1.51');
+#修改172.16.1.7服务器的wecenter连接远程到172.16.1.51数据库信息
+[root@web01 zh]# grep -R &quot;Bgx123.com&quot; *                    
+system/config/database.php:  'password' =&gt; 'Bgx123.com',
+[root@web01 zh]# cat system/config/database.php
+$config['master'] = array (
+  'charset' =&gt; 'utf8',
+  'host' =&gt; '172.16.1.51',
+  'username' =&gt; 'oldboy',
+  'password' =&gt; 'Bgx123.com',
+  'dbname' =&gt; 'zh',
+#修改172.16.1.7服务器的edusoho连接远程到172.16.1.51数据库信息
+[root@web01 edusoho]# grep -R &quot;Bgx123.com&quot; *
+app/config/parameters.yml:    database_password: 'Bgx123.com'
+[root@web01 edusoho]# cat /code/edusoho/app/config/parameters.yml
+database_host: 172.16.1.51
+database_port: 3306
+database_name: edusoho
+database_user: oldboy
+database_password: 'Bgx123.com'
+#必须清理缓存
+[root@web01 edusoho]# rm -rf /code/edusoho/app/cache/*
+</code></pre>
+<h2 id="扩展多台web">扩展多台web</h2>
+<h3 id="为什么要扩展多台web节点">为什么要扩展多台web节点</h3>
+<pre><code class="language-bash">单台web服务器能抗住的访问量是有限的，配置多台web服务器能提升更高的访问速度。
+</code></pre>
+<h3 id="扩展多台web解决了什么问题">扩展多台web解决了什么问题</h3>
+<pre><code class="language-bash">1）单台web节点如果故障，会导致业务宕机；
+2）多台web节点能保证业务的持续稳定，扩展性高；
+3）多台web节点能有效的提升用户访问网站的速度。
+</code></pre>
+<h3 id="扩展多台web实验">扩展多台web实验</h3>
+<pre><code class="language-bash">1）统一环境（web02的IP地址为10.0.0.8）
+#准备对应的www用户
+[root@web02 ~]# groupadd -g666 www 
+[root@web02 ~]# useradd -u666 -g666 www
+#拷贝web01的yum仓库到web02
+[root@web01 ~]# scp /etc/yum.repos.d/*.repo 10.0.0.8:/etc/yum.repos.d/
+#web02安装nginx和php
+[root@web02 ~]# yum -y install nginx php71w php71w-cli php71w-common php71w-devel php71w-embedded php71w-gd php71w-mcrypt php71w-mbstring php71w-pdo php71w-xml php71w-fpm php71w-mysqlnd php71w-opcache php71w-pecl-memcached php71w-pecl-redis php71w-pecl-mongodb
+</code></pre>
+<pre><code class="language-bash">2）统一配置
+#同步nginx
+[root@web02 ~]# rsync -avz --delete root@172.16.1.7:/etc/nginx/ /etc/nginx/
+[root@web02 ~]# nginx -t
+[root@web02 ~]# systemctl enable nginx
+[root@web02 ~]# systemctl start nginx
+#同步php（/etc/php-fpm.conf /etc/php-fpm.d  /etc/php.ini）
+[root@web02 ~]# rsync  -avz --delete root@172.16.1.7:/etc/php* /etc/ 
+[root@web02 ~]# systemctl enable php-fpm
+[root@web02 ~]# systemctl start php-fpm
+</code></pre>
+<pre><code class="language-bash">3）统一代码
+#在web01打包站点
+[root@web01 ~]# tar zcf code.tar.gz /code
+#将web01打包好的代码发送到web02
+[root@web01 ~]# scp code.tar.gz root@10.0.0.8:/tmp
+#web02将打包代码进行解压到/目录下
+[root@web02 ~]# tar xf /tmp/code.tar.gz -C /
+</code></pre>
+<pre><code class="language-bash">4）配置域名解析，进行访问
+#10.0.0.7 blog.oldboy.com zh.oldboy.com  edu.oldboy.com
+10.0.0.8 blog.oldboy.com zh.oldboy.com edu.oldboy.com
+</code></pre>
+<pre><code class="language-bash">5）问题
+#在web02服务器的WordPress站点中写一篇文章， web01服务器访问不到该图片
+#同样在web01服务器写文章，web02服务器也访问不到web01的图片
+</code></pre>
+<p><img src="https://ajie825.github.io/post-images/1659578367684.png" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1659578683334.png" alt="" loading="lazy"></p>
+<h2 id="共享多台web的静态资源">共享多台web的静态资源</h2>
+<h3 id="拆分静态资源至独立存储服务器">拆分静态资源至独立存储服务器</h3>
+<pre><code class="language-bash">当web节点出现多台时，会导致用户上传的图片、视频附件等内容仅上传至一台web服务器，那么其他的web服务器则
+无法访问到该图片。
+</code></pre>
+<h3 id="增加存储服务器解决了什么问题">增加存储服务器解决了什么问题</h3>
+<pre><code class="language-bash">1）保证了多台web节点静态资源一致
+2）有效节省多台web节点的存储空间
+3）统一管理静态资源，便于后期推送至CDN进行静态资源加速
+</code></pre>
+<h3 id="安装nfs存储服务器">安装NFS存储服务器</h3>
+<pre><code class="language-bash">#准备172.16.1.31共享存储服务器，规划目录，配置好权限
+1）创建用户
+[root@nfs ~]# groupadd -g666 www
+[root@nfs ~]# useradd -u666 -g666 www
+2）安装
+[root@nfs ~]# yum install nfs-utils rpcbind -y
+3）配置
+[root@nfs ~]# cat /etc/exports
+/data/blog 172.16.1.0/24(rw,sync,all_squash,anonuid=666,anongid=666)
+/data/zh 172.16.1.0/24(rw,sync,all_squash,anonuid=666,anongid=666)
+/data/edu 172.16.1.0/24(rw,sync,all_squash,anonuid=666,anongid=666)
+4）根据配置创建目录，授权
+[root@nfs ~]# mkdir /data/{blog,zh,edu} -p
+[root@nfs ~]# chown -R www.www /data/
+5）启动
+[root@nfs ~]# systemctl enable rpcbind
+[root@nfs ~]# systemctl enable nfs
+[root@nfs ~]# systemctl start rpcbind
+[root@nfs ~]# systemctl start nfs
+[root@nfs ~]# showmount -e localhost
+Export list for localhost:
+/data/edu  172.16.1.0/24
+/data/zh   172.16.1.0/24
+/data/blog 172.16.1.0/24
+</code></pre>
+<pre><code class="language-bash">#将web02服务器的图片，推送到nfs共享存储上
+http://blog.oldboy.com/wp-content/uploads/2022/08/image1.jpg
+[root@web02 ~]# cd /code/wordpress/wp-content/
+[root@web02 wp-content]# scp -r uploads/* root@172.16.1.31:/data/blog
+#web01和web02分别安装rpcbind服务，并进行挂载
+[root@web01 ~]# yum -y install nfs-utils rpcbind 
+[root@web01 ~]# systemctl enable rpcbind
+[root@web01 ~]# systemctl start rpcbind
+[root@web01 ~]# showmount -e 172.16.1.31
+Export list for 172.16.1.31:
+/data/edu  172.16.1.0/24
+/data/zh   172.16.1.0/24
+/data/blog 172.16.1.0/24
+[root@web01 ~]# mount -t nfs 172.16.1.31:/data/blog  /code/wordpress/wp-content/uploads/
+[root@web01~]# cat /etc/rc.local
+mount -t nfs 10.0.0.31:/data/blog  /code/wordpress/wp-content/uploads/
+[root@web01 ~]# chmod +x /etc/rc.d/rc.local
+</code></pre>
+<pre><code class="language-bash">#此时，web01可以看到web02上传的图片
+</code></pre>
+<figure data-type="image" tabindex="2"><img src="https://ajie825.github.io/post-images/1659583403299.png" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">#在web01上重新写文章，会出现无法上传文件的错误，需要nfs服务器进行重新的递归授权
+</code></pre>
+<figure data-type="image" tabindex="3"><img src="https://ajie825.github.io/post-images/1659585338596.png" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">[root@nfs ~]# chown -R www.www /data/
+</code></pre>
+<figure data-type="image" tabindex="4"><img src="https://ajie825.github.io/post-images/1659584162388.png" alt="" loading="lazy"></figure>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/lnmp-jia-gou/">
+              <h3 class="post-title">
+                下一篇：LNMP架构
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

@@ -1,0 +1,491 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>配置管理中心configmap | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">配置管理中心configmap</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-09-06</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/vN0im2GW5W/">
+                    k8s
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="configmap概述">configmap概述</h2>
+<h3 id="什么是configmap">什么是configmap？</h3>
+<p><code>configmap</code>是<code>k8s</code>中的资源对象，用于保存非机密性的配置的，数据可以用<code>key/value</code>键值对的形式保存，也可以通过文件的形式保存。</p>
+<h3 id="configmap能解决哪些问题">configmap能解决哪些问题？</h3>
+<p>在部署服务的时候，每个服务都有自己的配置文件，如果一台服务器上有多个服务：<code>nginx</code>、<code>tomcat</code>、<code>apache</code>等，那么这些配置都存在这个节点上，假如一台服务器不能满足线上高并发的要求，需要对服务器扩容，扩容后的服务器还是需要部署多个服务<code>nginx</code>、<code>tomcat</code>、<code>apache</code>，新增加的服务器上还是要管理这些服务的配置，如果一个服务出现问题，需要修改配置文件，每台物理节点上的配置都需要修改，这种方式肯定满足不了线上大批量的配置变更要求，所以，<code>k8s</code>引入了<code>configmap</code>资源对象，可以当成<code>volume</code>挂载到<code>pod</code>中，实现统一的配置管理。</p>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1662456761445.png" alt="" loading="lazy"></figure>
+<ol>
+<li><code>configmap</code>是<code>k8s</code>中的资源，相当于配置文件，可以有一个或者多个<code>configmap</code>。</li>
+<li><code>configmap</code>可以做成<code>volume</code>，<code>pod</code>启动之后，通过<code>volume</code>形式映射到容器内部指定目录上。</li>
+<li>容器中应用程序按照原有方式读取容器特定目录上的配置文件。</li>
+<li>在容器看来，配置文件就像是打包在容器内部特定目录，整个过程对应用没有任何侵入。</li>
+</ol>
+<h3 id="configmap应用场景">configmap应用场景</h3>
+<ol>
+<li>使用<code>k8s</code>部署应用，当将应用配置写进代码中，更新配置时也需要打包镜像，<code>configmap</code>可以将配置信息和<code>docker</code>镜像解耦，以便实现镜像的可移植性和可复用性，因为<code>configmap</code>其实就是一系列配置信息集合，可直接注入到<code>pod</code>中给容器使用，<code>configmap</code>注入方式有两种，一种将<code>configmap</code>作为存储卷，一种是将<code>configmap</code>通过<code>env</code>中的<code>configMapKeyRef</code>注入到容器中。</li>
+<li>使用微服务架构的话，存在多个服务共用配置的情况，如果每个服务中单独一份配置的话，那么更新配置就很麻烦，使用<code>configmap</code>可以友好的进行配置共享。</li>
+</ol>
+<h3 id="局限性">局限性</h3>
+<p><code>configmap</code>在设计上不是用来保存大量数据的，在<code>configmap</code>中保存的数据不可超过<code>1MB</code>，如果你需要保存超出此尺寸限制的数据，可以考虑挂载存储卷或者使用独立的数据库或者文件服务。</p>
+<h2 id="configmap创建方法">configmap创建方法</h2>
+<h3 id="命令行直接创建">命令行直接创建</h3>
+<pre><code class="language-bash">#直接在命令行中指定configmap参数创建，通过--from-literal指定参数
+[root@master1 configmap]# kubectl create configmap tomcat-config --from-literal=tomcat_port=8080 --from-literal=server_name=myapp.tomcat.com
+configmap/tomcat-config created
+[root@master1 configmap]# kubectl get cm
+NAME               DATA   AGE
+kube-root-ca.crt   1      17d
+tomcat-config      2      18m
+#查看详情
+[root@master1 configmap]# kubectl describe cm tomcat-config 
+Name:         tomcat-config
+Namespace:    default
+Labels:       &lt;none&gt;
+Annotations:  &lt;none&gt;
+
+Data
+====
+server_name:
+----
+myapp.tomcat.com
+tomcat_port:
+----
+8080
+Events:  &lt;none&gt;
+</code></pre>
+<h3 id="通过文件创建">通过文件创建</h3>
+<pre><code class="language-bash">#通过指定文件创建一个configmap，--from-file=&lt;文件&gt;
+[root@master1 configmap]# cat nginx.conf 
+server {
+  server_name www.nginx.com;
+  listen 80;
+  root /home/nginx/www/;
+}
+#定义一个key是www，值是nginx.conf中的内容
+[root@master1 configmap]# kubectl create configmap www-nginx --from-file=www=./nginx.conf
+configmap/www-nginx created  
+[root@master1 configmap]# kubectl get cm|grep www-nginx
+www-nginx          1      44s
+[root@master1 configmap]# kubectl describe cm www-nginx 
+Name:         www-nginx
+Namespace:    default
+Labels:       &lt;none&gt;
+Annotations:  &lt;none&gt;
+
+Data
+====
+www:                                
+----
+server {                            
+  server_name www.nginx.com;
+  listen 80;
+  root /home/nginx/www/;
+}
+</code></pre>
+<h3 id="指定目录创建configmap">指定目录创建configmap</h3>
+<pre><code class="language-bash">#创建配置文件
+[root@master1 configmap]# mkdir cm   
+[root@master1 configmap]# cd cm
+[root@master1 cm]# echo &quot;server_id=1&quot; &gt;my-server.cnf
+[root@master1 cm]# echo &quot;server_id=2&quot; &gt;my-slave.cnf     
+[root@master1 cm]# ll
+total 8.0K
+-rw-r--r-- 1 root root 12 Sep  6 22:46 my-server.cnf
+-rw-r--r-- 1 root root 12 Sep  6 22:46 my-slave.cnf
+#指定目录创建configmap
+[root@master1 configmap]# kubectl create configmap mysql-config --from-file=cm/
+configmap/mysql-config created
+[root@master1 configmap]# kubectl get cm|grep mysql-config
+mysql-config       2      31s
+#查看configmap的详细信息
+[root@master1 configmap]# kubectl describe cm mysql-config 
+Name:         mysql-config
+Namespace:    default
+Labels:       &lt;none&gt;
+Annotations:  &lt;none&gt;
+
+Data
+====
+my-server.cnf:     #文件名为键
+----
+server_id=1        #文件内容值
+
+my-slave.cnf:
+----
+server_id=2
+</code></pre>
+<h3 id="编写configmap资源清单yaml文件">编写configmap资源清单YAML文件</h3>
+<pre><code class="language-bash">#查看configmap资源如何定义？
+[root@master1 configmap]# kubectl explain cm
+KIND:     ConfigMap
+VERSION:  v1
+DESCRIPTION:
+    #ConfigMap保存供pod使用的配置数据
+FIELDS:
+  apiVersion      &lt;string&gt;
+  binaryData      &lt;map[string]string&gt;
+  data            &lt;map[string]string&gt;
+  immutable       &lt;boolean&gt;
+  kind            &lt;string&gt;
+  metadata        &lt;Object&gt;
+</code></pre>
+<pre><code class="language-bash">#编写configmap的yaml文件
+[root@master1 configmap]# cat mysql-configmap.yaml 
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql
+  labels:
+    app: mysql
+data:
+  master.cnf: |
+    [mysqld]
+    log-bin
+    log_bin_trust_function_creators=1
+    lower_case_table_names=1
+  slave.cnf: |
+    [mysqld]
+    super-read-only
+    log_bin_trust_function_creators=1
+[root@master1 configmap]# kubectl apply -f mysql-configmap.yaml 
+configmap/mysql created
+[root@master1 configmap]# kubectl get cm -l app=mysql
+NAME    DATA   AGE
+mysql   2      25s
+#查看configmap的详细信息                                                           
+[root@master1 configmap]# kubectl describe cm mysql
+Name:         mysql
+Namespace:    default
+Labels:       app=mysql
+Annotations:  &lt;none&gt;
+
+Data
+====
+master.cnf:
+----
+[mysqld]
+log-bin
+log_bin_trust_function_creators=1
+lower_case_table_names=1
+
+slave.cnf:
+----
+[mysqld]
+super-read-only
+log_bin_trust_function_creators=1
+</code></pre>
+<h2 id="使用configmap">使用Configmap</h2>
+<h3 id="通过环境变量引入使用configmapkeyref">通过环境变量引入：使用configMapKeyRef</h3>
+<pre><code class="language-bash">#创建一个存储mysql配置的configmap
+[root@master1 configmap]# kubectl delete -f mysql-configmap.yaml
+[root@master1 configmap]# cat mysql-configmap.yaml 
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql
+  labels:
+    app: mysql
+data:
+  log: &quot;1&quot;
+  lower: &quot;1&quot;
+[root@master1 configmap]# kubectl apply -f mysql-configmap.yaml
+configmap/mysql created
+[root@master1 configmap]# kubectl describe cm -l app=mysql
+Name:         mysql
+Namespace:    default
+Labels:       app=mysql
+Annotations:  &lt;none&gt;
+
+Data
+====
+log:
+----
+1
+lower:
+----
+1
+Events:  &lt;none&gt;
+</code></pre>
+<pre><code class="language-bash">#创建pod，引用Configmap中的内容
+[root@master1 configmap]# cat mysql-pod.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mysql-pod
+spec:
+  restartPolicy: Never
+  containers:
+  - name: mysql
+    image: busybox:1.28
+    imagePullPolicy: IfNotPresent
+    command: [&quot;/bin/sh&quot;,&quot;-c&quot;,&quot;sleep 3600&quot;]
+    env:
+    - name: log_bin        #定义环境变量log_bin
+      valueFrom:
+        configMapKeyRef:
+          name: mysql      #指定configmap的名字
+          key: log         #指定configmap中的key
+    - name: lower          #定义环境变量lower
+      valueFrom:
+        configMapKeyRef:
+          name: mysql
+          key: lower
+[root@master1 configmap]# kubectl apply -f mysql-pod.yaml
+pod/mysql-pod created
+[root@master1 configmap]# kubectl get pod|grep mysql-pod
+mysql-pod               1/1                Running     
+[root@master1 configmap]# kubectl exec -it mysql-pod -- /bin/sh
+/ # printenv|grep log_bin
+log_bin=1
+/ # printenv|grep lower
+lower=1
+</code></pre>
+<h3 id="通过环境变量引入使用envfrom">通过环境变量引入：使用envfrom</h3>
+<pre><code class="language-bash">[root@master1 configmap]# cat mysql-pod-envfrom.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mysql-pod-envfrom
+spec:
+  restartPolicy: Never
+  containers:
+  - name: mysql
+    image: busybox:1.28
+    imagePullPolicy: IfNotPresent
+    command: [&quot;/bin/sh&quot;,&quot;-c&quot;,&quot;sleep 3600&quot;]
+    envFrom:
+    - configMapRef:
+        name: mysql    #指定configmap的名字
+  
+#更新资源清单文件
+[root@master1 configmap]# kubectl apply -f mysql-pod-envfrom.yaml
+pod/mysql-pod-envfrom created
+[root@master1 configmap]# kubectl get pod|grep mysql-pod-envfrom
+mysql-pod-envfrom            1/1             Running
+[root@master1 configmap]# kubectl exec -it mysql-pod-envfrom -- /bin/sh 
+/ # printenv|grep log
+log=1
+/ # printenv|grep lower
+lower=1
+</code></pre>
+<h3 id="把configmap做成volume挂载到pod最常用">把configmap做成volume，挂载到pod（最常用）</h3>
+<pre><code class="language-bash">[root@master1 configmap]# cat volume-configmap.yaml 
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql
+  labels:
+    app: mysql
+data:
+  log: &quot;1&quot;
+  lower: &quot;1&quot;
+  my.cnf: |
+    [mysqld]
+    welcome=oldboy
+[root@master1 configmap]# kubectl apply -f volume-configmap.yaml 
+configmap/mysql configured
+[root@master1 configmap]# kubectl describe cm mysql
+Name:         mysql
+Namespace:    default
+Labels:       app=mysql
+Annotations:  &lt;none&gt;
+
+Data
+====
+log:
+----
+1
+lower:
+----
+1
+my.cnf:
+----
+[mysqld]
+welcome=oldboy
+</code></pre>
+<pre><code class="language-bash">[root@master1 configmap]# cat pod-volume-configmap.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mysql-pod
+spec:
+  containers:
+  - name: mysql
+    image: busybox
+    imagePullPolicy: IfNotPresent
+    command: [&quot;/bin/sh&quot;,&quot;-c&quot;,&quot;sleep 3600&quot;]
+    volumeMounts:
+    - name: mysql-config
+      mountPath: /tmp/config
+  volumes:
+  - name: mysql-config
+    configMap:
+      name: mysql
+  restartPolicy: Never
+[root@master1 configmap]# kubectl apply -f pod-volume-configmap.yaml 
+pod/mysql-pod created
+[root@master1 configmap]# kubectl exec -it mysql-pod -- /bin/sh
+/ # ls /tmp/config/
+log     lower   my.cnf
+</code></pre>
+<h2 id="configmap热更新">configmap热更新</h2>
+<pre><code class="language-bash">[root@master1 configmap]# kubectl edit configmaps mysql
+apiVersion: v1
+data:
+  log: &quot;2&quot;
+  lower: &quot;1&quot;
+  my.cnf: |
+    [mysqld]
+    welcome=oldboy
+kind: ConfigMap
+#保存退出
+</code></pre>
+<pre><code class="language-bash">[root@master1 ~]# kubectl exec -it mysql-pod -- /bin/sh
+/ # cat /tmp/config/log
+2
+#发现log值变成了2，更新生效了
+</code></pre>
+<p>注意：更新<code>ConfigMap</code>后，使用<code>ConfigMap</code>挂载的<code>ENV</code>不会同步更新，使用<code>ConfigMap</code>挂载的<code>Volume</code>卷中的数据需要一段时间(实测大概10秒)才能同步更新。</p>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/daemonset-kong-zhi-qi/">
+              <h3 class="post-title">
+                下一篇：daemonset控制器
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

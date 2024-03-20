@@ -1,0 +1,451 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>主从复制（一） | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">主从复制（一）</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-06-15</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/eb_lZhnX62/">
+                    mysql
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h3 id="概述">概述</h3>
+<p>学习主从复制为后续的架构做准备、铺垫、单独使用主从复制既浪费机器，也提供不了好的帮助，原生态的主从复制是做不到高可用的</p>
+<h3 id="职责介绍">职责介绍</h3>
+<pre><code class="language-mysql">1）搭建主从复制               ***
+2）主从原理精通               *****
+3）主从的故障处理             *****
+4）主从延时（从库落后主库）    *****
+5）主从特殊架构的配置使用      ****
+6）主从架构的演变             ****
+</code></pre>
+<h3 id="主从复制介绍">主从复制介绍</h3>
+<pre><code class="language-mysql">1）主从复制基于 binlog 来实现的
+2）主库发生新的操作，都会记录binlog
+3）从库取得主库的binlog进行回放（source）
+4）主从复制的过程是异步的（主库做完后需要等一小段时间从库才能追上）
+</code></pre>
+<h3 id="搭建主从复制要求">搭建主从复制要求   *****</h3>
+<pre><code class="language-mysql">1）2个或者2个以上的数据库实例
+2）主库需要开启二进制日志
+3）server_id 要不同，区分不同的节点（角色）
+4）主库需要建立专用的复制用户（replication slave权限）
+5）从库通过备份恢复到主库，已完成“补课”（将历史数据追加）
+6）人为告诉从库一些复制信息（ip、port、user、password、复制的二进制日志起点）
+</code></pre>
+<h3 id="主从复制搭建过程生产">主从复制搭建过程（生产）</h3>
+<p>1、准备多实例 ***</p>
+<pre><code class="language-bash">[root@mysqld ~]# pkill mysqld
+[root@mysqld ~]# systemctl start mysqld3307
+[root@mysqld ~]# \rm -rf /data/3308/data/* 
+[root@mysqld ~]# \rm -rf /data/3308/mysql-bin.*
+[root@mysqld ~]# mysqld --initialize-insecure --user=mysql --basedir=/application/mysql --datadir=/data/3308/data
+[root@mysqld ~]# systemctl start mysqld3308
+[root@mysqld ~]# mysql -S /data/3308/mysql.sock -e &quot;select @@port&quot;
+[root@mysqld ~]# mysql -uroot -p123 -S  /data/3307/mysql.sock -e &quot;select @@port&quot;;
+</code></pre>
+<p>2、检查配置文件 ***</p>
+<pre><code class="language-mysql">主库：    二进制日志是否开启
+两个节点： server_id
+[root@mysqld ~]# cat /data/3308/my.cnf 
+[mysqld]
+basedir=/application/mysql
+datadir=/data/3308/data
+socket=/data/3308/mysql.sock
+log_error=/data/3308/mysql.log
+port=3308
+server_id=8
+log_bin=/data/3308/mysql-bin
+
+[root@mysqld ~]# cat /data/3307/my.cnf  
+[mysqld]
+basedir=/application/mysql
+datadir=/data/3307/data
+socket=/data/3307/mysql.sock
+log_error=/data/3307/mysql.log
+port=3307
+server_id=7
+log_bin=/data/3307/mysql-bin
+建议主库的server_id比从库小一些
+</code></pre>
+<p>3、主库创建复制用户    ****</p>
+<pre><code class="language-bash">mysql -uroot -p123 -S /data/3307/mysql.sock -e &quot;grant replication slave on *.* to repl@'10.0.0.%' identified by '123'&quot;
+</code></pre>
+<p>4、“补课”   *****</p>
+<pre><code class="language-bash">主库进行备份：
+mysqldump -uroot -p123 -S /data/3307/mysql.sock -A --master-data=2 --single-transaction -R -E --triggers &gt;/tmp/full.sql 
+注意：
+主库备份不需要停止主库，在生产中补课的过程不需要备份现有的数据，
+白天做主库备份会影响到正常业务，可以找到最近的全备，恢复到从库
+[root@mysqld ~]# mysql -S /data/3308/mysql.sock
+mysql&gt; set sql_log_bin=0;
+mysql&gt; source /tmp/full.sql
+mysql&gt; set sql_log_bin=1;
+</code></pre>
+<p>5、告诉从库信息（主库的IP及端口、复制用户及密码、二进制日志复制的起点）</p>
+<pre><code class="language-mysql">vim /tmp/full.sql
+-- CHANGE MASTER TO MASTER_LOG_FILE='mysql-bin.000003', MASTER_LOG_POS=444;
+help change master to
+[root@mysqld ~]# mysql -S /data/3308/mysql.sock
+CHANGE MASTER TO 
+MASTER_HOST='10.0.0.51',
+MASTER_USER='repl',
+MASTER_PASSWORD='123',
+MASTER_PORT=3307,
+MASTER_LOG_FILE='mysql-bin.000003',
+MASTER_LOG_POS=444,
+MASTER_CONNECT_RETRY=10; 
+</code></pre>
+<p>6、从库开启复制线程（IO、SQL）</p>
+<pre><code class="language-mysql">[root@mysqld ~]# mysql -S /data/3308/mysql.sock
+mysql&gt; start slave;
+</code></pre>
+<p>7、检查主从复制状态</p>
+<pre><code class="language-mysql">[root@mysqld ~]# mysql -S /data/3308/mysql.sock
+mysql&gt; show slave status\G
+             Slave_IO_Running: Yes
+             Slave_SQL_Running: Yes
+主库：
+mysql -uroot -p123 -S /data/3307/mysql.sock -e &quot;create database alexsb&quot;
+从库：
+mysql -S /data/3308/mysql.sock -e &quot;show databases&quot;
+注意：
+Slave_IO_Running: Connecting
+mysql -urepl -p123 -h10.0.0.51 -P3307验证排查错误
+如果重新change master to，需要stop slave，reset slave all;  
+</code></pre>
+<h3 id="主从复制原理">主从复制原理   *****</h3>
+<p>1、主从复制涉及的文件</p>
+<pre><code class="language-mysql">主库： binlog（二进制日志）
+从库： relaylog（中继日志）、master.info主库信息文件、relaylog.info（relaylog应用的信息）
+</code></pre>
+<p>2、主从复制中涉及的线程</p>
+<pre><code class="language-mysql">主库：
+   Binlog_Dump Thread : DUMP_T
+从库：
+   SLAVE_IO_THREAD     : IO_T
+   SLAVE_SQL_THREAD    : SQL_T
+</code></pre>
+<p>3、主从复制工作（过程）原理   ******</p>
+<p>两个日志、三个线程、两个文件<br>
+<img src="https://ajie825.github.io/post-images/1655351350843.png" alt="" loading="lazy"></p>
+<pre><code class="language-mysql">1）从库执行 change master to 命令，将记录主库的连接信息和复制的二进制日志起点记录到master.info文件
+2）从库执行 start slave 命令，立即开启IO_T和SQL_T
+3）从库IO_T读取master.info文件中的信息，请求连接主库
+4）主库提供DUMP_T线程，负责和IO_T进行交互，并将binlog通过网络传输给从库的IO_T
+5）IO_T接收到binlog日志，将二进制日志转储到relay-log日志文件中，更新 master.info 文件
+6）SQL_T读取 relay-log.info 中的信息回放relay-log后，会更新 relay-log.info 文件
+7）relay-log 会有自动清理的功能
+</code></pre>
+<h3 id="主从复制监控">主从复制监控  ****</h3>
+<p>主库：</p>
+<pre><code class="language-mysql">mysql&gt; show full processlist;
+每个从库都会有一行dump相关的信息
+Host： mysqld:53998
+State：Master has sent all binlog to slave; waiting for more update
+如果现实非以上信息，说明主从之间关系出现了问题
+</code></pre>
+<p>从库</p>
+<pre><code class="language-mysql">命令：
+mysql&gt; show slave status\G
+</code></pre>
+<pre><code class="language-mysql">主库有关的信息（master.info）
+Master_Host: 10.0.0.51
+Master_User: repl
+Master_Port: 3307
+Connect_Retry: 10
+#从库已经获取到的日志位置点
+Master_Log_File: mysql-bin.000003
+Read_Master_Log_Pos: 609
+在主库查看是否一致
+mysql&gt; show master status;
++------------------+----------+--------------+------------------+
+| File             | Position | Binlog_Do_DB | Binlog_Ignore_DB |
++------------------+----------+--------------+------------------+
+| mysql-bin.000003 |      609 |              |                  |
++------------------+----------+--------------+------------------+
+</code></pre>
+<pre><code class="language-mysql">从库relaylog应用信息有关（relay.info）
+用处不是特别大，relaylog与binlog的对应关系
+Relay_Log_File: mysqld-relay-bin.000002
+Relay_Log_Pos: 485
+Relay_Master_Log_File: mysql-bin.000003
+master.info和relay-log.info文件都记录在数据目录下
+show relaylog event in '';  可以查看
+</code></pre>
+<pre><code class="language-mysql">从库线程运行状态（排错）
+Slave_IO_Running: Yes
+Slave_SQL_Running: Yes
+Last_IO_Errno: 0
+Last_IO_Error: 
+Last_SQL_Errno: 0
+Last_SQL_Error:
+</code></pre>
+<pre><code class="language-mysql">过滤复制有关的信息（比如有10个库，只想同步2个库）
+Replicate_Do_DB: 
+Replicate_Ignore_DB: 
+Replicate_Do_Table: 
+Replicate_Ignore_Table: 
+Replicate_Wild_Do_Table: 
+Replicate_Wild_Ignore_Table:
+</code></pre>
+<pre><code class="language-mysql">从库延时主库的时间（秒，非人为）
+Seconds_Behind_Master: 0
+比如从库1小时后同步主库，防止误操作出现，可以处理逻辑损坏（人为）
+SQL_Delay: 0
+SQL_Remaining_Delay: NULL
+</code></pre>
+<pre><code class="language-mysql">GTID复制有关的状态信息
+Retrieved_Gtid_Set: 
+Executed_Gtid_Set: 
+Auto_Position: 0
+</code></pre>
+<h3 id="主从复制故障">主从复制故障   *****</h3>
+<p>主库dump线程一般不会出现问题，主要研究 IO 和 SQL 这两个线程</p>
+<p>1、IO 线程故障</p>
+<p>1.1、连接主库</p>
+<pre><code class="language-mysql">1）用户 密码  IP  port
+Last_IO_Error: error reconnecting to master 'repl@10.0.0.51:3307' - retry-time: 10 retries: 7
+[root@mysql ~]# mysql -urepl -p123 -h 10.0.0.51 -P 3307
+ERROR 1045 (28000): Access denied for user 'repl'@'db01' (using password: YES)
+原因：
+密码错误re
+用户错误
+地址错误
+端口错误
+skip_name_resolve
+处理方法：不需要重新备份，关掉之后，重新 change master to到故障点即可
+stop slave        #停止线程
+reset slave all   #清空master.info信息
+change master to  
+start slave
+2）主库连接数上线，或者主库太繁忙
+Last_IO_Errno: 1040
+Last_IO_Error: error reconnecting to master 'repl@10.0.0.51:3307' - retry-time: 10 retries: 7
+处理思路：
+拿复制用户，手工连接一下
+[root@mysql ~]# mysql -urepl -p123 -h 10.0.0.51 -P 3307 
+mysql: [Warning] Using a password on the command line interface can be insecure.
+ERROR 1040 (HY000): Too many connections
+处理方法:
+mysql&gt;set global max_connections=300;
+3）防火墙、网络不通
+</code></pre>
+<p>1.2、请求二进制日志</p>
+<pre><code class="language-mysql">主库缺失日志
+从库方面，二进制位置点不对
+Last_IO_Error: Got fatal error 1236 from master when reading data from binary log: 
+'could not find next log; the first event 'mysql-bin.000001' at 154, 
+the last event read from '/data/3307/data/mysql-bin.000002' at 154, 
+the last byte read from '/data/3307/data/mysql-bin.000002' at 154.'
+注意：在主从复制环境中，严令禁止主库中reset master；可以选择expire进行定期清理主库二进制日志
+解决方案：
+重新构建主从
+</code></pre>
+<p>2、SQL 线程故障</p>
+<p>2.1、SQL线程功能</p>
+<pre><code class="language-mysql">1）读写relay-log.info
+2）relay-log损坏，段节，找不到
+3）接收到的SQL无法执行
+</code></pre>
+<p>2.2 、导致SQL线程故障原因分析</p>
+<pre><code class="language-mysql">归根到底的原因都是由于从库发生了写入操作：
+Last_SQL_Error: Error 'Can't create database 'db'; database exists' on query. 
+Default database: 'db'. Query: 'create database db'
+</code></pre>
+<p>2.3、处理方法（以从库为核心的处理方案）</p>
+<pre><code class="language-mysql">方法一：
+stop slave; 
+set global sql_slave_skip_counter = 1;
+#将同步指针向下移动一个，如果多次不同步，可以重复操作。
+start slave;
+方法二：
+/etc/my.cnf
+slave-skip-errors = 1032,1062,1007
+常见错误代码:
+1007:对象已存在
+1032:无法执行DML
+1062:主键冲突,或约束冲突
+但是，以上操作有时是有风险的，最安全的做法就是重新构建主从，把握一个原则,一切以主库为主
+</code></pre>
+<p>3、一劳永逸的方法</p>
+<pre><code class="language-mysql">(1) 可以设置从库只读.
+db01 [(none)]&gt;show variables like '%read_only%';
+注意：
+只会影响到普通用户，对管理员用户无效。
+(2)加中间件
+读写分离
+</code></pre>
+<h3 id="主从延时监控及原因">主从延时监控及原因   *****</h3>
+<p>主库做了修改操作，从库比较长时间才能追上</p>
+<p>1、外在因素</p>
+<pre><code class="language-mysql">1）网络
+2）主从硬件差异较大
+3）版本差异
+4）参数因素
+</code></pre>
+<p>2、主库</p>
+<pre><code class="language-mysql">1）二进制日志写入不及时
+mysql&gt; select @@sync_binlog;
+2）传统的主从复制中，binlog_dump线程，事件为单元，串行传送二进制日志（5.5、5.6）
+主库并发事务量大，主库可以并行，传送时是串行
+主库发生了大事务，由于是串行传送，会产生阻塞后续的事务
+解决方案：
+5.6开始，开启GTID，实现了（group commit）机制，可以并行传输日志给从库IO
+5.7开始，不开启GTID，会自动维护匿名的GTID，也能实现GC，建议还是开启GTID
+大事务拆成小事务，可以有效的减少主从延时
+</code></pre>
+<p>3、从库</p>
+<pre><code class="language-mysql">SQL线程导致的主从延时
+在传统复制情况下，从库默认只有一个SQL，只能串行回放事务SQL
+主库如果并发事务量较大，从库只能串行回放
+主库发生了大事务，会阻塞后续的所有的事务的运行
+解决方案：
+5.6 版本开启GTID之后，加入了SQL多线程的特性，但是只能针对不同库（database）下的事务进行并发回放
+5.7 版本开始GTID之后,在SQL方面,提供了基于逻辑时钟(logical_clock),binlog加入了seq_no机制,
+真正实现了基于事务级别的并发回放,这种技术我们把它称之为MTS(enhanced multi-threaded slave)
+大事务拆成多个小事务,可以有效的减少主从延时
+[https://dev.mysql.com/worklog/task/?id=6314]
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/bei-fen-hui-fu-er/">
+              <h3 class="post-title">
+                下一篇：备份恢复（二）
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

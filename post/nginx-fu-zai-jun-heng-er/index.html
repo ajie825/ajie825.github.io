@@ -1,0 +1,397 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>nginx负载均衡（二） | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">nginx负载均衡（二）</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-08-05</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/YBDfkYHYeR/">
+                    nginx
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="nginx负载均衡调度算法">nginx负载均衡调度算法</h2>
+<pre><code class="language-bash">调度算法	                        概述
+轮询	          按时间顺序逐一分配到不同的后端服务器(默认)   *****
+weight	          加权轮询,weight值越大,分配到的访问几率越高
+ip_hash	          每个请求按访问IP的hash结果分配,来自同一IP的固定访问一个后端服务器
+url_hash	      按照访问URL的hash结果来分配请求,是每个URL定向到同一个后端服务器
+least_conn        最少链接数,那个机器链接数少就分发
+</code></pre>
+<pre><code class="language-bash">#nginx负载均衡轮询具体配置
+upstream web  {
+    server 10.0.0.7:80;
+    server 10.0.0.8:80;
+}
+</code></pre>
+<pre><code class="language-bash">#nginx负载均衡加权轮询具体配置
+upstream web  {
+        server 172.16.1.7:80 weight=5;
+        server 172.16.1.8:80 weight=1;
+}
+</code></pre>
+<pre><code class="language-bash">#nginx负载均衡ip_hash具体配置，不能和weight一起使用
+upstream web  {
+        ip_hash;
+        server 172.16.1.7:80;
+        server 172.16.1.8:80;
+}
+ip_hash记录在内存中，有一张对应关系表，能解决会话登录问题，但是会造成负载不均衡，导致某一台主机流
+量过大，而另一台没什么流量的问题。
+</code></pre>
+<h2 id="nginx负载均衡后端状态">nginx负载均衡后端状态</h2>
+<pre><code class="language-bash">状态		                             概述
+down		                当前的server暂时不参与负载均衡
+backup		                预留的备份服务器
+max_fails	                允许请求失败的次数
+fail_timeout                经过max_fails失败后, 服务暂停时间
+max_conns	                限制最大的接收连接数
+</code></pre>
+<pre><code class="language-bash">#测试down状态, 该Server不参与负载均衡的调度
+upstream web  {
+    #不参与任何调度, 一般用于停机维护
+    server 10.0.0.7:80 down;
+}
+</code></pre>
+<pre><code class="language-bash">#测试backup状态，当所有的server不可用时，才会启用backup，这种策略很少用
+upstream web  {
+    server 10.0.0.7:80 backup;
+    server 10.0.0.8:80;
+}
+location  / {
+    proxy_pass http://web;
+    include proxy_params;
+}
+</code></pre>
+<pre><code class="language-bash">#测试max_fails失败次数和fail_timeout多少时间内失败多少次则标记down
+upstream web  {
+    server 10.0.0.7:80;
+    server 10.0.0.8:80 max_fails=2 fail_timeout=10s;
+}
+健康检查，但无法查看到具体的指标，不够形象，除非更改源代码；
+在负载均衡服务器的错误日志可以查看到后端哪台服务器处于down状态。
+</code></pre>
+<h2 id="nginx负载均衡健康检查">nginx负载均衡健康检查</h2>
+<pre><code class="language-bash">在nginx官方提供的模块中，没有对负载均衡后端节点的健康检查模块，但可以使用第三方模块nginx_upstream_check_module
+来检测后方服务的健康状态。
+</code></pre>
+<pre><code class="language-bash">1）安装依赖包
+[root@lb01 ~]# yum install -y gcc glibc gcc-c++ pcre-devel openssl-devel patch 
+</code></pre>
+<pre><code class="language-bash">2）下载nginx源码包以及nginx_upstream_check第三方模块
+[root@lb01 ~]# nginx -v
+nginx version: nginx/1.20.1
+[root@lb01 ~]# wget http://nginx.org/download/nginx-1.20.1.tar.gz
+[root@lb01 ~]# wget https://github.com/yaoweibin/nginx_upstream_check_module/archive/master.zip
+</code></pre>
+<pre><code class="language-bash">3）解压nginx源码包以及第三方模块
+[root@lb01 ~]# tar xf nginx-1.20.1.tar.gz 
+[root@lb01 ~]# unzip master.zip
+</code></pre>
+<pre><code class="language-bash">4）进入nginx目录，打补丁
+#nginx的版本是1.20，补丁就选择1.20的，p1代表在nginx目录，p0是不在nginx目录
+[root@lb01 ~]# cd nginx-1.20.1/
+[root@lb01 nginx-1.20.1]# patch -p1 &lt; ../nginx_upstream_check_module-master/check_1.20.1+.patch
+</code></pre>
+<pre><code class="language-bash">5）编译安装nginx，需要添加upstream_check第三方模块
+[root@lb01 nginx-1.20.1]# ./configure --prefix=/etc/nginx --sbin-path=/usr/sbin/nginx --modules-path=/usr/lib64/nginx/modules --conf-path=/etc/nginx/nginx.conf --error-log-path=/var/log/nginx/error.log --http-log-path=/var/log/nginx/access.log --pid-path=/var/run/nginx.pid --lock-path=/var/run/nginx.lock --http-client-body-temp-path=/var/cache/nginx/client_temp --http-proxy-temp-path=/var/cache/nginx/proxy_temp --http-fastcgi-temp-path=/var/cache/nginx/fastcgi_temp --http-uwsgi-temp-path=/var/cache/nginx/uwsgi_temp --http-scgi-temp-path=/var/cache/nginx/scgi_temp --user=nginx --group=nginx --with-compat --with-file-aio --with-threads --with-http_addition_module --with-http_auth_request_module --with-http_dav_module --with-http_flv_module --with-http_gunzip_module --with-http_gzip_static_module --with-http_mp4_module --with-http_random_index_module --with-http_realip_module --with-http_secure_link_module --with-http_slice_module --with-http_ssl_module --with-http_stub_status_module --with-http_sub_module --with-http_v2_module --with-mail --with-mail_ssl_module --with-stream --with-stream_realip_module --with-stream_ssl_module --with-stream_ssl_preread_module --add-module=/root/nginx_upstream_check_module-master --with-cc-opt='-O2 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector-strong --param=ssp-buffer-size=4 -grecord-gcc-switches -m64 -mtune=generic -fPIC' --with-ld-opt='-Wl,-z,relro -Wl,-z,now -pie'
+[root@lb01 nginx-1.20.1]# make &amp;&amp; make install
+</code></pre>
+<pre><code class="language-bash">6）配置nginx负载均衡，同时打开upstream健康检查功能
+[root@lb01 ~]# cd /etc/nginx/conf.d/
+[root@lb01 conf.d]# cat upstream.conf 
+upstream node {
+    server 172.16.1.7:80;
+    server 172.16.1.8:80;
+    check interval=3000 rise=2 fall=3 timeout=1000 type=tcp;
+}
+#interval检测间隔时间，单位为毫秒
+#rsie表示请求2次正常，标记此后端的状态为up
+#fall表示请求3次失败，标记此后端的状态为down
+#type  类型为tcp
+#timeout为超时时间，单位为毫秒
+server {
+    listen 80;
+    server_name node.oldboy.com;
+
+    location / {
+        proxy_pass http://node;
+        include proxy_params;
+    }
+   
+    location /upstream_check {
+                check_status;
+    }
+}
+[root@lb01 conf.d]# nginx -t
+[root@lb01 conf.d]# systemctl restart nginx
+</code></pre>
+<pre><code class="language-bash">7）通过访问域名node.oldboy.com/upstream_check则能打开状态页面
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1659670649976.png" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">8）尝试关闭一台后端的webserver，再次打开检查
+[root@web02 ~]# systemctl stop nginx
+</code></pre>
+<figure data-type="image" tabindex="2"><img src="https://ajie825.github.io/post-images/1659670947565.png" alt="" loading="lazy"></figure>
+<h2 id="nginx负载均衡会话共享">nginx负载均衡会话共享</h2>
+<pre><code class="language-bash">在使用负载均衡的时候会遇到会话保持的问题，可通过如下方式进行解决
+1）使用nginx的ip_hash，根据客户端的来源IP，将请求分配到相同的服务器上，但会造成某一台主机压力过大
+2）基于服务端的session会话共享（mysql/memcache/redis/file）
+在解决负载均衡会话问题我们需要了解session和cookie。
+1）用户第一次请求服务端网站时，服务端根据用户提交的信息会生成对应的session，并将session_id返回给客户端浏览器，浏
+览器将session_id保存在cookie中。
+2）客户端再次尝试登录服务端网站时，浏览器的请求头自动携带cookie信息，服务端会将用户提交的cookie作为key去存储里查
+找对应的value(session)。
+3）服务器如果没有找到session说明用户没有登录或者登录失效，如果找到Session说明用户已经登录可执行后面操作。
+注意：同一域名下的网站登录后cookie都是一样的，所以无论负载后端有几台服务器，无论请求分配到哪一台服务器上，同一
+用户的cookie是不会发生变化的，也就是说cookie对应的session也是唯一的，所以，这里只要保证多台服务器访问用一个共享
+服务器(memcache/redis/mysql/file)就行了。
+</code></pre>
+<h3 id="配置示例">配置示例</h3>
+<pre><code class="language-bash">1）在web01和web02上都安装phpmyadmin（最新版本为4.9.10）
+[root@web01 ~]# cd /code/
+[root@web01 code]# wget https://files.phpmyadmin.net/phpMyAdmin/4.8.4/phpMyAdmin-4.8.4-all-languages.zip
+[root@web01 code]# unzip phpMyAdmin-4.8.4-all-languages.zip
+</code></pre>
+<pre><code class="language-bash">2）在web01和web02配置phpmyadmin连接远程数据库
+[root@web01 code]# cd phpMyAdmin-4.8.4-all-languages/
+[root@web01 phpMyAdmin-4.8.4-all-languages]# cp config.sample.inc.php config.inc.php
+[root@web01 phpMyAdmin-4.8.4-all-languages]# vim config.inc.php
+$cfg['Servers'][$i]['auth_type'] = 'cookie';
+/* Server parameters */
+$cfg['Servers'][$i]['host'] = '172.16.1.51';
+$cfg['Servers'][$i]['compress'] = false;
+$cfg['Servers'][$i]['AllowNoPassword'] = false;
+</code></pre>
+<pre><code class="language-bash">3）在web01和web02准备phpmyadmin的nginx配置文件
+[root@web01 ~]# cd /etc/nginx/conf.d/
+[root@web01 conf.d]# cat php.conf 
+server {
+        listen 80;
+        server_name php.oldboy.com;
+        root /code/phpMyAdmin-4.8.4-all-languages;
+
+        location / {
+                index index.php index.html;
+        }
+
+        location ~ \.php$ {
+                fastcgi_pass 127.0.0.1:9000;
+                fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+                include fastcgi_params;
+        }
+}
+[root@web01 conf.d]# nginx -t
+[root@web01 conf.d]# systemctl reload nginx
+</code></pre>
+<pre><code class="language-bash">4）配置域名解析，测试访问网站
+10.0.0.8 blog.oldboy.com zh.oldboy.com edu.oldboy.com php.oldboy.com
+</code></pre>
+<figure data-type="image" tabindex="3"><img src="https://ajie825.github.io/post-images/1659679950260.png" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">5）在web01和web02配置授权
+[root@web01 conf.d]# chown -R www.www /var/lib/php/
+[root@web01 conf.d]# cd /var/lib/php/
+[root@web01 php]# ll
+total 0
+drwxrwx--- 2 www www 6 Oct 26  2019 session
+drwxrwx--- 2 www www 6 Oct 26  2019 wsdlcache
+</code></pre>
+<pre><code class="language-bash">5）测试打开网站成功
+</code></pre>
+<figure data-type="image" tabindex="4"><img src="https://ajie825.github.io/post-images/1659680781241.png" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">6）配置负载均衡服务，调度到后端两台web节点
+[root@lb01 conf.d]# cat upstream.conf 
+upstream php {
+    server 172.16.1.7:80;
+    server 172.16.1.8:80;
+}
+[root@lb01 conf.d]# cat node_proxy.conf 
+server {
+    listen 80;
+    server_name php.oldboy.com;
+
+    location / {
+       proxy_pass http://php;
+        include proxy_params;
+   }
+
+}
+[root@lb01 conf.d]# nginx -t
+[root@lb01 conf.d]# systemctl reload nginx
+</code></pre>
+<pre><code class="language-bash">7）配置域名解析，重新进行访问网站
+10.0.0.5 web.oldboy.com node.oldboy.com php.oldboy.com
+</code></pre>
+<figure data-type="image" tabindex="5"><img src="https://ajie825.github.io/post-images/1659681689613.png" alt="" loading="lazy"></figure>
+<h3 id="使用redis解决会话登录问题">使用redis解决会话登录问题</h3>
+<pre><code class="language-bash">1）在db01服务器安装redis内存数据库
+[root@db01 ~]# yum install redis -y
+</code></pre>
+<pre><code class="language-bash">2）配置redis监听在172.16.1.51端口
+[root@db01 ~]# sed  -i '/^bind/c bind 127.0.0.1 172.16.1.51' /etc/redis.conf
+</code></pre>
+<pre><code class="language-bash">3）启动redis
+[root@db01 ~]# systemctl enable redis
+[root@db01 ~]# systemctl start redis
+</code></pre>
+<pre><code class="language-bash">4）php配置session连接redis
+修改/etc/php.ini文件
+session.save_handler = redis
+session.save_path = &quot;tcp://172.16.1.51:6379&quot;
+;session.save_path = &quot;tcp://172.16.1.51:6379?auth=123&quot; #如果redis存在密码，则使用该方式
+session.auto_start = 1
+注释php-fpm.d/www.conf里面的两条内容，否则session内容会一直写入/var/lib/php/session目录中
+;php_value[session.save_handler] = files
+;php_value[session.save_path]    = /var/lib/php/session
+</code></pre>
+<pre><code class="language-bash">5）重启php-fpm服务
+[root@web01 ~]# systemctl restart php-fpm
+[root@web02 ~]# systemctl restart php-fpm
+</code></pre>
+<figure data-type="image" tabindex="6"><img src="https://ajie825.github.io/post-images/1659691551682.png" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">6）redis查看数据
+[root@db01 ~]# redis-cli 
+127.0.0.1:6379&gt; keys *
+1) &quot;PHPREDIS_SESSION:936c958d6713fce40da751a82ddf790f&quot;
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/nginx-dai-li-yu-fu-zai-jun-heng/">
+              <h3 class="post-title">
+                下一篇：nginx代理与负载均衡
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

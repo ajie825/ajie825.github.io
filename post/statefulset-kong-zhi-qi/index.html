@@ -1,0 +1,478 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>Statefulset控制器 | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">Statefulset控制器</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-09-03</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/vN0im2GW5W/">
+                    k8s
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="statefulset简介">statefulset简介</h2>
+<p><code>StatefulSet</code>是为了管理有状态服务的问题而设计的。</p>
+<h3 id="基本概念">基本概念</h3>
+<ul>
+<li>无状态服务：<code>ReplicaSet</code>、<code>Deployment</code>、<code>DaemonSet</code>都是管理无状态的服务，它们所管理的<code>pod</code>的<code>IP</code>、名字、启停顺序等都是随机的，个体对整体无影响，所有<code>pod</code>都是共用一个数据卷，多个服务实例对于同一个用户请求的响应结果是完全一致的，多服务实例之间是没有依赖关系的。</li>
+<li>有状态服务：<code>StatefulSet</code>是管理有状态的服务，它所管理的<code>pod</code>的名称不能随意变化，数据持久化的目录也是不一样，每个<code>pod</code>都有自己独有的数据持久化目录，比如<code>MySQL</code>主从、<code>redis</code>集群等，节点实例之间有依赖的拓扑关系。</li>
+</ul>
+<h3 id="statefulset应用场景">StatefulSet应用场景</h3>
+<ol>
+<li>稳定的持久化存储，即<code>pod</code>重新调度后还是能访问到相同的持久化数据，基于<code>PVC</code>来实现。</li>
+<li>稳定的网络标识，即<code>pod</code>重新调度后其<code>PodName</code>和<code>HostName</code>不变，基于<code>Headless Service</code>(即没有<code>Cluster IP</code>的<code>Service</code>)来实现。</li>
+<li>有序部署和扩展，即<code>pod</code>是有顺序的，在部署或者扩展的时候要依据定义的顺序依次进行(即从<code>0</code>到<code>N-1</code>，在下一个<code>pod</code>运行之前所有的<code>pod</code>必须都是<code>Running</code>和<code>Ready</code>状态)，基于初始化容器来实现。</li>
+<li>有序收缩，有序删除（即从<code>N-1</code>到<code>0</code>）。</li>
+<li>有序的滚动更新。</li>
+</ol>
+<h3 id="statefulset组成部分">StatefulSet组成部分</h3>
+<ol>
+<li><code>Headless Service</code>(无头服务)：用来定义<code>pod</code>网络标识，生成可解析的<code>DNS</code>记录。</li>
+<li><code>volumeClaimTemplates</code>(存储卷申请模板)：创建<code>PV</code>，指定<code>PV</code>名称大小，自动创建<code>PVC</code>，且<code>PVC</code>由存储类供应。</li>
+<li><code>StatefulSet</code>：定义具体<code>pod</code>的。</li>
+</ol>
+<h2 id="为什么要有headless-service">为什么要有Headless Service</h2>
+<p>什么是<code>Headless Service</code>？</p>
+<p><code>Headless Service</code>不分配<code>Cluster IP</code>，可以通过解析<code>service</code>的<code>DNS</code>，返回所有<code>pod</code>的<code>dns</code>和<code>ip</code>地址(<code>statefulSet</code>部署的<code>pod</code>才有<code>dns</code>)，普通的<code>service</code>，只能通过解析<code>service</code>的<code>dns</code>返回<code>service</code>的<code>Cluster IP</code>。</p>
+<p>为什么要用<code>Headless Service</code>(没有<code>service IP</code>的<code>service</code>)？</p>
+<p>在使用<code>deployment</code>时，创建的<code>pod</code>名称是没有顺序的，是随机字符串，在用<code>StatefulSet</code>管理<code>pod</code>时要求<code>pod</code>名称必须是固定的，每一个<code>pod</code>不能被随意取代，<code>pod</code>重建后<code>pod</code>名称还是一样的，因为<code>pod </code>的<code>IP</code>是变化的，所以要用<code>pod</code>名称来识别。<code>pod</code>名称是<code>pod</code>唯一性的标识符，必须持久稳定有效，这时候要用到无头服务，它可以给每个<code>pod</code>一个唯一的名称。</p>
+<ol>
+<li>
+<p><code>Headless Service</code>会为<code>service</code>分配一个域名</p>
+<p><code>&lt;service name&gt;.$&lt;namespace name&gt;.svc.cluster.local</code></p>
+</li>
+<li>
+<p><code>StatefulSet</code>会为关联的<code>pod</code>保持一个不变的<code>pod name</code></p>
+<p><code>statefulset</code>中<code>Pod</code>的名字格式为<code>$(StatefulSet name)</code>-<code>$(pod序号)</code></p>
+</li>
+<li>
+<p><code>StatefulSet</code>会为关联的<code>pod</code>分配一个<code>dnsName</code></p>
+<p><code>&lt;Pod Name&gt;.$&lt;service name&gt;.$&lt;namespace name&gt;.svc.cluster.local</code></p>
+</li>
+</ol>
+<h2 id="为什么要有volumeclaimtemplate">为什么要有volumeClaimTemplate？</h2>
+<p>大部分有状态副本集都会用到持久存储，比如分布式系统来说，由于主从数据是不一样的，每个节点都需要自己专用的存储节点，而在<code>deployment</code>中<code>pod</code>模板创建的存储卷是多个<code>pod</code>共享的同一个存储卷。而<code>StatefulSet</code>定义的每个<code>pod</code>都不能使用同一个存储卷，由此基于<code>pod</code>模板创建<code>pod</code>是不适应的，这就需要引入<code>volumeClaimTemplate</code>，当在使用<code>statefulset</code>创建<code>pod</code>时，<code>volumeClaimTemplate</code>会自动生成一个<code>PVC</code>，请求绑定一个<code>PV</code>，从而每一个<code>pod</code>都有自己专用的存储卷。</p>
+<p><code>Pod</code>、<code>PVC</code>和<code>PV</code>对应的关系图如下：</p>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1662198299651.png" alt="" loading="lazy"></figure>
+<h2 id="statefulset使用演示">statefulSet使用演示</h2>
+<h3 id="查看statefulset的定义">查看statefulset的定义</h3>
+<pre><code class="language-bash">#查看定义Statefulset资源需要的字段
+[root@master1 ~]# kubectl explain statefulset
+KIND:     StatefulSet
+VERSION:  apps/v1
+DESCRIPTION:
+    #StatefulSet 表示一组具有一致身份的 Pod，身份定义为：
+    #网络：单一稳定的 DNS 和主机名
+    #存储：根据要求提供尽可能多的 VolumeClaims，StatefulSet保证给定的网络标识将始终映射到相同的存储标识
+FIELDS:
+   apiVersion       &lt;string&gt;
+   kind             &lt;string&gt;
+   metadata         &lt;Object&gt;
+   spec             &lt;Object&gt;
+   status           &lt;Object&gt;
+</code></pre>
+<pre><code class="language-bash">#查看statefulset.spec字段如何定义？
+[root@master1 ~]# kubectl explain statefulset.spec
+KIND:     StatefulSet
+VERSION:  apps/v1
+RESOURCE: spec &lt;Object&gt;
+FIELDS:
+   podManagementPolicy	&lt;string&gt;               #pod管理策略
+   replicas	&lt;integer&gt;                          #副本数量
+   revisionHistoryLimit	&lt;integer&gt;              #保留的历史版本
+   selector	            &lt;Object&gt; -required-    #标签选择器，选择它所关联的pod
+   serviceName	        &lt;string&gt; -required-    #headless service的名字
+   template	            &lt;Object&gt; -required-    #生成pod的模板
+   updateStrategy	    &lt;Object&gt;               #更新策略
+   volumeClaimTemplates	&lt;[]Object&gt;             #存储卷申请模板
+</code></pre>
+<pre><code class="language-bash">#查看statefulset的spec.template字段如何定义？
+#对于template而言，其内部定义的就是pod，pod模板是一个独立的对象
+[root@master1 ~]# kubectl explain statefulset.spec.template
+KIND:     StatefulSet
+VERSION:  apps/v1
+RESOURCE: template &lt;Object&gt;
+FIELDS:
+   metadata	  &lt;Object&gt;
+   spec	      &lt;Object&gt;          #定义容器属性的
+</code></pre>
+<p>通过上面可以看到，<code>statefulset</code>资源中有两个<code>spec</code>字段，第一个<code>spec</code>声明的是<code>statefulset</code>定义多少个<code>Pod</code>副本(默认将仅部署1个<code>Pod</code>)、匹配<code>Pod</code>标签的选择器、创建<code>pod</code>的模板、存储卷申请模板，第二个<code>spec</code>是<code>spec.template.spec</code>：主要用于<code>Pod</code>里的容器属性等配置，<code>.spec.template</code>里的内容是声明<code>Pod</code>对象时要定义的各种属性，所以这部分也叫做<code>PodTemplate</code>(<code>Pod</code>模板)，还有一个值得注意的地方是：在<code>.spec.selector</code>中定义的标签选择器必须能够匹配到<code>spec.template.metadata.labels</code>里定义的<code>Pod</code>标签，否则<code>kubernetes</code>将不允许创建<code>statefulset</code>。</p>
+<pre><code class="language-bash">[root@master1 ~]# kubectl explain statefulset.spec.volumeClaimTemplates
+KIND:     StatefulSet
+VERSION:  apps/v1
+RESOURCE: volumeClaimTemplates &lt;[]Object&gt;
+FIELDS:
+   apiVersion   &lt;string&gt;
+   kind         &lt;string&gt;
+   metadata     &lt;Object&gt;
+   spec         &lt;Object&gt;
+</code></pre>
+<pre><code class="language-bash">[root@master1 ~]# kubectl explain statefulset.spec.volumeClaimTemplates.spec
+KIND:     StatefulSet
+VERSION:  apps/v1
+RESOURCE: spec &lt;Object&gt;
+FIELDS:
+   accessModes          &lt;[]string&gt;
+   resources            &lt;Object&gt;
+   storageClassName     &lt;string&gt;
+</code></pre>
+<pre><code class="language-bash">1）#创建存储类
+[root@master1 ~]# cat class-web.yaml 
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: nfs-web
+provisioner: example.com/nfs
+[root@master1 ~]# kubectl apply -f class-web.yaml 
+storageclass.storage.k8s.io/nfs-web created
+[root@master1 ~]# kubectl get storageclass|grep nfs-web
+NAME      PROVISIONER       RECLAIMPOLICY   VOLUMEBINDINGMODE   ALLOWVOLUMEEXPANSION
+nfs-web   example.com/nfs     Delete          Immediate           false 
+</code></pre>
+<pre><code class="language-bash">2）#把nginx的离线压缩包nginx.tar.gz上传到node1、node2上，手动解压
+[root@node1 ~]# docker load -i nginx.tar.gz
+[root@node2 ~]# docker load -i nginx.tar.gz
+</code></pre>
+<pre><code class="language-bash">3）#创建Headless Service
+[root@master1 ~]# cat headless-service.yaml 
+apiVersion: v1
+kind: Service
+metadata: 
+  name: nginx
+  labels:
+     app: nginx
+spec:
+  selector:
+    app: nginx
+  clusterIP: None                             
+  ports:
+  - port: 80 
+  
+[root@master1 ~]# kubectl apply -f headless-service.yaml
+service/nginx created
+
+[root@master1 statefulset]# kubectl get svc -l app=nginx
+NAME    TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+nginx   ClusterIP   None         &lt;none&gt;        80/TCP    56s
+</code></pre>
+<pre><code class="language-bash">4）#编写StatefulSet资源清单文件
+[root@master1 ~]# cat statefulset-demo.yaml 
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: web
+spec:
+  serviceName: &quot;nginx&quot;                                #headless service的名字
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: www
+          mountPath: /usr/share/nginx/html/
+  volumeClaimTemplates:                             #存储卷申请模板
+  - metadata:
+      name: www
+    spec:
+      accessModes: [&quot;ReadWriteOnce&quot;]
+      storageClassName: &quot;nfs-web&quot;                   #指定从哪个存储类申请PV
+      resources:
+        requests:
+          storage: 1Gi                              #需要1G的PVC，会自动跟符合条件的PV绑定
+
+[root@master1 ~]# kubectl apply -f statefulset-demo.yaml 
+statefulset.apps/web created
+</code></pre>
+<pre><code class="language-bash">#查看statefulset是否创建成功
+[root@master1 ~]# kubectl get statefulset -o wide     
+NAME   READY   AGE     CONTAINERS   IMAGES
+web    2/2     2m48s   nginx        nginx
+
+#查看pod，可以看到创建的pod是有序的，Pod的名字格式为$(StatefulSet name)-$(pod序号)
+[root@master1 ~]# kubectl get pods -o wide|grep web
+NAME         READY   STATUS  RESTARTS      AGE     IP              NODE    
+web-0        1/1     Running   0          7m53s   10.244.166.150   node1   
+web-1        1/1     Running   0          7m52s   10.244.104.23    node2   
+
+#查看PVC，PVC的name由volumeClaimTemplates的name-pod的name组成
+[root@master1 ~]# kubectl get pvc|grep www
+NAME         STATUS   VOLUME                                   CAPACITY   ACCESS MODES   STORAGECLASS 
+www-web-0    Bound    pvc-d8493a5b-3f6f-4f0e-bf37-ff0a50f0a121   1Gi        RWO            nfs-web    
+www-web-1    Bound    pvc-0c7f6fa8-dc87-4148-a1d1-43b605f04d0b   1Gi        RWO            nfs-web 
+
+#查看PV
+[root@master1 ~]# kubectl get pv|grep www
+NAME                                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM                STORAGECLASS
+pvc-0c7f6fa8-dc87-4148-a1d1-43b605f04d0b   1Gi        RWO            Delete           Bound       default/www-web-1    nfs-web     
+pvc-d8493a5b-3f6f-4f0e-bf37-ff0a50f0a121   1Gi        RWO            Delete           Bound       default/www-web-0    nfs-web  
+
+#查看pod主机名
+[root@master1 ~]# for i in 0 1; do kubectl exec web-$i -- /bin/sh -c 'hostname';done
+web-0
+web-1
+
+[root@master1 ~]# kubectl exec -it web-1 -- /bin/bash 
+root@web-1:/# apt-get update
+root@web-1:/# apt-get install dnsutils -y
+root@web-1:/# nslookup web-0.nginx.default.svc.cluster.local
+Server:         10.96.0.10
+Address:        10.96.0.10#53
+#statefulset创建的pod也是有dns记录的，dns名称为&lt;Pod Name&gt;.$&lt;service name&gt;.$&lt;namespace name&gt;.svc.cluster.local
+Name:   web-0.nginx.default.svc.cluster.local
+Address: 10.244.166.150
+
+#查询service dns，会把对应的pod ip解析出来
+root@web-1:/# nslookup nginx.default.svc.cluster.local
+Server:         10.96.0.10
+Address:        10.96.0.10#53
+Name:   nginx.default.svc.cluster.local
+Address: 10.244.166.150
+Name:   nginx.default.svc.cluster.local
+Address: 10.244.104.23
+
+root@web-1:/# dig -t A nginx.default.svc.cluster.local @10.96.0.10
+;; QUESTION SECTION:
+;nginx.default.svc.cluster.local. IN    A
+
+;; ANSWER SECTION:
+nginx.default.svc.cluster.local. 2 IN   A       10.244.104.23
+nginx.default.svc.cluster.local. 2 IN   A       10.244.166.150
+#-t：指定要解析的类型  A：为A记录
+</code></pre>
+<h2 id="statefulset管理pod扩容-缩容-更新">statefulset管理pod：扩容、缩容、更新</h2>
+<h3 id="statefulset实现pod的动态扩容">statefulset实现pod的动态扩容</h3>
+<pre><code class="language-bash">1）#如果觉得两个副本太少了，想要增加，只需要修改配置文件statefulset.yaml里的replicas的值即可
+#原来replicas: 2，现在变成replicaset: 3，修改之后，执行如下命令更新：
+[root@master1 ~]# kubectl apply -f statefulset-demo.yaml 
+service/nginx unchanged
+statefulset.apps/web configured
+[root@master1 ~]# kubectl get sts
+NAME   READY   AGE
+web    3/3     16h
+[root@master1 ~]# kubectl get pods -l app=nginx
+NAME    READY   STATUS    RESTARTS   AGE
+web-0   1/1     Running   1          16h
+web-1   1/1     Running   1          16h
+web-2   1/1     Running   0          25s
+</code></pre>
+<pre><code class="language-bash">2）#也可以直接编辑控制器实现扩容
+[root@master1 ~]# kubectl edit sts web
+#这个是把请求提交给了apiserver，实时修改
+spec:
+  podManagementPolicy: OrderedReady
+  replicas: 3
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: nginx
+  serviceName: nginx
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: nginx
+#把上面的spec下的replicas 后面的值改成4，保存退出
+[root@master1 ~]# kubectl get pods -l app=nginx
+NAME    READY   STATUS    RESTARTS   AGE
+web-0   1/1     Running   1          16h
+web-1   1/1     Running   1          16h
+web-2   1/1     Running   0          3m43s
+web-3   1/1     Running   0          10s
+</code></pre>
+<h3 id="statefulset实现pod的动态缩容">statefulset实现pod的动态缩容</h3>
+<pre><code class="language-bash">#如果我们觉得4个Pod副本太多了，想要减少，只需要修改配置文件statefulset.yaml里的replicas的值即可，
+#把replicaset：4变成replicas: 2，修改之后，执行如下命令更新：
+[root@master1 ~]# kubectl apply -f statefulset-demo.yaml 
+service/nginx unchanged
+statefulset.apps/web configured
+[root@master1 ~]# kubectl get pods -l app=nginx
+NAME    READY   STATUS    RESTARTS   AGE
+web-0   1/1     Running   1          16h
+web-1   1/1     Running   1          16h
+</code></pre>
+<h3 id="statefulset实现pod的更新">statefulset实现pod的更新</h3>
+<pre><code class="language-bash">1）#将myapp.tar.gz上传到node1、node2上，手动解压
+[root@node1 ~]# docker load -i myapp.tar.gz 
+[root@node2 ~]# docker load -i myapp.tar.gz 
+
+2）#修改镜像nginx变成- image: ikubernetes/myapp:v2，修改之后保存退出 
+[root@node1 ~]# kubectl edit sts web
+    spec:
+      containers:
+      - image: ikubernetes/myapp:v2
+        imagePullPolicy: IfNotPresent
+        name: nginx
+        ports:
+        - containerPort: 80
+          name: web
+          protocol: TCP
+[root@node1 ~]# kubectl get pods -o wide -l app=nginx
+NAME    READY   STATUS    RESTARTS   AGE   IP               NODE    
+web-0   1/1     Running   0          3s    10.244.166.147   node1   
+web-1   1/1     Running   0          7s    10.244.104.27    node2   
+
+3）#查看pod详细信息
+[root@node1 ~]# kubectl describe pods web-0
+Status:       Running
+IP:           10.244.166.147
+IPs:
+  IP:           10.244.166.147
+Controlled By:  StatefulSet/web
+Containers:
+  nginx:
+    Container ID:   docker://f3316a05d826293677994b74e6ae66e7d0e9dd2e
+    Image:          ikubernetes/myapp:v2
+</code></pre>
+<p>通过上面可以看到<code>pod</code>已经使用刚才更新的镜像<code>ikubernetes/myapp:v2</code>了。</p>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/k8s-chi-jiu-hua-cun-chu/">
+              <h3 class="post-title">
+                下一篇：k8s持久化存储
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

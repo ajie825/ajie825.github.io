@@ -1,0 +1,394 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>SQL基础应用（一） | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">SQL基础应用（一）</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-05-31</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/eb_lZhnX62/">
+                    mysql
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="mysql内置功能">MySQL内置功能</h2>
+<h3 id="连接数据库">连接数据库</h3>
+<pre><code class="language-mysql">-u 
+-p
+-S
+-h
+-P
+-e
+&lt;
+例子：
+mysql -uroot -p -S /tmp/mysql.sock
+mysql -uroot -p -h10.0.0.51 -P3306
+-e 免交互执行sql语句
+[root@mysql ~]# mysql -uroot -p -e &quot;show databases;&quot;
+ &lt; 导入数据
+[root@mysql ~]# mysql -uroot -p -e &quot;source /tmp/db.sql;&quot;
+</code></pre>
+<h3 id="内置命令">内置命令</h3>
+<pre><code class="language-shell">help 	                打印mysql帮助
+\c  ctrl+c 	            结束上个命令运行
+\q quit; exit; ctrl+d 	退出mysql
+#下面两个常用
+\G 	                    将数据竖起来显示
+source                  恢复备份文件
+</code></pre>
+<h2 id="sql基础应用">SQL基础应用</h2>
+<h3 id="sql-介绍">SQL 介绍</h3>
+<pre><code class="language-mysql">结构化的查询语言
+关系型数据库通用的命令
+遵循SQL92的标准(SQL_MODE)
+</code></pre>
+<h3 id="sql-常用种类">SQL 常用种类</h3>
+<pre><code class="language-mysql">DDL   数据定义语言   
+DCL   数据控制语言   
+DML   数据操作语言  
+DQL   数据查询语言  
+</code></pre>
+<h3 id="sql引入-数据库的逻辑结构">SQL引入-数据库的逻辑结构</h3>
+<pre><code class="language-mysql">库
+  库名字
+  库属性:  字符集,排序规则
+
+表
+  表名
+  表属性:  存储引擎类型,字符集,排序规则
+
+  列名
+  列属性:  数据类型,约束,其他属性
+  数据行
+</code></pre>
+<h3 id="字符集charset">字符集（charset）</h3>
+<pre><code class="language-mysql">相当于MySQL的密码本(编码表)
+mysql&gt; show charset;
+utf8		     :   每个字符最多使用三个字节
+utf8mb4 (建议)   :   每个字符最多使用四个字节,支持emoji
+
+每个0或1就是一个位(bit)
+1B（byte，字节）= 8 bit；
+1KB（Kibibyte，千字节）=1024B= 2^10 B；
+1MB（Mebibyte，兆字节，百万字节，简称“兆”）=1024KB= 2^20 B；
+1GB（Gigabyte，吉字节，十亿字节，又称“千兆”）=1024MB= 2^30 B；
+</code></pre>
+<h3 id="排序规则collation">排序规则（collation）</h3>
+<pre><code class="language-mysql">mysql&gt; show collation;
+对于英文字符串大小写的敏感
+utf8mb4_general_ci 			大小写不敏感
+utf8mb4_bin  			    大小写敏感(存拼音,日文)
+</code></pre>
+<h3 id="数据类型介绍">数据类型介绍</h3>
+<p>1、数字</p>
+<pre><code class="language-shell">整数
+tinyint：极小整数数据类型（0-255）
+int：-2^31到2^31-1最大10位数，一般超过10位用字符串类型
+</code></pre>
+<p>2、字符串</p>
+<pre><code class="language-shell">char(100)    
+	定长字符串类型,最多为255个字符，不管字符串长度多长,都立即分配100个字符长度的存储空间,未占满的空间使用&quot;空格&quot;填充
+	
+varchar(100) 
+	变长字符串类型,每次存储数据之前,都要先判断一下长度,按需分配磁盘空间.
+	会单独申请一个字符长度的空间存储字符长度(少于255,如果超过255以上,会占用两个存储空间)
+如何选择这两个数据类型?
+1）少于255个字符串长度,定长的列值,选择char
+2）多于255字符长度,变长的字符串,可以选择varchar
+
+enum 枚举数据类型
+address enum('sz','sh','bj'.....)
+	          1    2    3 
+悬念,以上数据类型可能会影响到索引的性能        
+</code></pre>
+<p>3、时间</p>
+<pre><code class="language-shell">datetime 
+范围为从 1000-01-01 00:00:00.000000 至 9999-12-31 23:59:59.999999
+timestamp
+范围为从 1970-01-01 00:00:00.000000 至 2038-01-19 03:14:07.999999
+timestamp会受到时区的影响
+</code></pre>
+<p>二进制(不擅长存视频，图片，省略)</p>
+<h2 id="ddl的应用">DDL的应用</h2>
+<h3 id="库的定义">库的定义</h3>
+<pre><code class="language-mysql">--- 创建数据库
+CREATE DATABASE zabbix CHARSET utf8mb4 COLLATE utf8mb4_bin;
+--- 查看库情况
+SHOW DATABASES;
+SHOW CREATE DATABASE zabbix;
+--- 删除数据库(不代表生产操作)
+DROP DATABASE zabbix;
+--- 修改数据库字符集
+注意: 目标字符集一定是源字符集的严格超级，比如utf8---&gt;utf8mb4.
+CREATE DATABASE oldguo;
+SHOW CREATE DATABASE oldguo;
+ALTER DATABASE oldguo CHARSET utf8mb4;
+</code></pre>
+<h3 id="库定义规范">库定义规范  *****</h3>
+<pre><code class="language-mysql">1）库名使用小写字符
+示例：在windows环境下大小写不敏感，Linux环境下大小敏感
+2）库名不能以数字开头
+3）不能是数据库内部的关键字
+4）必须设置字符集
+</code></pre>
+<h3 id="表的定义">表的定义</h3>
+<pre><code class="language-mysql">--- 建表
+表名,列名,列属性,表属性
+
+--- 列属性（除数据类型外）
+PRIMARY KEY    : 主键约束,表中只能有一个,非空且唯一（两个字段也可组成联合主键）
+NOT NULL       :  非空约束,不允许空值
+UNIQUE KEY     : 唯一键约束,不允许重复值
+DEFAULT        : 一般配合 NOT NULL 一起使用
+UNSIGNED       : 无符号,一般是配合数字列,非负数
+COMMENT        : 注释
+AUTO_INCREMENT : 自增长的列
+
+开发规范：尽量所有的列非空，避免索引失效
+
+CREATE TABLE stu (
+id INT PRIMARY KEY NOT NULL AUTO_INCREMENT COMMENT '学号',
+sname VARCHAR(255) NOT NULL  COMMENT '姓名',
+age TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '年龄',
+gender ENUM('m','f','n') NOT NULL DEFAULT 'n' COMMENT '性别',
+intime DATETIME NOT NULL DEFAULT NOW() COMMENT '入学时间'
+)ENGINE INNODB CHARSET utf8mb4;
+</code></pre>
+<h3 id="表定义规范">表定义规范 *****</h3>
+<pre><code class="language-mysql">1）表名小写字母，不能使用数字开头
+2）不能是保留字符，使用和业务有关的表名
+3）选择合适的数据类型及长度
+4）每个列设置NOT NULL + DEFAULT，对于数字使用0填充，对于字符使用有效字符串填充
+5）每个列设置注释
+6）表必须设置存储引擎和字符集
+7）主键列尽量是无关数字列，最好是自增长
+8）enum类型不能保存数字，只能是字符串类型
+</code></pre>
+<pre><code class="language-mysql">--- 查询建表信息
+SHOW TABLES;
+--- 查询建表语句
+SHOW CREATE TABLE stu;
+--- 查询列结构
+DESC stu;
+--- 创建一个表结构一样的表
+CREATE TABLE test LIKE stu;
+</code></pre>
+<pre><code class="language-mysql">--- 删表(生产中禁用命令)
+DROP TABLE test;
+</code></pre>
+<pre><code class="language-mysql">--- 修改表结构
+会进行锁表操作的，避开生产繁忙期
+最原始的方法：创建一个临时表，对临时表变更然后进行原始替换
+pt-osc ：percona-toolkits online schema change
+
+--- 在stu表中添加qq列 *****
+DESC stu;
+ALTER TABLE stu ADD qq VARCHAR(20) NOT NULL COMMENT 'qq号';
+
+--- 在sname后加微信列 ***
+ALTER TABLE stu ADD wechat VARCHAR(64) NOT NULL UNIQUE COMMENT '微信号' AFTER sname;
+
+--- 在id列前加一个新列num ***
+ALTER TABLE stu ADD num INT NOT NULL UNIQUE COMMENT '身份证' FIRST ;
+
+--- 把刚才添加的列都删掉(危险,不代表生产操作) ***
+ALTER TABLE stu DROP num;
+ALTER TABLE stu DROP qq;
+ALTER TABLE stu DROP wechat;
+DESC stu;
+
+--- 修改sname数据类型的属性 ***
+ALTER TABLE stu MODIFY sname VARCHAR(64) NOT NULL COMMENT '姓名';
+--- 将gender 改为sex数据类型改为CHAR类型 ***
+ALTER TABLE stu CHANGE gender sex CHAR(1) NOT NULL COMMENT '性别';
+
+modify与change的区别：modify只改变数据类型而不改变字段名称，change改变字段名称！
+</code></pre>
+<h2 id="dcl的应用">DCL的应用</h2>
+<pre><code class="language-mysql">数据控制语言
+grant 
+revoke
+</code></pre>
+<h2 id="dml的应用">DML的应用</h2>
+<pre><code class="language-mysql">数据操作语言---对数据行的增删改
+--- insert
+DESC stu;
+--- 最偷懒
+INSERT INTO stu VALUES(1,'zs',18,'m',NOW());
+SELECT * FROM stu;
+
+--- 最规范
+INSERT INTO stu(id,sname,age,sex,intime)
+VALUES (2,'ls',19,'f',NOW());
+
+--- 针对性的录入数据
+INSERT INTO stu(sname,age,sex)
+VALUES ('w5',11,'m');
+
+--- 一次性录入多行
+INSERT INTO stu(sname,age,sex)
+VALUES 
+('aa',11,'m'),
+('bb',12,'f'),
+('cc',13,'m');
+</code></pre>
+<pre><code class="language-mysql">--- update（一定要加where条件）
+UPDATE stu SET sname='aaa';
+SELECT * FROM stu;
+UPDATE stu SET sname='bb' WHERE id=6;
+</code></pre>
+<pre><code class="language-mysql">--- delete (一定要有where条件) 危险！！！
+DELETE FROM stu WHERE id=9;
+全表删除
+DELETE FROM stu;
+truncate table stu;
+区别：
+delete： DML操作，是逻辑性质的删除，逐行进行删除，速度慢
+truncate： DDL操作，对与表段中的数据页进行清空，速度快
+
+--- 生产中使用update替代delete
+伪删除：用update来替代delete，最终保证业务中查不到（select）即可
+ALTER TABLE stu ADD is_del TINYINT DEFAULT 0 ;
+UPDATE stu SET is_del=1 WHERE id=7;
+SELECT * FROM stu WHERE is_del=0;
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/mysql-ti-xi-jie-gou-yu-ji-chu-guan-li-er/">
+              <h3 class="post-title">
+                下一篇：MySQL体系结构与基础管理（二）
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

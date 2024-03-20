@@ -1,0 +1,514 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>持续集成教程 (三) | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">持续集成教程 (三)</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2023-09-29</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/orkaNU-rT/">
+                    devops
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="gitlab使用"><code>gitlab</code>使用</h2>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1696038221718.png" alt="" loading="lazy"></figure>
+<h3 id="配置外观">配置外观</h3>
+<p>管理区域—外观<br>
+<img src="https://ajie825.github.io/post-images/1696041109215.png" alt="" loading="lazy"></p>
+<h3 id="关闭自动注册">关闭自动注册</h3>
+<p>可根据实际需求操作，管理区域—设置—关闭自动注册<br>
+<img src="https://ajie825.github.io/post-images/1696041582646.png" alt="" loading="lazy"></p>
+<h3 id="创建组用户项目">创建组—用户—项目</h3>
+<p><strong>创建组</strong><br>
+<img src="https://ajie825.github.io/post-images/1696042768584.png" alt="" loading="lazy"></p>
+<p>设置组名称、描述等创建群组<br>
+<img src="https://ajie825.github.io/post-images/1696043238533.png" alt="" loading="lazy"></p>
+<p><strong>创建用户</strong><br>
+<img src="https://ajie825.github.io/post-images/1696043693539.png" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1696044376220.png" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1696044476893.png" alt="" loading="lazy"><br>
+设置密码<br>
+<img src="https://ajie825.github.io/post-images/1696044571871.png" alt="" loading="lazy"></p>
+<p><strong>把用户添加到组里面</strong></p>
+<p>管理区域—选择创建的oldboy组进行添加用户、权限给开发人员—增加用户到群组<br>
+<img src="https://ajie825.github.io/post-images/1696045240885.png" alt="" loading="lazy"></p>
+<p><strong>创建项目</strong></p>
+<p>管理区域—创建项目<br>
+<img src="https://ajie825.github.io/post-images/1696045950967.png" alt="" loading="lazy"></p>
+<h3 id="推送代码到gitlab">推送代码到<code>gitlab</code></h3>
+<pre><code class="language-shell">#删除github远程仓库
+[root@git git_data]# git remote remove origin
+[root@git git_data]# git remote
+#添加gitlab的远程仓库，进行代码上传
+[root@git git_data]# git remote add origin git@192.168.40.181:oldboy/get_test.git
+#将公钥上传到gitlab（略）
+[root@git git_data]# git push -u origin master
+The authenticity of host '192.168.40.181 (192.168.40.181)' can't be established.
+ECDSA key fingerprint is SHA256:YZtWFZbGSrtWSP3i8YpXxGG88jx3jsoPVRtY5sjDYrg.
+ECDSA key fingerprint is MD5:53:06:38:bb:ca:e0:37:97:f6:25:d9:51:89:39:b8:2b.
+Are you sure you want to continue connecting (yes/no)? yes
+Warning: Permanently added '192.168.40.181' (ECDSA) to the list of known hosts.
+Enumerating objects: 12, done.
+Counting objects: 100% (12/12), done.
+Compressing objects: 100% (5/5), done.
+Writing objects: 100% (12/12), 849 bytes | 849.00 KiB/s, done.
+Total 12 (delta 1), reused 0 (delta 0), pack-reused 0
+To 192.168.40.181:oldboy/get_test.git
+ * [new branch]      master -&gt; master
+branch 'master' set up to track 'origin/master'.
+</code></pre>
+<figure data-type="image" tabindex="2"><img src="https://ajie825.github.io/post-images/1696052132786.png" alt="" loading="lazy"></figure>
+<h3 id="开发推送代码到gitlab">开发推送代码到<code>gitlab</code></h3>
+<p>使用新的浏览器打开<code>gitlab</code>，<code>dev</code>用户登录<br>
+<img src="https://ajie825.github.io/post-images/1696054410678.png" alt="" loading="lazy"></p>
+<p><code>jenkins</code>服务器作为开发人员使用，并进行生成密钥文件，进行密钥认证</p>
+<pre><code class="language-shell">[root@jenkins ~]# ssh-keygen -t rsa
+[root@jenkins ~]# cat .ssh/id_rsa.pub 
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDI7/FhfB/NgqC8lgtRu61qSuGKYYjVUATiztkE1zQhR2KPOIvLVT8YecBkPn/H1YdDQDXX0Z8VJe84G+easz8AR63q4Hk01IzCml91loMaB/Pn62RAnOBlYfeEJ1n2Z9HP5rogcvVRpqyzsvA/YCPtqmnkEYAtF6PSMT8dprF3l1YRN+2wIHR9FPcv1YGsIS8rUxP48P57Gf0hBiKNZKgpKS+ReJZQzienistTyfUQZBWQuEaa2ptwztwDFkV1fesPZjsVlKG2ZXbSLDZTx7f1JsvHMCYu+Ohg2ltiVEkQdBr3EsWqp04Ellk+TpQqRxxlU31Hwkke12FoMZ6Ve3Q5 root@jenkins
+</code></pre>
+<p>将代码克隆下来，进行更改</p>
+<pre><code class="language-shell">[root@jenkins ~]# git clone git@192.168.40.181:oldboy/get_test.git
+Cloning into 'get_test'...
+The authenticity of host '192.168.40.181 (192.168.40.181)' can't be established.
+ECDSA key fingerprint is SHA256:YZtWFZbGSrtWSP3i8YpXxGG88jx3jsoPVRtY5sjDYrg.
+ECDSA key fingerprint is MD5:53:06:38:bb:ca:e0:37:97:f6:25:d9:51:89:39:b8:2b.
+Are you sure you want to continue connecting (yes/no)? yes
+Warning: Permanently added '192.168.40.181' (ECDSA) to the list of known hosts.
+remote: Enumerating objects: 12, done.
+remote: Counting objects: 100% (12/12), done.
+remote: Compressing objects: 100% (5/5), done.
+remote: Total 12 (delta 1), reused 0 (delta 0)
+Receiving objects: 100% (12/12), done.
+Resolving deltas: 100% (1/1), done.
+[root@jenkins ~]# cd get_test/
+[root@jenkins get_test]# ll
+total 4
+-rw-r--r-- 1 root root 8 Sep 30 02:49 a
+[root@jenkins get_test]# cat a
+aaa
+bbb
+</code></pre>
+<pre><code class="language-shell">#修改代码并提交到本地仓库
+[root@jenkins get_test]# echo &quot;dev01&quot; &gt;&gt; a
+[root@jenkins get_test]# git commit -am &quot;dev01 add a&quot;
+*** Please tell me who you are.
+Run
+  git config --global user.email &quot;you@example.com&quot;
+  git config --global user.name &quot;Your Name&quot;
+#配置邮件及用户信息
+[root@jenkins get_test]# git config --global user.email &quot;dev@qq.com&quot;
+[root@jenkins get_test]# git config --global user.name &quot;dev&quot;
+[root@jenkins get_test]# git commit -am &quot;dev01 add a&quot;               
+[master aeb8fc3] dev01 add a
+ 1 file changed, 1 insertion(+)
+#推送到远程仓库
+[root@jenkins get_test]# git push -u origin master
+Enumerating objects: 5, done.
+Counting objects: 100% (5/5), done.
+Writing objects: 100% (3/3), 232 bytes | 232.00 KiB/s, done.
+Total 3 (delta 0), reused 0 (delta 0), pack-reused 0
+To 192.168.40.181:oldboy/get_test.git
+   4c65704..e4a71f8  master -&gt; master
+分支 'master' 设置为跟踪 'origin/master'。
+</code></pre>
+<p>在推送的过程中会遇到报错：<code>remote rejected] master -&gt; master (pre-receive hook declined)</code>，这是因为<code>master</code>分支受保护的原因，按照下面文档，取消<code>master</code>分支保护即可。<br>
+<code>https://blog.csdn.net/weixin_44256848/article/details/123812129</code></p>
+<h3 id="分支保护">分支保护</h3>
+<p>使用<code>gitlab</code>管理员账户登录系统，进入需要分支保护的项目，进行分支保护设置<br>
+<img src="https://ajie825.github.io/post-images/1696065826138.png" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1696226908991.png" alt="" loading="lazy"></p>
+<pre><code class="language-shell">[root@jenkins get_test]# echo &quot;bbb&quot; &gt; b.txt
+[root@jenkins get_test]# git add .
+[root@jenkins get_test]# git commit -m &quot;new b.txt&quot;
+[master e3cdf7d] new b.txt
+ 1 file changed, 1 insertion(+)
+ create mode 100644 b.txt
+[root@jenkins get_test]# git push -u origin master
+枚举对象中: 4, 完成.
+对象计数中: 100% (4/4), 完成.
+压缩对象中: 100% (2/2), 完成.
+写入对象中: 100% (3/3), 254 字节 | 254.00 KiB/s, 完成.
+总共 3（差异 0），复用 0（差异 0），包复用 0
+remote: GitLab: You are not allowed to push code to protected branches on this project.
+To 192.168.40.181:oldboy/get_test.git
+ ! [remote rejected] master -&gt; master (pre-receive hook declined)
+错误：无法推送一些引用到 '192.168.40.181:oldboy/get_test.git'
+</code></pre>
+<h3 id="代码合并">代码合并</h3>
+<pre><code class="language-shell">#dev用户创建dev分支
+[root@jenkins get_test]# git branch dev
+[root@jenkins get_test]# git checkout dev
+切换到分支 'dev'
+[root@jenkins get_test]# echo &quot;this dev branch&quot; &gt; dev
+[root@jenkins get_test]# git add .
+[root@jenkins get_test]# git commit -m &quot;add dev&quot;
+[dev 0a6d192] add dev
+ 1 file changed, 1 insertion(+)
+ create mode 100644 dev
+[root@jenkins get_test]# git push -u origin dev
+枚举对象中: 4, 完成.
+对象计数中: 100% (4/4), 完成.
+压缩对象中: 100% (2/2), 完成.
+写入对象中: 100% (3/3), 260 字节 | 260.00 KiB/s, 完成.
+总共 3（差异 0），复用 0（差异 0），包复用 0
+remote: 
+remote: To create a merge request for dev, visit:
+remote:   http://192.168.40.181/oldboy/get_test/merge_requests/new?merge_request%5Bsource_branch%5D=dev
+remote: 
+To 192.168.40.181:oldboy/get_test.git
+ * [new branch]      dev -&gt; dev
+分支 'dev' 设置为跟踪 'origin/dev'。
+</code></pre>
+<figure data-type="image" tabindex="3"><img src="https://ajie825.github.io/post-images/1696214996313.png" alt="" loading="lazy"></figure>
+<p><code>dev</code>分支上面有<code>dev</code>文件，而<code>master</code>分支中没有</p>
+<p><code>dev</code>用户进行合并分支请求<br>
+<img src="https://ajie825.github.io/post-images/1696215421444.png" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1696227619270.png" alt="" loading="lazy"></p>
+<p>登录<code>gitlab</code>管理员账户进行处理分支合并请求<br>
+<img src="https://ajie825.github.io/post-images/1696227869886.png" alt="" loading="lazy"></p>
+<h3 id="gitlab备份与恢复"><code>gitlab</code>备份与恢复</h3>
+<p>对<code>gitlab</code>进行备份将会创建一个包含所有库和附件的归档文件。对备份的恢复只能恢复到与备份时的<code>gitlab</code>相同的版本，将<code>gitlab</code>移到另一台服务器上的最佳方法就是通过备份和还原。</p>
+<p><code>gitlab</code>提供了一个简单的命令行来备份整个<code>gitlab</code>，并且能灵活的满足需求。</p>
+<p>备份文件将保存在配置文件中定义的<code>backup_path</code>中，文件名为<code>TIMESTAMP_gitlab_backup.tar</code>，<code>TIMESTAMP为备份时的时间戳</code>。<code>TIMESTAMP</code>的格式为：<code>EPOCH_YYYY_MM_DD_Gitlab-version</code>，如果自定义备份目录需要赋予<code>git</code>权限。</p>
+<p><strong>备份</strong></p>
+<pre><code class="language-shell">#配置文件中加入
+gitlab_rails['manage_backup_path'] = true             #开启备份
+gitlab_rails['backup_path'] = '/data/backup/gitlab'   #备份目录
+gitlab_rails['backup_archive_permissions'] = 0644     #生成的备份文件权限
+gitlab_rails['backup_keep_time'] = 604800             #备份保留的时间（以秒为单位，这是七天默认值）
+[root@git git_data]# mkdir /data/backup/gitlab -p
+[root@git git_data]# chown -R git.git /data/backup/gitlab
+#完成后执行下面命令进行生效
+[root@git git_data]# gitlab-ctl reconfigure
+#手动备份
+[root@git git_data]# gitlab-rake gitlab:backup:create
+2023-10-02 04:50:25 -0400 -- Dumping database ... 
+Dumping PostgreSQL database gitlabhq_production ... [DONE]
+2023-10-02 04:50:28 -0400 -- done
+2023-10-02 04:50:28 -0400 -- Dumping repositories ...
+#检查结果
+[root@git git_data]# ll /data/backup/gitlab/
+总用量 140
+-rw-r--r-- 1 git git 143360 10月  2 04:50 1696236628_2023_10_02_12.3.5_gitlab_backup.tar
+自动备份需要写一个备份脚本及定时任务
+</code></pre>
+<pre><code class="language-shell">#误删除数据
+[root@git git_data]# rm -rf *
+[root@git git_data]# echo &quot;123&quot; &gt;&gt; b.txt
+[root@git git_data]# git add .
+[root@git git_data]# git commit -m &quot;new b.txt&quot;
+[root@git git_data]# git push -u origin master
+枚举对象中: 4, 完成.
+对象计数中: 100% (4/4), 完成.
+写入对象中: 100% (3/3), 228 字节 | 228.00 KiB/s, 完成.
+总共 3（差异 0），复用 0（差异 0），包复用 0
+To 192.168.40.181:oldboy/get_test.git
+   9cab25d..ff6c9ea  master -&gt; master
+分支 'master' 设置为跟踪 'origin/master'。
+</code></pre>
+<p><strong>恢复</strong></p>
+<pre><code class="language-shell">#停止相关服务
+[root@git git_data]# gitlab-ctl stop unicorn
+ok: down: unicorn: 1s, normally up
+[root@git git_data]# gitlab-ctl stop sidekiq
+ok: down: sidekiq: 0s, normally up
+#gitlab的恢复操作会先将当前所有的数据清空，然后再根据备份数据进行恢复
+[root@git git_data]# ll /data/backup/gitlab/
+总用量 140
+-rw-r--r-- 1 git git 143360 10月  2 05:21 1696238509_2023_10_02_12.3.5_gitlab_backup.tar
+[root@git git_data]# gitlab-rake gitlab:backup:restore BACKUP=1696238509_2023_10_02_12.3.5
+#启动gitlab
+[root@git git_data]# gitlab-ctl start
+#检查是否恢复成功
+[root@git git_data]# gitlab-rake gitlab:check SANITIZE=true
+#web界面数据已经恢复，重新克隆到本地
+[root@git opt]# git clone git@192.168.40.181:oldboy/get_test.git
+正克隆到 'get_test'...
+remote: Enumerating objects: 22, done.
+remote: Counting objects: 100% (22/22), done.
+remote: Compressing objects: 100% (10/10), done.
+remote: Total 22 (delta 0), reused 17 (delta 0)
+接收对象中: 100% (22/22), 完成
+[root@git opt]# cd get_test/
+[root@git get_test]# ll
+总用量 4
+-rw-r--r-- 1 root root 8 10月  2 05:42 a
+</code></pre>
+<h2 id="jenkins"><code>Jenkins</code></h2>
+<p>官网：<code>jenkins.io</code></p>
+<p><code>Jenkins</code>是一个开源软件项目，是基于<code>java</code>开发的一种持续集成工具，旨在提供一个开放易用的软件平台，使软件的持续集成变成可能。</p>
+<h3 id="安装准备">安装准备</h3>
+<table>
+<thead>
+<tr>
+<th>主机</th>
+<th>IP</th>
+<th>内存</th>
+<th>硬盘</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Jenkins</td>
+<td>192.168.40.182</td>
+<td>2G</td>
+<td>50G+</td>
+</tr>
+<tr>
+<td>nexus</td>
+<td>192.168.40.183</td>
+<td>2G</td>
+<td>50G+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="安装jdk和jenkins">安装<code>JDK</code>和<code>Jenkins</code></h3>
+<pre><code class="language-shell">#上传JDK和Jenkins安装包，使用rpm进行安装，安装完JDK运行java测试是否安装成功
+[root@jenkins data]# ll
+-rw-r--r-- 1 root root 179444006 Apr  4  2022 jdk-8u212-linux-x64.rpm
+-rw-r--r-- 1 root root  74141787 Oct  3 21:11 jenkins-2.99-1.1.noarch.rpm
+[root@jenkins data]# rpm -ivh jdk-8u212-linux-x64.rpm 
+warning: jdk-8u181-linux-x64.rpm: Header V3 RSA/SHA256 Signature, key ID ec551f03: NOKEY
+Preparing...                          ################################# [100%]
+Updating / installing...
+   1:jdk1.8-2000:1.8.0_181-fcs        ################################# [100%]
+Unpacking JAR files...
+        tools.jar...
+        plugin.jar...
+        javaws.jar...
+        deploy.jar...
+        rt.jar...
+        jsse.jar...
+        charsets.jar...
+        localedata.jar...
+[root@jenkins data]# java -version
+java version &quot;1.8.0_212&quot;
+Java(TM) SE Runtime Environment (build 1.8.0_212-b10)
+Java HotSpot(TM) 64-Bit Server VM (build 25.212-b10, mixed mode)     
+[root@jenkins data]# rpm -ivh jenkins-2.99-1.1.noarch.rpm 
+warning: jenkins-2.99-1.1.noarch.rpm: Header V4 DSA/SHA1 Signature, key ID d50582e6: NOKEY
+Preparing...                          ################################# [100%]
+Updating / installing...
+   1:jenkins-2.99-1.1                 ################################# [100%]      
+</code></pre>
+<h3 id="配置jenkins">配置<code>Jenkins</code></h3>
+<pre><code class="language-shell">#默认Jenkins服务使用Jenkins账号启动，修改启动用户为root
+[root@jenkins data]# grep &quot;root&quot; /etc/sysconfig/jenkins        
+JENKINS_USER=&quot;root&quot;
+#启动
+[root@jenkins ~]# systemctl start jenkins
+#查看端口
+[root@jenkins ~]# netstat -lnpt|grep 8080
+tcp6       0      0 :::8080                 :::*                    LISTEN      13071/java 
+#查看进程
+[root@jenkins ~]# ps aux|grep jenkins
+root      13071 24.8 15.0 2580028 281236 ?      Ssl  10:37   0:27 /etc/alternatives/java -Dcom.sun.akuma.Daemon=daemonized -Djava.awt.headless=true -DJENKINS_HOME=/var/lib/jenkins -jar /usr/lib/jenkins/jenkins.war --logfile=/var/log/jenkins/jenkins.log --webroot=/var/cache/jenkins/war --daemon --httpPort=8080 --debug=5 --handlerCountMax=100 --handlerCountMaxIdle=20
+root      13301  0.0  0.0 112808   968 pts/0    R+   10:39   0:00 grep --color=auto jenkins
+</code></pre>
+<p>访问页面进行配置 <code>http://192.168.40.182:8080</code><br>
+<img src="https://ajie825.github.io/post-images/1696299847420.png" alt="" loading="lazy"></p>
+<pre><code class="language-shell">#查看密码
+[root@jenkins ~]# cat /var/lib/jenkins/secrets/initialAdminPassword 
+9eb2aab3b29b4059905b1e2cfc7b9105
+</code></pre>
+<h3 id="插件安装">插件安装</h3>
+<figure data-type="image" tabindex="4"><img src="https://ajie825.github.io/post-images/1696301505909.png" alt="" loading="lazy"></figure>
+<p>跳过安装插件，直接上传插件到安装目录<br>
+<img src="https://ajie825.github.io/post-images/1696384793522.png" alt="" loading="lazy"></p>
+<pre><code class="language-shell">[root@jenkins plugins]# cd /var/lib/jenkins/
+[root@jenkins jenkins]# ll
+total 32
+-rw------- 1 root root 1819 Oct  3 21:56 config.xml
+-rw------- 1 root root  156 Oct  3 21:56 hudson.model.UpdateCenter.xml
+-rw------- 1 root root 1712 Oct  3 21:56 identity.key.enc
+-rw------- 1 root root   94 Oct  3 21:56 jenkins.CLI.xml
+-rw-r--r-- 1 root root    4 Oct  3 21:56 jenkins.install.UpgradeWizard.state
+drwxr-xr-x 2 root root    6 Oct  3 21:56 jobs                   #jobs为每次构建后的结果目录
+drwxr-xr-x 3 root root   19 Oct  3 21:56 logs
+-rw------- 1 root root  907 Oct  3 21:56 nodeMonitors.xml
+drwxr-xr-x 2 root root    6 Oct  3 21:56 nodes
+drwxr-xr-x 2 root root   28 Oct  3 22:00 plugins                #插件目录
+-rw------- 1 root root   64 Oct  3 21:56 secret.key
+-rw-r--r-- 1 root root    0 Oct  3 21:56 secret.key.not-so-secret
+drwx------ 4 root root 4096 Oct  3 21:56 secrets
+drwxr-xr-x 2 root root   24 Oct  3 21:56 userContent
+drwxr-xr-x 3 root root   19 Oct  3 21:56 users
+</code></pre>
+<pre><code class="language-shell">#上传插件包解压到plugins
+[root@jenkins jenkins]# cd plugins/
+[root@jenkins plugins]# ll
+total 160580
+-rw-r--r-- 1 root root 164431230 Oct  3 21:11 plugins.tar.gz
+[root@jenkins plugins]# tar xf plugins.tar.gz 
+[root@jenkins plugins]# rm -f plugins.tar.gz 
+[root@jenkins plugins]# mv plugins/* .
+[root@jenkins plugins]# rm -rf plugins/
+</code></pre>
+<pre><code class="language-shell">#重启jenkins服务
+[root@jenkins plugins]# systemctl restart jenkins
+</code></pre>
+<h3 id="创建jenkins管理员">创建<code>jenkins</code>管理员</h3>
+<figure data-type="image" tabindex="5"><img src="https://ajie825.github.io/post-images/1696388351542.png" alt="" loading="lazy"></figure>
+<h3 id="配置完成并登陆jenkins">配置完成并登陆<code>jenkins</code></h3>
+<figure data-type="image" tabindex="6"><img src="https://ajie825.github.io/post-images/1696389324562.png" alt="" loading="lazy"></figure>
+<h3 id="登陆-jenkins界面">登陆<code> jenkins</code>界面</h3>
+<figure data-type="image" tabindex="7"><img src="https://ajie825.github.io/post-images/1696388768330.png" alt="" loading="lazy"></figure>
+<h3 id="jenkins主要的目录"><code>jenkins主要的目录</code></h3>
+<pre><code class="language-shell">/usr/lib/jenkins/：            #Jenkins安装目录，war包会放在这里
+/etc/sysconfig/jenkins：       #Jenkins配置文件，&quot;端口&quot;，&quot;JENKINS_HOME&quot;等都可以在这里配置
+/var/lib/jenkins/：            #默认的JENKINS_HOME
+/var/log/jenkins/jenkins.log： #Jenkins日志文件
+</code></pre>
+<p><code>jenkins-2.401-1.1</code>安装需要<code>java11</code>环境</p>
+<pre><code class="language-shell">yum -y install java-11-openjdk
+openjdk version &quot;11.0.20&quot; 2023-07-18 LTS
+OpenJDK Runtime Environment (Red_Hat-11.0.20.0.8-1.el7_9) (build 11.0.20+8-LTS)
+OpenJDK 64-Bit Server VM (Red_Hat-11.0.20.0.8-1.el7_9) (build 11.0.20+8-LTS, mixed mode, sharing)
+</code></pre>
+<pre><code class="language-shell">vim /etc/sysconfig/jenkins
+JENKINS_USER=&quot;root&quot;
+vim /usr/lib/systemd/system/jenkins.service 
+User=root
+Group=root
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/fen-bu-shi-ban-ben-kong-zhi-xi-tong-git/">
+              <h3 class="post-title">
+                下一篇：持续集成教程 (二)
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

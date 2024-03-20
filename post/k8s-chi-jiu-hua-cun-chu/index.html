@@ -1,0 +1,884 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>k8s持久化存储 | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">k8s持久化存储</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-08-31</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/vN0im2GW5W/">
+                    k8s
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="存储卷的概念和类型">存储卷的概念和类型</h2>
+<h3 id="为什么要做持久化存储">为什么要做持久化存储</h3>
+<p>为了保证数据的持久性，必须保存数据在外部存储，在<code>docker</code>容器中，为了实现数据持久化存储，可以将宿主机目录挂载到容器中，保证在容器的生命周期结束后，数据依旧保存在宿主机目录，但是在<code>k8s</code>中，由于<code>pod</code>分布在各个不同的节点之上，不同节点之间持久性数据并不能实现共享，并且在节点故障时，可能会导致数据的永久性丢失，为此，<code>k8s</code>就引入了外部存储卷的功能。</p>
+<h3 id="k8s的存储卷类型">k8s的存储卷类型</h3>
+<pre><code class="language-bash">[root@master1 ~]# kubectl explain pod.spec.volumes #查看k8s支持的存储类型
+KIND:     Pod
+VERSION:  v1
+RESOURCE: volumes &lt;[]Object&gt;
+
+#常用的如下：
+emptyDir
+hostPath 
+nfs 
+persistentVolumeClaim
+glusterfs
+cephfs
+configMap
+secret
+</code></pre>
+<p><code>k8s</code>要使用存储卷，需要2步：</p>
+<ol>
+<li>在<code>pod</code>中定义<code>volume</code>，并指明关联到哪个存储设备上</li>
+<li>在容器使用<code>volume mount</code>进行挂载</li>
+</ol>
+<h2 id="emptydir存储卷演示">emptyDir存储卷演示</h2>
+<p><code>emptyDir</code>类型的<code>volume</code>是在<code>pod</code>分配到<code>node</code>上时被创建，<code>kubernetes</code>会在<code>node</code>上自动分配一个目录，因此无需指定宿主机<code>node</code>上对应的目录文件，该目录的初始内容为空，当<code>pod</code>从<code>node</code>上移除时，<code>emptyDir</code>中的数据会被永久删除，注意：一个容器崩溃并不会导致数据的丢失，因为容器的崩溃并不会移除<code>pod</code>。</p>
+<p><code>emptyDir volume</code>主要用于某些应用程序无需永久保存的临时目录，多个容器的共享目录等。</p>
+<p><a href="https://kubernetes.io/docs/concepts/storage/volumes#emptydir"><code>emptyDir</code>的官方网址：</a></p>
+<h3 id="创建一个pod挂载临时目录emptydir">创建一个pod，挂载临时目录emptyDir</h3>
+<pre><code class="language-bash">[root@master1 ~]# cat emptydir.yaml 
+apiVersion: v1
+kind: Pod
+metadata: 
+  name: pod-empty
+  namespace: default
+  labels:
+    app: nginx
+spec:
+  containers:
+  - name: container-empty
+    image: nginx
+    imagePullPolicy: IfNotPresent
+    ports:
+    - containerPort: 80
+    volumeMounts:
+    - name: cache-volume
+      mountPath: /cache
+  volumes:
+  - name: cache-volume
+    emptyDir: {}
+#更新资源清单文件
+[root@master1 ~]# kubectl apply -f emptydir.yaml
+pod/pod-empty created
+</code></pre>
+<p>查看本机临时目录存在的位置，可用如下方法：</p>
+<pre><code class="language-bash">#查看pod调度到哪个节点
+[root@master1 ~]# kubectl get pods -o wide|grep empty
+pod-empty   1/1     Running   0          2m49s   10.244.104.47   node2 
+#查看pod的uid
+[root@master1 ~]# kubectl get pods pod-empty -o yaml|grep uid
+uid: 77dfb112-3c86-4a2c-9320-0e452f068510
+#登录node2上进行查看
+[root@node2 ~]# tree /var/lib/kubelet/pods/77dfb112-3c86-4a2c-9320-0e452f068510
+/var/lib/kubelet/pods/77dfb112-3c86-4a2c-9320-0e452f068510
+├── containers
+│   └── container-empty
+│       └── 9c2759f5
+├── etc-hosts
+├── plugins
+│   └── kubernetes.io~empty-dir
+│       ├── cache-volume
+│       │   └── ready
+│       └── wrapped_default-token-pd566
+│           └── ready
+└── volumes
+    ├── kubernetes.io~empty-dir
+    │   └── cache-volume
+    └── kubernetes.io~secret
+        └── default-token-pd566
+            ├── ca.crt -&gt; ..data/ca.crt
+            ├── namespace -&gt; ..data/namespace
+            └── token -&gt; ..data/token
+#由上可知，临时目录在本地的/var/lib/kubelet/pods/77dfb112-3c86-4a2c-9320-0e452f068510/volumes/kubernetes.io~empty-dir/cache-volume下
+</code></pre>
+<h2 id="hostpath存储卷演示">hostPath存储卷演示</h2>
+<p><code>hostPath Volume</code>是指<code>pod</code>挂载宿主机的目录或文件，<code>hostPath Volume</code>使得容器可以使用宿主机的文件系统进行存储，<code>hostPath</code>宿主机路径：节点级别的存储卷，在<code>pod</code>被删除，这个存储卷还是存在的，不会被删除。<code>hostPath</code>可以实现持久化存储，但是在<code>node</code>节点故障时，也会导致数据丢失。</p>
+<h3 id="查看hostpath存储类型定义">查看hostPath存储类型定义</h3>
+<pre><code class="language-bash">[root@master1 ~]# kubectl explain pods.spec.volumes.hostPath
+KIND:     Pod
+VERSION:  v1
+RESOURCE: hostPath &lt;Object&gt;
+FIELDS:
+   path &lt;string&gt; -required-     #指定宿主机的路径
+     Path of the directory on the host. If the path is a symlink, it will follow
+     the link to the real path. More info:
+     https://kubernetes.io/docs/concepts/storage/volumes#hostpath
+   type &lt;string&gt;
+     Type for HostPath Volume Defaults to &quot;&quot; More info:
+     https://kubernetes.io/docs/concepts/storage/volumes#hostpath
+     
+type：
+#DirectoryOrCreate     宿主机上不存在创建此目录  
+#Directory             必须存在挂载目录  
+#FileOrCreate          宿主机上不存在挂载文件就创建  
+#File                  必须存在文件
+</code></pre>
+<h3 id="创建一个pod挂载hostpath存储卷">创建一个pod，挂载hostPath存储卷</h3>
+<pre><code class="language-bash">[root@master1 ~]# cat hostpath-vol.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-hostpath-vol
+  namespace: default
+spec:
+  containers:
+  - name: myapp
+    image: ikubernetes/myapp:v1
+    imagePullPolicy: IfNotPresent
+    volumeMounts:
+    - name: html
+      mountPath: /usr/share/nginx/html
+  volumes:
+  - name: html
+    hostPath:
+      path: /data/pod/volume1
+      type: DirectoryOrCreate
+#注意：DirectoryOrCreate表示本地有/data目录，就用本地的，本地没有就会在pod调度到的节点自动创建一个
+</code></pre>
+<pre><code class="language-bash">#更新资源清单文件
+[root@master1 ~]# kubectl apply -f hostpath-vol.yaml 
+pod/pod-hostpath-vol created
+#查看pod调度到了哪个物理节点
+[root@master1 ~]# kubectl get pods -o wide|grep hostpath   
+pod-hostpath-vol   1/1     Running   0          3m37s   10.244.104.50   node2
+#登录node2机器，查看是否存在持久化存储目录
+[root@node2 ~]# cd /data/pod/volume1                                                      
+[root@node2 volume1]# echo &quot;node2.oldboy.com&quot; &gt; index.html
+[root@master1 ~]# curl 10.244.104.50
+node2.oldboy.com
+#删除pod，持久化存储目录依然存在
+[root@master1 ~]# kubectl delete -f hostpath-vol.yaml 
+pod &quot;pod-hostpath-vol&quot; deleted
+[root@node2 ~]# cd /data/pod/volume1
+[root@node2 volume1]# cat index.html 
+node2.oldboy.com
+</code></pre>
+<h2 id="nfs共享存储卷演示">nfs共享存储卷演示</h2>
+<p>上面说的<code>hostPath</code>存储，存在单点故障，只有调度到同一个节点时，数据才不会丢失，可以使用<code>nfs</code>作为持久化存储，<code>nfs</code>允许提前对数据进行共享处理，而且这些数据可以被不同节点的多个<code>pod</code>之间挂载并进行读写。</p>
+<pre><code class="language-bash">[root@master1 ~]# kubectl explain pods.spec.volumes.nfs
+[root@master1 volumes]# kubectl explain pods.spec.volumes.nfs
+KIND:     Pod
+VERSION:  v1
+RESOURCE: nfs &lt;Object&gt;
+FIELDS:
+   path    &lt;string&gt;  -required-    #nfs服务器共享目录的路径
+     Path that is exported by the NFS server. 
+
+   server  &lt;string&gt;  -required-    #nfs服务器的地址
+     Server is the hostname or IP address of the NFS server. 
+</code></pre>
+<h3 id="在master1节点搭建nfs服务">在master1节点搭建nfs服务</h3>
+<pre><code class="language-bash">1）#以k8s的控制节点作为nfs服务端
+[root@master1 ~]# yum install nfs-utils -y
+2）#在宿主机创建nfs需要的共享目录
+[root@master1 ~]# mkdir /data/volumes -pv
+mkdir: created directory ‘/data’
+mkdir: created directory ‘/data/volumes’
+3）#配置nfs共享服务器的/data/volumes目录
+[root@master1 ~]# cat /etc/exports
+/data/volumes 192.168.40.0/24(rw,no_root_squash)
+#no_root_squash: 用户具有根目录的完全管理访问权限
+4）#开启nfs服务
+[root@master1 ~]# systemctl enable nfs &amp;&amp; systemctl start nfs &amp;&amp; systemctl status nfs
+Created symlink from /etc/systemd/system/multi-user.target.wants/nfs-server.service to /usr/lib/systemd/system/nfs-server.service.
+● nfs-server.service - NFS server and services
+   Loaded: loaded (/usr/lib/systemd/system/nfs-server.service; enabled; vendor preset: disabled)
+  Drop-In: /run/systemd/generator/nfs-server.service.d
+           └─order-with-mounts.conf
+   Active: active (exited) 
+#看到nfs是active，说明nfs正常启动成功了
+[root@master1 ~]# showmount -e
+Export list for master1:
+/data/volumes 192.168.40.0/24
+</code></pre>
+<h3 id="在node01和node02节点上安装nfs-utils并测试挂载">在node01和node02节点上安装nfs-utils，并测试挂载</h3>
+<pre><code class="language-bash">1）#node1和node2安装nfs驱动
+[root@node1 ~]# yum install nfs-utils -y
+[root@node2 ~]# yum install nfs-utils -y
+2）#在node1手动测试挂载
+[root@node1 ~]# showmount -e 192.168.40.180
+Export list for 192.168.40.180:
+/data/volumes 192.168.40.0/24
+[root@node1 ~]# mount 192.168.40.180:/data/volumes /mnt
+[root@node1 ~]# df -h|grep 192.168.40.180:/data/volumes
+192.168.40.180:/data/volumes   17G  5.3G   12G  31% /mnt
+#nfs可以被正常挂载
+3）#手动卸载
+[root@node1 ~]# umount /mnt
+</code></pre>
+<h3 id="创建pod挂载nfs共享出来的存储卷">创建pod，挂载NFS共享出来的存储卷</h3>
+<p><a href="https://kubernetes.io/zh/docs/concepts/storage/volumes/"><code>Pod</code>挂载<code>nfs</code>的官方地址：</a></p>
+<pre><code class="language-bash">[root@master1 ~]# cat nfs-vol.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-nfs-vol
+  namespace: default
+spec:
+  containers:
+  - name: myapp
+    image: ikubernetes/myapp:v1
+    imagePullPolicy: IfNotPresent
+    volumeMounts:
+    - name: html
+      mountPath: /usr/share/nginx/html
+  volumes:
+  - name: html
+    nfs:
+      path: /data/volumes    #nfs的共享目录
+      server: 192.168.40.180 #安装nfs服务的地址
+#更新资源清单文件
+[root@master1 ~]# kubectl apply -f nfs-vol.yaml 
+pod/pod-hostpath-vol created
+#查看pod是否创建成功
+[root@master1 ~]# kubectl get pods -o wide|grep nfs
+pod-nfs-vol        1/1     Running   0          32s     10.244.166.186   node1
+</code></pre>
+<h3 id="在nfs服务器创建indexhtml">在nfs服务器创建index.html</h3>
+<pre><code class="language-bash">[root@master1 ~]# cd /data/volumes 
+[root@master1 volumes]# cat index.html 
+Hello, Everyone
+My name is Ajie
+[root@master1 ~]# curl 10.244.166.186
+Hello, Everyone
+My name is Ajie
+#通过上面可以看到，在共享目录创建的index.html已经被pod挂载了
+#登录到pod验证下
+[root@master1 ~]# kubectl exec -it pod-nfs-vol -- /bin/sh  
+/ # cat /usr/share/nginx/html/index.html 
+Hello, Everyone
+My name is Ajie
+</code></pre>
+<p>上面说明挂载<code>nfs</code>存储卷成功了，<code>nfs</code>支持多个客户端挂载，可以创建多个<code>pod</code>，挂载同一个<code>nfs</code>服务器共享出来的目录；但是<code>nfs</code>如果宕机了，数据也就丢失了，所以需要使用分布式存储，常见的分布式存储有<code>glusterfs</code>和<code>cephfs</code>。</p>
+<h2 id="pvc存储卷演示">PVC存储卷演示</h2>
+<p><a href="https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes">参考官网:</a></p>
+<h3 id="k8s-pv是什么">k8s PV是什么</h3>
+<p><code>PV</code>的全称是：<code>PersistentVolume</code>(持久化卷)，是集群中的一块存储，由管理员配置或使用存储类动态配置，<code>PV</code>是容量插件，它和底层的共享存储技术的实现方式有关，比如 <code>Ceph</code>、<code>GlusterFS</code>、<code>NFS</code>等，都是通过插件机制完成与共享存储的对接，<code>PV</code>是集群中的资源，就像<code>pod</code>是<code>k8s</code>集群资源一样，其生命周期独立于使用<code>PV</code>的任何单个<code>pod</code>。</p>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1662000444871.png" alt="" loading="lazy"></figure>
+<h3 id="k8s-pvc是什么">k8s PVC是什么</h3>
+<p><code>PVC</code>的全称是<code>PersistentVolumeClaim</code>(持久化卷声明)，通常由普通用户创建和维护，需要为<code>pod</code>分配存储资源时，用户可以创建一个<code>PVC</code>，指明存储资源的容量大小和访问模式(比如只读)等信息，<code>k8s</code>会查找并提供满足条件的<code>PV</code>。</p>
+<p>有了<code>PersistentVolumeClaim</code>，用户只需要告诉<code>kubernetes</code>需要什么样的存储资源，而不必关心真正的空间从哪里分配，如何访问等底层细节信息，这些<code>Storage Provider</code>的底层信息交给管理员来处理，只有管理员才应该关心创建<code>PersistentVolume</code>的细节信息。</p>
+<h3 id="k8s-pv和pvc工作原理">k8s PV和PVC工作原理</h3>
+<p><code>PV</code>是集群中的资源，<code>PVC</code>是对这些资源的请求，<code>PV</code>和<code>PVC</code>之间的相互作用遵循以下生命周期：<br>
+<code>Provisioning</code>供应 —&gt; <code>Binding</code>绑定 —&gt;<code>Using</code>使用 —&gt; <code>Releasing</code>释放 —&gt; <code>Recycling</code>回收</p>
+<p>1）<code>PV</code>的供应方式</p>
+<p>可以通过两种方式配置<code>PV</code>：静态和动态</p>
+<ul>
+<li>
+<p>静态<code>PV</code>---&gt;直接固定存储空间：</p>
+<p>集群管理员创建一些<code>PV</code>，它们包含可供集群用户使用的真实存储的详细信息，它们存在于<code>k8s API</code>中，可供使用。</p>
+</li>
+<li>
+<p>动态<code>PV</code>---&gt;通过存储类动态创建存储空间：</p>
+<p>当管理员创建的静态<code>PV</code>都不匹配用户的<code>PVC</code>时，集群可能会尝试动态的为<code>PVC</code>配置卷，此配置基于<code>StorageClasses</code>，<code>PVC</code>必须请求存储类，并且管理员必须已创建并配置该类才能进行动态配置。</p>
+</li>
+</ul>
+<p>2）绑定</p>
+<p>用户创建<code>PVC</code>，指定要求存储的大小和访问模式，在找到可用<code>PV</code>之前，<code>PVC</code>会保持未绑定状态。</p>
+<p>3）使用</p>
+<p>在创建<code>pod</code>时，当系统为用户创建的<code>PVC</code>绑定<code>PV</code>后，表明用户成功申请了存储资源，与<code>PVC</code>绑定的<code>PV</code>会挂载到<code>pod</code>实例中，此<code>PV</code>不能被其它<code>PVC</code>使用了，如果<code>PV</code>支持多种访问模式(<code>accessModes</code>)，用户需要在<code>PVC volume</code>中指定期望的类型。</p>
+<p>注意：<br>
+<code>pod</code>与<code>PVC</code>必须位于相同<code>namespace</code>之下。</p>
+<p>4）释放</p>
+<p>当用户使用<code>PV</code>完毕后，他们可以通过<code>API</code>来删除<code>PVC</code>对象，当<code>PVC</code>被删除后，对应的<code>PV</code>就被认为已经是<code>released</code>状态了，但还不能再给另外一个<code>PVC</code>使用，前一个<code>PVC</code>的数据还存在于该<code>PV</code>中，必须根据策略来处理掉。</p>
+<p>5）回收</p>
+<p><code>PV</code>的回收策略告诉集群，在<code>PV</code>被释放之后集群应该如何处理该<code>PV</code>：</p>
+<ul>
+<li>
+<p><code>Retain</code>(保留)：保护被<code>PVC</code>释放的<code>PV</code>及其数据，并将<code>PV</code>的状态改成<code>released</code>，不会被其它<code>PVC</code>绑定，这是静态<code>PV</code>默认的回收策略，集群管理员可以手动通过如下步骤释放存储资源：</p>
+<ul>
+<li>手动删除<code>PV</code>，但与其相关的后端存储资源仍然存在。</li>
+<li>手动清空后端存储<code>volume</code>上的数据。</li>
+<li>手动删除后端存储<code>volume</code>，或者重复使用后端<code>volume</code>，为其创建新的<code>PV</code>。</li>
+</ul>
+</li>
+<li>
+<p><code>Recycle</code>(回收)：不推荐使用，1.15可能被废弃。</p>
+</li>
+<li>
+<p><code>Delete</code>(删除)：删除被<code>PVC</code>释放的<code>PV</code>及其后端存储<code>volume</code>，对于动态<code>PV</code>其<code>reclaim policy</code>继承自<code>storage class</code>，默认是<code>Delete</code>，集群管理员负责将<code>storage class</code>的<code>reclaim policy</code>设置成用户期望的形式，否则需要用户手动为创建后的动态<code>PV</code>编辑<code>reclaim policy</code>。</p>
+</li>
+</ul>
+<h3 id="nfs使用pv和pvc">NFS使用PV和PVC</h3>
+<figure data-type="image" tabindex="2"><img src="https://ajie825.github.io/post-images/1662015624962.png" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">#查看pv的定义方式
+[root@master1 ~]# kubectl explain pv  
+FIELDS:
+  apiVersion: v1
+  kind:  PersistentVolume
+  metadata
+  spec
+
+#查看pv定义的规格
+[root@master1 ~]# kubectl explain pv.spec.nfs
+nfs      #定义存储类型
+  path   #定义挂载卷路径
+  server #定义服务器名称
+
+[root@master1 ~]# kubectl explain pv.spec.accessModes
+#定义访问模型，有以下三种访问模型，以列表的方式存在，也就是说可以定义多个访问模式
+ReadWriteOnce（RWO）  #单节点读写
+ReadOnlyMany（ROX）   #多节点只读
+ReadWriteMany（RWX）  #多节点读写
+
+[root@master1 ~]# kubectl explain pv.spec.capacity.storage
+#定义PV空间的大小，storage指定大小
+
+#重要提醒！每个卷只能同一时刻只能以一种访问模式挂载，即使该卷能够支持多种访问模式
+#例如，一个 GCEPersistentDisk 卷可以被某节点以ReadWriteOnce模式挂载，或者被多个节点以ReadOnlyMany
+#模式挂载，但不可以同时以两种模式挂载
+</code></pre>
+<pre><code class="language-bash">#查看PVC的定义方式
+[root@master1 ~]# kubectl explain pvc
+KIND:     PersistentVolumeClaim
+VERSION:  v1
+FIELDS:
+   apiVersion: v1
+   kind: PersistentVolumeClaim  
+   metadata &lt;Object&gt;
+   spec &lt;Object&gt;
+#查看PVC定义的规格
+[root@master1 ~]# kubectl explain pvc.spec
+spec:
+  accessModes #定义访问模式，必须是PV的访问模式的子集
+  resources   #定义申请资源的大小
+    requests:
+      storage:
+</code></pre>
+<p>1）配置<code>nfs</code>存储</p>
+<pre><code class="language-bash">#在宿主机创建nfs需要的共享目录
+[root@master1 ~]# mkdir /data/volumes/v{1..5} -pv
+mkdir: created directory ‘/data/volumes/v1’
+mkdir: created directory ‘/data/volumes/v2’
+mkdir: created directory ‘/data/volumes/v3’
+mkdir: created directory ‘/data/volumes/v4’
+mkdir: created directory ‘/data/volumes/v5’
+
+#配置nfs共享宿主机的/data/volumes/v1...v5目录
+[root@master1 ~]# cat /etc/exports
+/data/volumes/v1 192.168.40.0/24(rw,no_root_squash)
+/data/volumes/v2 192.168.40.0/24(rw,no_root_squash)
+/data/volumes/v3 192.168.40.0/24(rw,no_root_squash)
+/data/volumes/v4 192.168.40.0/24(rw,no_root_squash)
+/data/volumes/v5 192.168.40.0/24(rw,no_root_squash)
+
+#重新加载配置，使配置生效
+[root@master1 ~]# exportfs -arv   
+exporting 192.168.40.0/24:/data/volumes/v5
+exporting 192.168.40.0/24:/data/volumes/v4
+exporting 192.168.40.0/24:/data/volumes/v3
+exporting 192.168.40.0/24:/data/volumes/v2
+exporting 192.168.40.0/24:/data/volumes/v1
+
+[root@master1 ~]# showmount -e
+Export list for master1:
+/data/volumes/v5 192.168.40.0/24
+/data/volumes/v4 192.168.40.0/24
+/data/volumes/v3 192.168.40.0/24
+/data/volumes/v2 192.168.40.0/24
+/data/volumes/v1 192.168.40.0/24
+</code></pre>
+<p>2）定义<code>PV</code>，非常注意：在创建<code>PV</code>时一定不要指定<code>namespace</code>名称空间</p>
+<pre><code class="language-bash">#这里定义5个PV，并且定义挂载的路径以及访问模式，还有PV划分的大小
+[root@master1 ~]# cat pv-demo.yaml 
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv01
+  labels:
+    name: pv01
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes: [&quot;ReadWriteMany&quot;,&quot;ReadWriteOnce&quot;]
+  nfs:
+    server: 192.168.40.180
+    path: /data/volumes/v1
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv02
+  labels:
+    name: pv02
+spec:
+  capacity:
+    storage: 2Gi
+  accessModes: [&quot;ReadWriteOnce&quot;]
+  nfs:
+    server: 192.168.40.180
+    path: /data/volumes/v2   
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv03
+  labels:
+    name: pv03
+spec:
+  capacity:
+    storage: 2Gi
+  accessModes: [&quot;ReadWriteMany&quot;,&quot;ReadWriteOnce&quot;]
+  nfs:
+    server: 192.168.40.180
+    path: /data/volumes/v3  
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv04
+  labels:
+    name: pv04
+spec:
+  capacity:
+    storage: 4Gi
+  accessModes: [&quot;ReadWriteMany&quot;,&quot;ReadWriteOnce&quot;]
+  nfs:
+    server: 192.168.40.180
+    path: /data/volumes/v4 
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv05
+  labels:
+    name: pv05
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes: [&quot;ReadWriteMany&quot;,&quot;ReadWriteOnce&quot;]
+  nfs:
+    server: 192.168.40.180
+    path: /data/volumes/v5
+    
+[root@master1 ~]# kubectl apply -f pv-demo.yaml 
+persistentvolume/pv01 created
+persistentvolume/pv02 created
+persistentvolume/pv03 created
+persistentvolume/pv04 created
+persistentvolume/pv05 created
+[root@master1 ~]# kubectl get pv
+NAME   CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM   STORAGECLASS   REASON   AGE
+pv01   1Gi        RWO,RWX        Retain           Available                                   8s
+pv02   2Gi        RWO            Retain           Available                                   8s
+pv03   2Gi        RWO,RWX        Retain           Available                                   8s
+pv04   4Gi        RWO,RWX        Retain           Available                                   8s
+pv05   5Gi        RWO,RWX        Retain           Available                                   8s
+</code></pre>
+<p>3）定义<code>PVC</code>，非常注意：在创建<code>PVC</code>时一定和<code>pod</code>在同一个<code>namespace</code>空间中</p>
+<pre><code class="language-bash">[root@master1 ~]# cat pvc-vol.yaml 
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-pvc
+  namespace: default
+spec:
+  accessModes: [&quot;ReadWriteMany&quot;]
+  resources:
+    requests:
+      storage: 2Gi
+      
+[root@master1 ~]# kubectl apply -f pvc-vol.yaml 
+persistentvolumeclaim/my-pvc created
+[root@master1 ~]# kubectl get pvc
+NAME     STATUS   VOLUME   CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+my-pvc   Bound    pv03     2Gi        RWO,RWX                       9m29s
+#my-pvc已经和pv-pv03绑定，使用容量是2Gi
+
+[root@master1 ~]# kubectl get pv  
+NAME   CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM            STORAGECLASS   REASON   AGE
+pv01   1Gi        RWO,RWX        Retain           Available                                            15m
+pv02   2Gi        RWO            Retain           Available                                            15m
+pv03   2Gi        RWO,RWX        Retain           Bound       default/my-pvc                           15m
+pv04   4Gi        RWO,RWX        Retain           Available                                            15m
+pv05   5Gi        RWO,RWX        Retain           Available                                            15m
+</code></pre>
+<p>4）创建<code>pod</code>，挂载<code>PVC</code></p>
+<pre><code class="language-bash">[root@master1 ~]# cat pod-pvc.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-pvc
+  namespace: default
+spec:
+  containers:
+  - name: myapp
+    image: ikubernetes/myapp:v1
+    imagePullPolicy: IfNotPresent
+    ports:
+    - containerPort: 80
+    volumeMounts:
+    - name: html
+      mountPath: /usr/share/nginx/html
+  volumes:
+    - name: html
+      persistentVolumeClaim:
+        claimName: my-pvc
+[root@master1 ~]# kubectl apply -f pod-pvc.yaml
+pod/pod-pvc created
+[root@master1 ~]# kubectl get pod -o wide |grep pod-pvc
+pod-pvc   1/1     Running   0          2m22s   10.244.104.57   node2
+</code></pre>
+<p>5）测试访问</p>
+<pre><code class="language-bash">#在存储服务器创建index.html，并写入数据，通过访问pod进行查看，可以获取相应的页面
+[root@master1 ~]# cd /data/volumes 
+[root@master1 volumes]# cd v3/
+[root@master1 v3]# echo &quot;welcome to use pv3&quot; &gt; index.html
+[root@master1 ~]# curl 10.244.104.57                    
+welcome to use PV3
+</code></pre>
+<p>使用<code>PVC</code>和<code>PV</code>的注意事项：</p>
+<ol>
+<li>我们每次创建<code>PVC</code>的时候，需要事先划分好<code>PV</code>，这样很不方便，可以在创建<code>PVC</code>的时候动态创建一个<code>PV</code>存储类，<code>PV</code>事先是不存在的。</li>
+<li><code>PVC</code>和<code>PV</code>绑定，如果使用默认的回收策略<code>retain</code>，那么删除<code>PVC</code>之后，<code>PV</code>会处于<code>released</code>状态，如果想继续使用这个<code>PV</code>，需要手动删除<code>PV</code>，<code>kubectl delete pv pv_name</code>，删除<code>PV</code>后不会删除<code>PV</code>后端的数据，当重新创建<code>PV</code>和<code>PVC</code>时还会和这个最匹配的<code>PV</code>绑定，数据还是原来数据，不会丢失。</li>
+</ol>
+<h2 id="k8s存储类-storageclass">k8s存储类-storageclass</h2>
+<p>在<code>PV</code>和<code>PVC</code>使用过程中的问题，在<code>PVC</code>申请存储空间时，未必有现成的<code>PV</code>符合<code>PVC</code>申请的需求，上面例子<code>PVC</code>可以申请成功的原因是做了指定的需要处理，那么当<code>PVC</code>申请的存储空间没有满足的<code>PV</code>时，又该如何处理呢？<code>k8s</code>提供了一种自动创建<code>PV</code>的机制，叫<code>StorageClass</code>，它的作用就是创建<code>PV</code>的模板，<code>k8s</code>集群管理员通过创建<code>StorageClass</code>可以动态生成一个存储卷<code>PV</code>供<code>PVC</code>使用。</p>
+<p>举个例子，在存储系统中划分了<code>1TB</code>的存储空间提供给<code>k8s</code>使用，当用户使用<code>PVC</code>需要申请一个<code>10G</code>的<code>PV</code>时，会立即通过<code>restful</code>发送请求，从而让存储空间创建一个<code>10G</code>的<code>image</code>，之后在集群中定义成<code>10G</code>的<code>PV</code>供给当前的<code>PVC</code>作为挂载使用，在此之前我们的存储系统必须支持<code>restful</code>接口，比如<code>ceph</code>分布式存储，而<code>glusterfs</code>则需要借助第三方接口完成这样的请求。</p>
+<figure data-type="image" tabindex="3"><img src="https://ajie825.github.io/post-images/1662090093200.png" alt="" loading="lazy"></figure>
+<p><code>StorageClass</code>存储类中包含<code>provisioner</code>、<code>parameters</code>和<code>reclaimPolicy</code>等字段，有了<code>provisioner</code>信息，<code>k8s</code>就能够根据用户提交的<code>PVC</code>，找到对应的<code>StorageClass</code>，然后<code>k8s</code>就会调用<code>StorageClass</code>声明的存储插件，创建出需要的<code>PV</code>。</p>
+<pre><code class="language-bash">#查看定义的StorageClass需要的字段
+[root@master1 ~]# kubectl explain storageclass   #storageclass也是k8s的资源
+KIND:     StorageClass
+VERSION:  storage.k8s.io/v1
+FIELDS:
+   allowVolumeExpansion	&lt;boolean&gt;
+   allowedTopologies	&lt;[]Object&gt;
+   apiVersion	        &lt;string&gt;
+   kind	                &lt;string&gt;
+   metadata	            &lt;Object&gt;
+   mountOptions	        &lt;[]string&gt;          #挂载选项
+   parameters	        &lt;map[string]string&gt; #参数，取决于分配器，可以接受不同的参数
+   provisioner	        &lt;string&gt; -required- #存储分配器，用来决定使用哪个卷插件分配PV，该字段必须指定
+   reclaimPolicy	    &lt;string&gt;            #回收策略，可以是Delete或者Retain，如果StorageClass被创建时没有指定reclaimPolicy ，将默认为Delete 
+   volumeBindingMode    &lt;string&gt;            #卷的绑定模式
+</code></pre>
+<p><code>provisioner</code>：提供商，<code>StorageClass</code>需要有一个供应者，用来确定使用什么样的存储来创建<code>PV</code>。</p>
+<p><a href="https://kubernetes.io/zh/docs/concepts/storage/storage-classes/">常见的<code>provisioner</code>：</a></p>
+<figure data-type="image" tabindex="4"><img src="https://ajie825.github.io/post-images/1662099727981.png" alt="" loading="lazy"></figure>
+<p><code>provisioner</code>既可以由内部供应商提供，也可以由外部供应商提供，<a href="https://github.com/kubernetes-incubator/external-storage/">如果是外部供应商可以参考</a>。</p>
+<p><a href="https://github.com/kubernetes-sigs/sig-storage-lib-external-provisioner">以<code>NFS</code>为例</a>，要想使用<code>NFS</code>，我们需要一个<code>nfs-client</code>的自动装载程序，称之为<code>provisioner</code>，这个程序会使用已经配置好的<code>NFS</code>服务器自动创建持久卷，也就是自动帮我们创建<code>PV</code>。</p>
+<p><code>parameters</code>：后端存储资源提供者的参数设置，不同的<code>provisioner</code>包括不同的参数设置，某些参数可以不显示设定，<code>provisioner</code>将使用其默认值。</p>
+<p><code>allowVolumeExpansion</code>：允许卷扩展，<code>PersistentVolume</code>可以配置成扩展，将此功能设置为<code>true</code>时，允许用户通过编辑相应的<code>PVC</code>对象来调整卷大小，当基础存储类的<code>allowVolumeExpansion</code>字段设置为<code>true</code> 时，以下类型的卷支持卷扩展，注意：此功能仅用于扩容卷，不能用于缩容卷。</p>
+<figure data-type="image" tabindex="5"><img src="https://ajie825.github.io/post-images/1662100710149.png" alt="" loading="lazy"></figure>
+<h3 id="安装nfs-provisioner资源对象用于配合存储类动态生成pv">安装nfs provisioner资源对象，用于配合存储类动态生成PV</h3>
+<pre><code class="language-bash">1）#把nfs-subdir-external-provisioner.tar.gz上传到node1和ode2上，手动解压
+[root@node1 ~]# docker load -i nfs-subdir-external-provisioner.tar.gz
+[root@node2 ~]# docker load -i nfs-subdir-external-provisioner.tar.gz
+
+2）#创建运行nfs-provisioner需要的sa账号
+[root@master1 ~]# cat nfs-serviceaccount.yaml 
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nfs-provisioner
+[root@master1 ~]# kubectl apply -f nfs-serviceaccount.yaml 
+serviceaccount/nfs-provisioner created
+[root@master1 ~]# kubectl get sa|grep nfs
+nfs-provisioner   1         46s
+
+#扩展：什么是sa？
+#sa的全称是serviceaccount，是为了方便pod里面的进程调用k8s API或其它外部服务而设计的
+#指定了serviceaccount之后，当使用这个pod时，这个pod就有了指定账户的权限了
+
+3）#对sa授权
+[root@master1 ~]# kubectl create clusterrolebinding nfs-provisioner-clusterrolebinding --clusterrole=cluster-admin --serviceaccount=default:nfs-provisioner
+clusterrolebinding.rbac.authorization.k8s.io/nfs-provisioner-clusterrolebinding created
+
+4）#安装nfs-provisioner程序
+[root@master1 ~]# mkdir /data/nfs_pro -p        #把/data/nfs_pro变成nfs共享的目录
+[root@master1 ~]# cat /etc/exports
+/data/nfs_pro 192.168.40.0/24(rw,no_root_squash)
+[root@master1 ~]# exportfs -arv
+exporting 192.168.40.0/24:/data/nfs_pro
+[root@master1 ~]# showmount -e
+Export list for master1:
+/data/nfs_pro 192.168.40.0/24
+
+[root@master1 ~]# cat nfs-pro-deployment.yaml 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nfs-provisioner
+spec:
+  selector:
+    matchLabels:
+       app: nfs-provisioner
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: nfs-provisioner
+    spec:
+      serviceAccount: nfs-provisioner
+      containers:
+        - name: nfs-provisioner
+          image: registry.cn-beijing.aliyuncs.com/mydlq/nfs-subdir-external-provisioner:v4.0.0
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: nfs-client-root
+              mountPath: /persistentvolumes
+          env:
+            - name: PROVISIONER_NAME
+              value: example.com/nfs
+            - name: NFS_SERVER
+              value: 192.168.40.180
+            - name: NFS_PATH
+              value: /data/nfs_pro
+      volumes:
+        - name: nfs-client-root
+          nfs:
+            server: 192.168.40.180
+            path: /data/nfs_pro
+#更新资源清单文件
+[root@master1 ~]# kubectl apply -f nfs-pro-deployment.yaml 
+deployment.apps/nfs-provisioner created
+#查看nfs-provisioner是否正常运行
+[root@master1 ~]# kubectl get pods |grep nfs
+nfs-provisioner-5448d86c75-l4mxh   1/1     Running   0
+</code></pre>
+<h3 id="创建storageclass动态供给pv">创建storageclass，动态供给pv</h3>
+<pre><code class="language-bash">[root@master1 ~]# cat nfs-storageclass.yaml 
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: nfs
+provisioner: example.com/nfs
+[root@master1 ~]# kubectl apply -f nfs-storageclass.yaml 
+storageclass.storage.k8s.io/nfs created
+#查看storageclass是否创建成功
+[root@master1 ~]# kubectl get storageclasses            
+NAME   PROVISIONER       RECLAIMPOLICY   VOLUMEBINDINGMODE   ALLOWVOLUMEEXPANSION
+nfs    example.com/nfs   Delete          Immediate           false 
+#显示内容如上，说明storageclass创建成功了
+
+#注意：provisioner处写的example.com/nfs应该跟安装nfs provisioner时候的env下的PROVISIONER_NAME的value值保持一致，如下：
+env:
+  - name: PROVISIONER_NAME
+    value: example.com/nfs
+</code></pre>
+<h3 id="创建pvc通过storageclass动态生成pv">创建pvc，通过storageclass动态生成pv</h3>
+<pre><code class="language-bash">[root@master1 ~]# cat pvc-storageclass.yaml 
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: test-claim
+spec:
+  accessModes:  [&quot;ReadWriteMany&quot;]
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName:  nfs
+[root@master1 ~]# kubectl apply -f pvc-storageclass.yaml 
+persistentvolumeclaim/test-claim created
+
+#查看是否动态生成了pv，pvc是否创建成功，并和pv绑定
+[root@master1 ~]# kubectl get pvc
+NAME         STATUS   VOLUME                                   CAPACITY   ACCESS MODES   STORAGECLASS
+test-claim   Bound    pvc-192bb733-34ce-4343-ad62-faafd37df107   1Gi        RWX            nfs
+[root@master1 ~]# kubectl get pv
+NAME                                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM              STORAGECLASS  
+pvc-192bb733-34ce-4343-ad62-faafd37df107   1Gi        RWX            Delete           Bound    default/test-claim   nfs 
+
+#通过上面可以看到pvc test-claim已经创建成功，绑定的pv是pvc-7ff31afe-8af3-4638-9381-e4255bd66c5d，这个pv
+#是由storageclass调用nfs provisioner自动生成的
+</code></pre>
+<p>步骤总结：</p>
+<ul>
+<li>供应商：创建一个<code>nfs provisioner</code></li>
+<li>创建<code>storageclass</code>，<code>storageclass</code>的提供者指定刚才创建的供应商</li>
+<li>创建<code>pvc</code>，这个<code>pvc</code>指定<code>storageclass</code>的名称</li>
+</ul>
+<h3 id="创建pod挂载storageclass动态生成的pvc">创建pod，挂载storageclass动态生成的pvc</h3>
+<pre><code class="language-bash">[root@master1 ~]# cat deploy-storageclass.yaml 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-storageclass
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+      - name: pod-storageclass
+        image: ikubernetes/myapp:v1
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - name: nfs-pvc
+          mountPath: /usr/share/nginx/html
+      volumes:
+      - name: nfs-pvc
+        persistentVolumeClaim:
+          claimName: test-claim
+#更新资源清单文件
+[root@master1 ~]# kubectl apply -f deploy-storageclass.yaml 
+deployment.apps/deploy-storageclass created
+#查看pod是否创建成功
+[root@master1 ~]# kubectl get pod -o wide |grep deploy
+deploy-storageclass-6966c456c4-5xdw9   1/1     Running   0     13m   10.244.104.43    node2   
+deploy-storageclass-6966c456c4-8pnl9   1/1     Running   0     13m   10.244.166.139   node1
+</code></pre>
+<pre><code class="language-bash">[root@master1 ~]# cd /data/nfs_pro/
+[root@master1 nfs_pro]# ll
+drwxrwxrwx 2 root root  6 Jan  3 22:04 archived-pvc-8611dca6-c1da-49dd-8538-2ab50d94bf38
+drwxrwxrwx 2 root root 24 Jan  4 04:50 default-test-claim-pvc-192bb733-34ce-4343-ad62-faafd37df107
+[root@master1 nfs_pro]# cd default-test-claim-pvc-192bb733-34ce-4343-ad62-faafd37df107/
+[root@master1 default-test-claim-pvc-192bb733-34ce-4343-ad62-faafd37df107]# cat index.html 
+This is my first time learning storageclass!
+[root@master1 ~]# curl 10.244.104.43
+This is my first time learning storageclass!
+[root@master1 ~]# curl 10.244.166.139
+This is my first time learning storageclass!
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/ingress-he-ingress-controller/">
+              <h3 class="post-title">
+                下一篇：Ingress和 Ingress Controller
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

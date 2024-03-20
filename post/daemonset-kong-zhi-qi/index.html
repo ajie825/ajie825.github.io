@@ -1,0 +1,308 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>daemonset控制器 | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">daemonset控制器</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-09-06</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/vN0im2GW5W/">
+                    k8s
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="daemonset控制器概念-原理解读">DaemonSet控制器：概念、原理解读</h2>
+<h3 id="daemonset概述">DaemonSet概述</h3>
+<p><code>DaemonSet</code>控制器能够确保<code>k8s</code>集群所有的<code>node</code>节点都运行一个相同的<code>pod</code>副本，当向<code>k8s</code>集群中增加<code>node</code>节点时，这个<code>node</code>节点也会自动创建一个<code>pod</code>副本，当<code>node</code>节点从集群中移除，这些<code>pod</code>也会自动删除；删除<code>DaemonSet</code>也会删除它们创建的<code>pod</code>。</p>
+<h3 id="daemonset工作原理">DaemonSet工作原理</h3>
+<p><code>DaemonSet</code>控制器会监听<code>k8s</code>的<code>daemonset</code>对象、<code>pod</code>对象、<code>node</code>对象，这些被监听的对象之变动，就会触发<code>syncloop</code>循环让<code>k8s</code>集群朝着<code>daemonset</code>对象描述的状态进行演进。</p>
+<h3 id="daemonset典型的应用场景">Daemonset典型的应用场景</h3>
+<ul>
+<li>在集群的每个节点上运行存储，比如：<code>glusterd</code>或<code>ceph</code>。</li>
+<li>在每个节点上运行日志收集组件，比如：<code>flunentd</code>、<code>logstash</code>、<code>filebeat</code>等。</li>
+<li>在每个节点上运行监控组件，比如：<code>Prometheus</code>、<code>Node Exporter</code>、<code>ollectd</code>等。</li>
+</ul>
+<h3 id="daemonset-与-deployment-的区别">DaemonSet 与 Deployment 的区别</h3>
+<p><code>Deployment</code>部署的副本<code>Pod</code>会分布在各个<code>Node</code>上，每个<code>Node</code>都可能运行好几个副本。</p>
+<p><code>DaemonSet</code>的不同之处在于：每个<code>Node上</code>最多只能运行一个副本。</p>
+<h2 id="daemonset资源清单文件编写技巧">DaemonSet资源清单文件编写技巧</h2>
+<pre><code class="language-bash">#查看定义Daemonset资源需要的字段有哪些？
+[root@master1 ~]# kubectl explain ds
+KIND:     DaemonSet
+VERSION:  apps/v1
+DESCRIPTION:
+     #DaemonSet 表示守护进程集的配置
+FIELDS:
+   apiVersion	&lt;string&gt;     #当前资源使用的api版本，跟VERSION:apps/v1保持一致
+   kind	        &lt;string&gt;     #资源类型，跟KIND:DaemonSet保持一致
+   metadata	    &lt;Object&gt;     #元数据，定义DaemonSet名字的
+   spec	        &lt;Object&gt;     #定义容器的
+   status	    &lt;Object&gt;     #状态信息，不能改
+   
+#查看DaemonSet的spec字段如何定义？
+[root@master1 ~]# kubectl explain ds.spec
+KIND:     DaemonSet
+VERSION:  apps/v1
+RESOURCE: spec &lt;Object&gt;
+
+FIELDS:
+   minReadySeconds	     &lt;integer&gt;              #当新的pod启动几秒种后，再kill掉旧的pod
+   revisionHistoryLimit	 &lt;integer&gt;              #历史版本
+   selector	             &lt;Object&gt;  -required-   #用于匹配pod的标签选择器
+   template	             &lt;Object&gt;  -required-   #定义Pod的模板，基于这个模板定义的所有pod是一样的
+   updateStrategy	     &lt;Object&gt;               #daemonset的升级策略
+   
+#查看DaemonSet的spec.template字段如何定义？
+#对于template而言，其内部定义的就是pod，pod模板是一个独立的对象
+[root@master1 ~]# kubectl explain ds.spec.template
+KIND:     DaemonSet
+VERSION:  apps/v1
+RESOURCE: template &lt;Object&gt;
+FIELDS:
+   metadata	&lt;Object&gt;
+   spec     &lt;Object&gt;
+</code></pre>
+<h2 id="daemonset使用案例部署日志收集组件fluentd">DaemonSet使用案例：部署日志收集组件fluentd</h2>
+<pre><code class="language-bash">1）#把fluentd_2_5_1.tar.gz上传到master1、node1和node2上，手动解压
+[root@master1 ~]# docker load -i fluentd_2_5_1.tar.gz
+Loaded image: ajie/fluentd:v2.5.1
+[root@node1 ~]# docker load -i fluentd_2_5_1.tar.gz
+Loaded image: ajie/fluentd:v2.5.1
+[root@node2 ~]# docker load -i fluentd_2_5_1.tar.gz
+Loaded image: ajie/fluentd:v2.5.1
+</code></pre>
+<pre><code class="language-bash">2）#编写DaemonSet资源清单
+#查看master1节点的污点
+[root@master1 daemonset]# kubectl describe nodes master1|grep Taints
+Taints:             node-role.kubernetes.io/master:NoSchedule
+
+[root@master1 ~]# cat daemonset-demo.yaml 
+apiVersion: apps/v1                              #DaemonSet使用的api版本
+kind: DaemonSet                                  #资源类型
+metadata:
+  name: fluentd-elasticsearch                    #资源的名字
+  namespace: kube-system                         #资源所在的名称空间
+  labels:
+    k8s-app: fluentd-logging                     #资源具有的标签
+spec:
+  selector:                                      #标签选择器
+    matchLabels:
+      name: fluentd-elasticsearch
+  template:
+    metadata:
+      labels:                                    #基于这回模板定义的pod具有的标签
+        name: fluentd-elasticsearch
+    spec:
+      tolerations:                               #定义容忍度
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+      containers:                                #定义容器
+      - name: fluentd-elasticsearch
+        image: ajie/fluentd:v2.5.1
+        imagePullPolicy: IfNotPresent
+        resources:                               #资源配额
+          limits:
+            memory: 200Mi
+          requests:
+            cpu: 100m
+            memory: 200Mi
+        volumeMounts: 
+        - name: varlog
+          mountPath: /var/log                    #把本地/var/log目录挂载到容器
+        - name: varlibdockercontainers
+          mountPath: /var/lib/docker/containers  #把/var/lib/docker/containers/挂载到容器里
+          readOnly: true                         #挂载目录是只读权限
+      terminationGracePeriodSeconds: 30          #优雅的关闭服务
+      volumes:
+      - name: varlog
+        hostPath:
+          path: /var/log                         #基于本地目录创建一个卷
+      - name: varlibdockercontainers
+        hostPath:
+          path: /var/lib/docker/containers       #基于本地目录创建一个卷
+[root@master1 ~]# kubectl apply -f daemonset-demo.yaml      
+daemonset.apps/fluentd-elasticsearch created
+</code></pre>
+<pre><code class="language-bash">3）#查看资源对象信息
+[root@master1 ~]# kubectl get daemonsets -n kube-system |grep fluentd
+NAME                    DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE
+fluentd-elasticsearch   3         3         3       3            3 
+[root@master1 ~]# kubectl get pods -n kube-system -o wide|grep fluentd
+NAME                               READY   STATUS    RESTARTS     AGE     IP               NODE
+fluentd-elasticsearch-c6l5p         1/1     Running   0          7m12s   10.244.104.28    node2   
+fluentd-elasticsearch-k54mm         1/1     Running   0          7m12s   10.244.137.93    master1 
+fluentd-elasticsearch-sm99l         1/1     Running   0          7m12s   10.244.166.153   node1 
+</code></pre>
+<p>通过上面可以看到在<code>k8s</code>的三个节点均创建了<code>fluentd</code>这个pod，<code>pod</code>的名字是由控制器的名字-随机数组成的。</p>
+<h2 id="daemonset管理pod滚动更新">Daemonset管理pod：滚动更新</h2>
+<pre><code class="language-bash">#查看daemonset的滚动更新策略
+[root@master1 ~]# kubectl explain ds.spec.updateStrategy
+KIND:     DaemonSet
+VERSION:  apps/v1
+RESOURCE: updateStrategy &lt;Object&gt;
+DESCRIPTION:
+     An update strategy to replace existing DaemonSet pods with new pods.
+     DaemonSetUpdateStrategy is a struct used to control the update strategy for a DaemonSet.
+FIELDS:
+   rollingUpdate	&lt;Object&gt;
+     Rolling update config params. Present only if type = &quot;RollingUpdate&quot;.
+   type	&lt;string&gt;
+     Type of daemon set update. Can be &quot;RollingUpdate&quot; or &quot;OnDelete&quot;. 
+     Default is RollingUpdate.
+     
+#查看rollingUpdate支持的更新策略
+[root@master1 ~]# kubectl explain ds.spec.updateStrategy.rollingUpdate
+KIND:     DaemonSet
+VERSION:  apps/v1
+RESOURCE: rollingUpdate &lt;Object&gt;
+DESCRIPTION:
+     Rolling update config params. Present only if type = &quot;RollingUpdate&quot;.
+     Spec to control the desired behavior of daemon set rolling update.
+FIELDS:
+   maxUnavailable	&lt;string&gt;
+</code></pre>
+<p>上面表示<code>rollingUpdate</code>更新策略只支持<code>maxUnavailabe</code>，先删除在更新，因为我们不支持一个节点运行两个<code>pod</code>，因此需要先删除一个，在更新一个。</p>
+<p>#更新镜像版本，可以按照如下方法：</p>
+<pre><code class="language-bash">kubectl set image daemonsets fluentd-elasticsearch fluentd-elasticsearch=ikubernetes/filebeat:5.6.6-alpine -n kube-system
+</code></pre>
+<p>这个镜像启动<code>pod</code>会有问题，主要是演示<code>daemonset</code>如何在命令行更新<code>pod</code>。</p>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/statefulset-kong-zhi-qi/">
+              <h3 class="post-title">
+                下一篇：Statefulset控制器
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

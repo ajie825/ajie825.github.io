@@ -1,0 +1,251 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>web基础之Http | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">web基础之Http</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-07-27</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/YBDfkYHYeR/">
+                    nginx
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="http协议简介">HTTP协议简介</h2>
+<h3 id="什么是url">什么是URL</h3>
+<pre><code class="language-bash">URL即统一资源定位符(Uniform Resource Locator)，用来唯一的标识万维网中的某一个文档。
+URL由协议、主机和端口（默认为80）以及文件名三部分构成。如：
+
+http://www.oldboy.com:80/news/index.html
+http://          ：协议://
+www.oldboy.com:80：主机:端口（80）
+news/index.html  ：文件名及其路径
+</code></pre>
+<h3 id="什么是http协议">什么是HTTP协议</h3>
+<pre><code class="language-bash">超文本传输协议（http协议）是用于传输诸如HTML的超媒体文档的应用层协议。
+它被设计用于web浏览器和web服务器之间的通信，但它也可以用于其他的目的。
+HTTP协议遵循经典的客户端/服务端模型，客户端打开一个连接已发出请求，然后等待它收到服务器端响应。
+HTTP协议是无状态的协议，意味着服务器不会在两个请求之间保留任何数据（状态）。
+虽然通常基于TCP/IP层，但可以在任何可靠的传输层上使用; 也就是说，一个不会静默丢失消息的协议，如UDP。
+</code></pre>
+<h3 id="http协议的版本">http协议的版本</h3>
+<pre><code class="language-bash">http 1.0： 短连接，一次tcp连接，一次http请求
+http 1.1： 长连接，仅一次tcp连接，可以发起多次http请求，默认
+http 2.0： 并行	
+http 3.0
+</code></pre>
+<h2 id="http协议工作原理">HTTP协议工作原理</h2>
+<pre><code class="language-bash">在用户点击URL为：http://www.oldboy.com/index.html的链接后，浏览器和Web服务器执行以下动作：
+1）浏览器向DNS服务器请求解析www.oldboy.com的IP地址
+2）DNS服务器将解析出的IP地址222.246.129.80返回浏览器
+3）浏览器向服务器发起tcp三次握手，建立TCP连接（80端口）
+4）浏览器向服务器发出GET请求，请求主页
+5）服务器响应HTTP/1.1 200 OK，返回主页数据包
+6）完成数据交互过程，四次挥手释放TCP连接
+7）浏览器显示index.html中的内容
+</code></pre>
+<h2 id="http报文结构">HTTP报文结构</h2>
+<pre><code class="language-bash">General   
+Request URL: http://10.0.0.7/			       #请求的URl地址
+Request Method: GET						       #请求方法
+Status Code: 200 OK						       #状态码
+Remote Address: 10.0.0.7:80				       #请求的主机的地址和端口
+</code></pre>
+<pre><code class="language-bash">Request Headers
+:authority: www.xuliangwei.com			       #认证的域名
+:method: GET							       #请求方法
+:path: /							           #请求的路径
+:scheme: https							       #请求的协议  http  https
+Accept: text/html						       #请求的类型
+Accept-Encoding: gzip, deflate			       #压缩  
+Accept-Language: zh-CN,zh;q=0.9			       #语言
+Cache-Control: no-cache					       #缓存
+Connection: keep-alive					       #保持连接 长连接
+Host: 10.0.0.7							       #请求主机
+Pragma: no-cache						       #没有缓存
+User-Agent: Chrome/65.0.3325.181 		       #记录客户端的来源设备
+
+referer：                                      #记录上一次过来的页面域名（从哪个页面点击进来的）
+cookie：                                       #http是一个无状态，并不会记录任何的东西，如果需要记录用户的内容，需要借助到cookie
+
+请求的方法：
+GET			                                   #获取，下载
+POST		                                   #提交，上传
+</code></pre>
+<pre><code class="language-bash">Response Headers
+Accept-Ranges: bytes						   #大小
+Connection: Keep-Alive						   #保持连接 长链接
+Content-Length: 2633						   #内容长度
+Content-Type: text/html; charset=UTF-8		   #返回内容的类型，字符集
+Date: Thu, 10 Jan 2019 01:52:01 GMT			   #返回服务器时间  GMT  +8小时
+ETag: &quot;a49-56b5ce607fe00&quot;					   #缓存
+Keep-Alive: timeout=5, max=98				   #长连接的超时时间
+Last-Modified: Fri, 04 May 2018 08:13:44 GMT   #缓存
+Server: Apache/2.4.6 (CentOS) PHP/5.4.16	   #使用的web软件版本
+</code></pre>
+<pre><code class="language-bash">响应的状态码
+	200				                           #成功
+	301				                           #永久跳转
+	302 Moved Temporarily		               #临时跳转
+	307				                           #内部跳转
+	304 Not Modified			               #走本地缓存
+客户端错误               
+	400				                           #客户端错误
+	401				                           #认证错误
+	403				                           #找不到主页面，权限不足
+	404 Not Found			                   #找不到该页面
+服务端错误
+	500				                           #内部错误(连接不了数据库)
+	502				                           #找不到后端主机
+	504				                           #网关超时  timeout 
+	503			                               #服务器过载
+</code></pre>
+<h3 id="pv-uv-独立ip">PV、UV、独立IP</h3>
+<pre><code class="language-bash">pv：页面浏览量 
+uv：独立设备
+ip：独立IP
+假设公司有一座大厦，大厦有100人，每个人有一台电脑和一部手机，上网都是通过nat转换出口，每个人点击网站2次, 请问对应的pv,uv,ip分别是多少
+pv：100x2x2   400
+uv：100x2     200
+独立ip：1
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/k8s-si-ceng-fu-zai-jun-heng-service/">
+              <h3 class="post-title">
+                下一篇：k8s四层负载均衡-service
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

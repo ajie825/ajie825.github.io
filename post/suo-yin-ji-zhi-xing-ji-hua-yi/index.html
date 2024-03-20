@@ -1,0 +1,494 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>索引及执行计划（一） | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">索引及执行计划（一）</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-06-06</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/eb_lZhnX62/">
+                    mysql
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="索引的作用">索引的作用</h2>
+<p>类似于一本书的目录，起到优化查询的作用</p>
+<h2 id="索引的分类算法">索引的分类（算法）</h2>
+<pre><code class="language-mysql">B树                 默认使用的索引类型
+R树
+HASH
+FullText                全文索引                类似 &quot;ES&quot;
+GIS                    地理位置索引             类似 &quot;MongoDB&quot;
+</code></pre>
+<h2 id="btree索引算法演变了解">BTREE索引算法演变（了解）</h2>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1654479195685.png" alt="" loading="lazy"></figure>
+<h2 id="btree索引功能分类">BTREE索引功能分类</h2>
+<h3 id="辅助索引构建过程">辅助索引构建过程</h3>
+<pre><code class="language-mysql">1、索引是基于表中，列（索引键）的值生成的B树结构
+2、首先提取此列所有的值，进行自动排序
+3、将排好序的值，均匀分布到索引树的叶子节点中（16KB）
+4、然后生成此索引键值所对应的后端数据页的指针Q
+5、生成枝节点和根节点，根据数据量级和索引键长度，生成合适的索引树高度
+</code></pre>
+<h3 id="聚集索引构建前提及过程">聚集索引构建前提及过程</h3>
+<p>构建前提</p>
+<pre><code class="language-mysql">1、表中设置了主键，主键列就会自动被作为聚集索引
+2、如果没有主键，会选择唯一键作为聚集索引
+3、聚集索引必须在建表时才有意义，一般是表的无关列（ID）
+</code></pre>
+<p>构建过程</p>
+<pre><code class="language-mysql">1、在建表时，设置了主键列（ID）
+2、在将来录入数据时，就会按照ID列的顺序存储在磁盘上（称为聚集索引组织表）
+3、将排好序的整行数据生成叶子节点，可以理解为磁盘的数据页就是叶子节点
+</code></pre>
+<h3 id="聚集索引和辅助索引的区别">聚集索引和辅助索引的区别</h3>
+<pre><code class="language-mysql">1、聚集索引只能有一个，非空唯一，一般是主键
+2、辅助索引可以有多个，是配合聚集索引使用的
+3、聚集索引的叶子节点，就是磁盘的数据行存储的数据页
+4、MySQL是根据聚集索引组织存储数据的，数据存储时就是按照聚集索引的顺序进行存储数据
+5、辅助索引，只会提取索引键值，进行自动排序生成B树结构
+</code></pre>
+<h3 id="辅助索引细分">辅助索引细分</h3>
+<pre><code class="language-mysql">1、单列辅助索引
+2、联合索引（覆盖索引） *****
+多个列作为索引条件，生成索引树，理论上设计是好的，可以减少大量的回表查询
+3、唯一索引（索引列的值都是唯一的）
+4、前缀索引
+</code></pre>
+<h3 id="索引树高度">索引树高度</h3>
+<pre><code class="language-mysql">索引树高度应当越低越好，一般维持在 3-4层最佳
+1、数据量级，解决方法：分片、分库分表、分布式架构
+2、索引列值过长，解决方法：前缀索引
+3、数据类型，定长长度字符串使用char，可变长长度字符串使用varchar
+</code></pre>
+<h2 id="索引命令操作">索引命令操作</h2>
+<h3 id="查询索引">查询索引</h3>
+<pre><code class="language-mysql">1、desc city;
++-------------+----------+------+-----+---------+----------------+
+| Field       | Type     | Null | Key | Default | Extra          |
++-------------+----------+------+-----+---------+----------------+
+| ID          | int(11)  | NO   | PRI | NULL    | auto_increment |
+| Name        | char(35) | NO   |     |         |                |
+| CountryCode | char(3)  | NO   | MUL |         |                |
+| District    | char(20) | NO   |     |         |                |
+| Population  | int(11)  | NO   |     | 0       |                |
++-------------+----------+------+-----+---------+----------------+
+PRI   ==&gt;   主键索引 
+MUL   ==&gt;   辅助索引
+UNI   ==&gt;   唯一索引
+2、mysql&gt; show index from city\G
+*************************** 1. row ***************************
+        Table: city
+   Non_unique: 0
+     Key_name: PRIMARY
+ Seq_in_index: 1
+  Column_name: ID
+    Collation: A
+  Cardinality: 4188
+     Sub_part: NULL
+       Packed: NULL
+         Null: 
+   Index_type: BTREE
+      Comment: 
+Index_comment: 
+*************************** 2. row ***************************
+        Table: city
+   Non_unique: 1
+     Key_name: CountryCode
+ Seq_in_index: 1
+  Column_name: CountryCode
+    Collation: A
+  Cardinality: 232
+     Sub_part: NULL
+       Packed: NULL
+         Null: 
+   Index_type: BTREE
+      Comment: 
+Index_comment: 
+2 rows in set (0.00 sec)
+</code></pre>
+<h3 id="创建索引">创建索引</h3>
+<p>单列的辅助索引</p>
+<pre><code class="language-mysql">mysql&gt; alter table city add index idx_name(name);
+</code></pre>
+<p>多列的联合索引</p>
+<pre><code class="language-mysql">mysql&gt; alter table city add index idx_c_p(countrycode,population);
+联合索引通过 show index from city\G 查看
+*************************** 4. row ***************************
+        Table: city
+   Non_unique: 1
+     Key_name: idx_c_p
+ Seq_in_index: 1
+  Column_name: CountryCode
+    Collation: A
+  Cardinality: 232
+     Sub_part: NULL
+       Packed: NULL
+         Null: 
+   Index_type: BTREE
+      Comment: 
+Index_comment: 
+*************************** 5. row ***************************
+        Table: city
+   Non_unique: 1
+     Key_name: idx_c_p
+ Seq_in_index: 2
+  Column_name: Population
+    Collation: A
+  Cardinality: 4052
+     Sub_part: NULL
+       Packed: NULL
+         Null: 
+   Index_type: BTREE
+      Comment: 
+Index_comment: 
+</code></pre>
+<p>唯一索引</p>
+<pre><code class="language-mysql">mysql&gt; alter table city add unique index uidx_dis(district);
+ERROR 1062 (23000): Duplicate entry 'Zuid-Holland' for key 'uidx_dis'
+mysql&gt; select count(district) from city;
++-----------------+
+| count(district) |
++-----------------+
+|            4079 |
++-----------------+
+1 row in set (0.00 sec)
+
+mysql&gt; select count(distinct district) from city; 
++--------------------------+
+| count(distinct district) |
++--------------------------+
+|                     1367 |
++--------------------------+
+</code></pre>
+<p>前缀索引</p>
+<pre><code class="language-mysql">mysql&gt; alter table city add index idx_dis(district(5));
+*************************** 6. row ***************************
+        Table: city
+   Non_unique: 1
+     Key_name: idx_dis
+ Seq_in_index: 1
+  Column_name: District
+    Collation: A
+  Cardinality: 1225
+     Sub_part: 5
+       Packed: NULL
+         Null: 
+   Index_type: BTREE
+      Comment: 
+Index_comment: 
+6 rows in set (0.00 sec)
+</code></pre>
+<h3 id="删除索引">删除索引</h3>
+<pre><code class="language-mysql">mysql&gt; alter table city drop index idx_name;
+mysql&gt; alter table city drop index idx_c_p; 
+mysql&gt; alter table city drop index idx_dis;
+</code></pre>
+<h2 id="压力测试">压力测试</h2>
+<h3 id="准备数据">准备数据</h3>
+<pre><code class="language-mysql">mysql&gt; create database test charset utf8mb4;
+mysql&gt; use test
+mysql&gt; source /tmp/t100w.sql
+mysql&gt; show tables;
++----------------+
+| Tables_in_test |
++----------------+
+| t100w          |
++----------------+
+1 row in set (0.00 sec)
+
+mysql&gt; desc t100w;
++-------+-----------+------+-----+-------------------+-----------------------------+
+| Field | Type      | Null | Key | Default           | Extra                       |
++-------+-----------+------+-----+-------------------+-----------------------------+
+| id    | int(11)   | YES  |     | NULL              |                             |
+| num   | int(11)   | YES  |     | NULL              |                             |
+| k1    | char(2)   | YES  |     | NULL              |                             |
+| k2    | char(4)   | YES  |     | NULL              |                             |
+| dt    | timestamp | NO   |     | CURRENT_TIMESTAMP | on update CURRENT_TIMESTAMP |
++-------+-----------+------+-----+-------------------+-----------------------------+
+5 rows in set (0.00 sec)
+
+mysql&gt; select * from t100w limit 5;
++------+--------+------+------+---------------------+
+| id   | num    | k1   | k2   | dt                  |
++------+--------+------+------+---------------------+
+|    1 |  56914 | Hd   | MN89 | 2019-07-09 04:01:41 |
+|    2 | 542219 | tx   | bc45 | 2019-07-09 04:01:41 |
+|    3 | 944336 | 6i   | XYPQ | 2019-07-09 04:01:41 |
+|    4 | 137325 | PK   | 34VW | 2019-07-09 04:01:41 |
+|    5 |  81318 | wz   | 67KL | 2019-07-09 04:01:41 |
++------+--------+------+------+---------------------+
+5 rows in set (0.00 sec)
+</code></pre>
+<h3 id="未做优化之前测试">未做优化之前测试</h3>
+<pre><code class="language-mysql"># 100个用户连接查询2000次
+[root@mysql ~]# mysqlslap --defaults-file=/etc/my.cnf \
+&gt; --concurrency=100 --iterations=1 --create-schema='test' \
+&gt; --query=&quot;select * from test.t100w where k2='MN89'&quot; engine=innodb \
+&gt; --number-of-queries=2000 -uroot -p123 -verbose
+mysqlslap: [Warning] Using a password on the command line interface can be insecure.
+Benchmark
+        Running for engine rbose
+        Average number of seconds to run all queries: 669.360 seconds
+        Minimum number of seconds to run all queries: 669.360 seconds
+        Maximum number of seconds to run all queries: 669.360 seconds
+        Number of clients running queries: 100
+        Average number of queries per client: 20
+</code></pre>
+<h3 id="索引优化后">索引优化后</h3>
+<pre><code class="language-mysql">mysql&gt; alter table t100w add index idx_k2(k2);
+mysql&gt; desc t100w;
++-------+-----------+------+-----+-------------------+-----------------------------+
+| Field | Type      | Null | Key | Default           | Extra                       |
++-------+-----------+------+-----+-------------------+-----------------------------+
+| id    | int(11)   | YES  |     | NULL              |                             |
+| num   | int(11)   | YES  |     | NULL              |                             |
+| k1    | char(2)   | YES  |     | NULL              |                             |
+| k2    | char(4)   | YES  | MUL | NULL              |                             |
+| dt    | timestamp | NO   |     | CURRENT_TIMESTAMP | on update CURRENT_TIMESTAMP |
++-------+-----------+------+-----+-------------------+-----------------------------+
+5 rows in set (0.00 sec)
+[root@mysql ~]# mysqlslap --defaults-file=/etc/my.cnf \
+&gt; --concurrency=100 --iterations=1 --create-schema='test' \
+&gt; --query=&quot;select * from test.t100w where k2='MN89'&quot; engine=innodb \
+&gt; --number-of-queries=2000 -uroot -p123 -verbose
+mysqlslap: [Warning] Using a password on the command line interface can be insecure.
+Benchmark
+        Running for engine rbose
+        Average number of seconds to run all queries: 1.023 seconds
+        Minimum number of seconds to run all queries: 1.023 seconds
+        Maximum number of seconds to run all queries: 1.023 seconds
+        Number of clients running queries: 100
+        Average number of queries per client: 20
+</code></pre>
+<h2 id="执行计划分析">执行计划分析</h2>
+<h3 id="作用">作用</h3>
+<pre><code class="language-mysql">获取到的是优化器选择完成的，它认为代价最小的执行计划
+作用：语句执行前，先看执行计划信息，可以有效的防止性能较差的语句带来的性能问题，
+     如果业务中出现了慢语句，我们也需要借助此命令进行语句的评估，分析优化方案
+</code></pre>
+<h3 id="获取执行计划">获取执行计划</h3>
+<pre><code class="language-mysql">desc        SQL语句
+explain     SQL语句
+mysql&gt; desc select * from test.t100w where k2='MN89';
+</code></pre>
+<figure data-type="image" tabindex="2"><img src="https://ajie825.github.io/post-images/1654498125960.png" alt="" loading="lazy"></figure>
+<h3 id="分析执行计划">分析执行计划</h3>
+<pre><code class="language-mysql">table：表名
+</code></pre>
+<pre><code class="language-mysql">type：查询的类型：
+全表扫描：  ALL
+索引扫描：  index、range、ref、eq_ref、const(system)、NULL
+
+index：全索引扫描
+需要查询获取整个索引树中的值
+mysql&gt; desc select countrycode from city;
++----+-------------+-------+------------+-------+---------------+-------------+---------+
+| id | select_type | table | partitions | type  | possible_keys | key         | key_len |
++----+-------------+-------+------------+-------+---------------+-------------+---------+
+|  1 | SIMPLE      | city  | NULL       | index | NULL          | CountryCode | 3       |
++----+-------------+-------+------------+-------+---------------+-------------+---------+
+
+range： 索引范围扫描（&gt;、&lt;、&gt;=、&lt;=、between and、or、in、like）
+mysql&gt; desc select * from city where id&gt;2000; 
++----+-------------+-------+------------+-------+---------------+---------+---------+
+| id | select_type | table | partitions | type  | possible_keys | key     | key_len |
++----+-------------+-------+------------+-------+---------------+---------+---------+
+|  1 | SIMPLE      | city  | NULL       | range | PRIMARY       | PRIMARY | 4       |
++----+-------------+-------+------------+-------+---------------+---------+---------+
+mysql&gt; desc select  * from city where countrycode like 'CH%'; 
++----+-------------+-------+------------+-------+---------------+-------------+---------+
+| id | select_type | table | partitions | type  | possible_keys | key         | key_len |  
++----+-------------+-------+------------+-------+---------------+-------------+---------+
+|  1 | SIMPLE      | city  | NULL       | range | CountryCode   | CountryCode | 3       | 
++----+-------------+-------+------------+-------+---------------+-------------+---------+
+注意事项：
+1、对于辅助索引，!=和not in等语句是不走索引的
+2、对于主键索引，!=和not in等语句是走range
+mysql&gt; desc select  * from city where countrycode='CHN' or countrycode='USA';
+mysql&gt; desc select  * from city where countrycode in ('CHN','USA');
+一般改写为 union all
+desc 
+select  * from city where countrycode='CHN' 
+union all 
+select  * from city where countrycode='USA';
+
+ref： 辅助索引等值查询
+desc 
+select  * from city where countrycode='CHN' 
+union all 
+select  * from city where countrycode='USA';
++----+-------------+-------+------------+------+---------------+-------------+---------+
+| id | select_type | table | partitions | type | possible_keys | key         | key_len |
++----+-------------+-------+------------+------+---------------+-------------+---------+
+|  1 | PRIMARY     | city  | NULL       | ref  | CountryCode   | CountryCode | 3       |
+|  2 | UNION       | city  | NULL       | ref  | CountryCode   | CountryCode | 3       |
++----+-------------+-------+------------+------+---------------+-------------+---------+
+
+eq_ref : 多表连接时,子表（除驱动表外，驱动表的索引都是ALL）使用主键列或唯一列作为连接条件
+desc select b.name,a.name ,a.population  
+from city as a 
+join country as b 
+on a.countrycode=b.code 
+where a.population&lt;100;
++----+-------------+-------+------------+--------+---------------+---------+---------+
+| id | select_type | table | partitions | type   | possible_keys | key     | key_len |
++----+-------------+-------+------------+--------+---------------+---------+---------+
+|  1 | SIMPLE      | a     | NULL       | ALL    | CountryCode   | NULL    | NULL    |
+|  1 | SIMPLE      | b     | NULL       | eq_ref | PRIMARY       | PRIMARY | 3       | 
++----+-------------+-------+------------+--------+---------------+---------+---------+
+
+const(system): 主键或者唯一键的等值查询
+mysql&gt; desc select * from  city where id=100; 
++----+-------------+-------+------------+-------+---------------+---------+---------+
+| id | select_type | table | partitions | type  | possible_keys | key     | key_len |
++----+-------------+-------+------------+-------+---------------+---------+---------+
+|  1 | SIMPLE      | city  | NULL       | const | PRIMARY       | PRIMARY | 4       |
++----+-------------+-------+------------+-------+---------------+---------+---------+
+
+possible_key
+key
+key_len
+Extra
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/sql-ji-chu-ying-yong-san/">
+              <h3 class="post-title">
+                下一篇：SQL基础应用（三）
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

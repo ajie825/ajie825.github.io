@@ -1,0 +1,380 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>replicaset控制器 | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">replicaset控制器</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-07-21</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/vN0im2GW5W/">
+                    k8s
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <p>前面我们学习了<code>pod</code>，我们在定义<code>pod</code>资源时，可以通过<code>yaml</code>文件创建一个自主式<code>pod</code>，但是存在一个问题，假如<code>pod</code>被删除，那这个<code>pod</code>就不能自我恢复，就会彻底被删除，线上这种情况非常危险，所以我们学习<code>pod</code>的控制器。</p>
+<p>所谓控制器就是能够管理<code>pod</code>，监测<code>pod</code>的运行状况，当<code>pod</code>发生故障，可以自动恢复<code>pod</code>，也就是说能够代我们去管理<code>pod</code>的中间层，并确保每一个<code>pod</code>资源始终处于所定义或者所期望的目标状态，一旦<code>pod</code>资源出现故障，那么控制器会尝试重启<code>pod</code>或者里面的容器，如果一直重启有问题它可能会基于某种策略来进行重新部署或者编排，如果<code>pod</code>副本数量低于用户所定义的目标数量，它也会自动补全，如果多余，也会自动终止<code>pod</code>资源。</p>
+<h2 id="rs控制器的概念和原理">RS控制器的概念和原理</h2>
+<h3 id="replicaset概述">replicaset概述</h3>
+<p><code>replicaset</code>是<code>k8s</code>中的一种副本控制器，简称<code>rs</code>，它的主要作用是控制其管理的<code>pod</code>副本数量始终维持在预设的个数，它会持续监听这些<code>pod</code>的运行状态，在<code>pod</code>发生故障时重启<code>pod</code>，<code>pod</code>数量减少时重新运行新的<code>pod</code>副本，确保<code>pod</code>数量始终保持期望的状态。</p>
+<p>官方推荐不要直接使用<code>replicaset</code>，用<code>deployment</code>取而代之，<code>deployment</code>是比<code>replicaset</code>更高级的控制器，它会管理<code>replicaset</code>并提供很多有用的特性，最重要的是<code>deployment</code>支持声明式更新，声明式更新的好处是不会丢失历史变更，所以<code>deployment</code>控制器不直接管理<code>pod</code>对象，而是由<code>deployment</code>管理<code>replicaset</code>，再由<code>replicaset</code>负责管理<code>pod</code>对象。</p>
+<h3 id="replicaset工作原理">replicaset工作原理</h3>
+<p><code>replicaset</code>核心作用在于代用户创建指定数量的<code>pod</code>副本，并确保<code>pod</code>副本一直处于满足用户期望的数量，起到多退少补的作用，并且还具有自动扩容缩容等机制。</p>
+<p><code>replicaset</code>控制器主要由三个部分组成：</p>
+<ol>
+<li>用户期望的<code>pod</code>副本数：用来定义由这个控制器管控的<code>pod</code>副本有几个；</li>
+<li>标签选择器：选定哪些<code>pod</code>是自己管理的，如果通过标签选择器选到的<code>pod</code>副本数量少于我们指定的数量，需要用到下面的组件；</li>
+<li><code>pod</code>资源模板：如果集群中的<code>pod</code>不够期望的数量怎么办，这就需要<code>pod</code>模板，新建的<code>pod</code>是基于模板来创建的。</li>
+</ol>
+<h2 id="rs资源清单文件编写技巧">RS资源清单文件编写技巧</h2>
+<pre><code class="language-bash">#查看定义replicaset资源需要的字段有哪些？
+[root@master1 ~]# kubectl explain rs
+KIND:     ReplicaSet
+VERSION:  apps/v1
+
+DESCRIPTION:
+     #ReplicaSet确保在任何给定时间都运行指定数量的Pod副本
+FIELDS:
+   apiVersion   &lt;string&gt;       #当前资源使用的api版本，跟apiVersion: apps/v1保持一致
+   kind         &lt;string&gt;       #资源类型，跟kind: ReplicaSet保持一致
+   metadata     &lt;Object&gt;       #元数据，定义replicaset名字、名称空间、标签
+   spec         &lt;Object&gt;       #定义副本数、定义标签选择器、定义pod模板
+   status       &lt;Object&gt;       #状态信息，不能改
+</code></pre>
+<pre><code class="language-bash">#查看replicaset的spec字段如果定义？
+[root@master1 ~]# kubectl explain rs.spec
+KIND:     ReplicaSet
+VERSION:  apps/v1
+RESOURCE: spec &lt;Object&gt;
+DESCRIPTION:
+     #Spec定义了ReplicaSet 所需行为的规范
+     
+FIELDS:
+   minReadySeconds      &lt;integer&gt;
+   replicas             &lt;integer&gt;                #定义的pod副本数，根据我们指定的值创建对应数量的pod
+   selector             &lt;Object&gt; -required-      #用于匹配pod的标签选择器
+   template             &lt;Object&gt;                 #定义pod的模板，基于这个模板定义的所有pod是一样的
+</code></pre>
+<pre><code class="language-bash">#查看replicaset的spec.template字段如何定义？
+[root@master1 ~]# kubectl explain rs.spec.template
+KIND:     ReplicaSet
+VERSION:  apps/v1
+RESOURCE: template &lt;Object&gt;
+DESCRIPTION:
+
+FIELDS:
+   metadata     &lt;Object&gt;
+   spec         &lt;Object&gt;
+
+[root@master1 ~]# kubectl explain rs.spec.template.spec
+</code></pre>
+<p>通过上面可以看到，<code>replicaset</code>资源中有两个<code>spec</code>字段，第一个<code>spec</code>声明的是<code>replicaset</code>定义多少个<code>pod</code>副本(默认仅部署1个)、匹配<code>pod</code>标签的选择器、创建<code>pod</code>模板；第二个<code>spec</code>主要用于<code>pod</code>的元数据和容器属性等配置，还有一个值得注意的地方是：在<code>spec.slector</code>中定义的标签选择器必须能够匹配到<code>spec.template.metadata.labels</code>里定义的<code>pod</code>标签，否则<code>k8s</code>将不允许创建<code>replicaset</code>。</p>
+<h2 id="replicaset使用案例">replicaset使用案例</h2>
+<pre><code class="language-bash">#部署guestbook留言板
+1）把#把frontend.tar.gz上传到node1和node2上，解压
+[root@node1 ~]# docker load -i frontend.tar.gz
+[root@node2 ~]# docker load -i frontend.tar.gz
+Loaded image: yecc/gcr.io-google_samples-gb-frontend:v3
+
+2）#编写一个replicaset资源清单
+[root@master1 ~]# cat rs-guestbook.yaml 
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: frontend
+  namespace: default
+  labels:
+    app: guestbook
+    tier: frontend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      tier: frontend
+  template:
+    metadata:
+      labels:
+        tier: frontend
+    spec:
+      containers:
+      - name: php-redis
+        image: yecc/gcr.io-google_samples-gb-frontend:v3
+        imagePullPolicy: IfNotPresent
+        
+[root@master1 ~]# kubectl apply -f rs-guestbook.yaml 
+replicaset.apps/frontend created
+[root@master1 ~]# kubectl get rs|grep frontend
+frontend          3         3         3       67s
+[root@master1 ~]# kubectl get pods -o wide|grep frontend
+frontend-cmcwg       1/1     Running   0          3m15s   10.244.104.59    node2 
+frontend-v4nds       1/1     Running   0          3m15s   10.244.166.179   node1 
+frontend-w72ts       1/1     Running   0          3m15s   10.244.166.178   node1
+#pod的名字是由控制器的名字-随机数组成的，名称空间和replicaset一致
+</code></pre>
+<pre><code class="language-bash">#资源清单详细说明
+apiVersion: apps/v1            #ReplicaSet 这个控制器属于的核心群组
+kind: ReplicaSet               #创建的资源类型
+metadata:
+  name: frontend               #控制器的名字
+  labels:
+    app: guestbook
+    tier: frontend
+spec:
+  replicas: 3                  #管理的pod副本数量
+  selector:
+    matchLabels:
+      tier: frontend           #管理带有tier=frontend标签的pod
+  template:                    #定义pod的模板
+    metadata:
+      labels:                  #pod标签，一定要有，这样上面控制器就能找到它要管理的pod是哪些了
+        tier: frontend 
+    spec:
+      containers:              #定义pod里运行的容器
+      - name: php-redis        #定义容器的名字
+        image: yecc/gcr.io-google_samples-gb-frontend:v3
+        ports:                 #定义端口
+        - containerPort:  80   #定义容器暴露的端口
+</code></pre>
+<h2 id="rs管理pod扩容-缩容-更新">RS管理pod：扩容、缩容、更新</h2>
+<h3 id="replicaset实现pod的动态扩容">replicaset实现pod的动态扩容</h3>
+<p><code>replicaset</code>最核心的功能是可以动态扩容和缩容，如果觉得3个<code>pod</code>副本太少了，想要增加，只需要修改配置文件<code>rs-guestbook.yaml</code>里的<code>replicas</code>的值即可。</p>
+<pre><code class="language-bash">#原来replicas: 3现在变成replicas: 4，修改之后，执行如下命令更新：
+[root@master1 ~]# kubectl apply -f rs-guestbook.yaml 
+replicaset.apps/frontend configured
+[root@master1 ~]# kubectl get rs
+NAME       DESIRED   CURRENT   READY   AGE
+frontend   4         4         4       16h
+[root@master1 ~]# kubectl get pods
+NAME             READY   STATUS    RESTARTS   AGE
+frontend-6nc9v   1/1     Running   0          45s
+frontend-cmcwg   1/1     Running   1          16h
+frontend-v4nds   1/1     Running   1          16h
+frontend-w72ts   1/1     Running   1          16h
+
+#也可以直接编辑控制器实现扩容
+[root@master1 ~]# kubectl edit rs frontend    #这个是把请求提交给了apiserver，实时修改
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      tier: frontend
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        tier: frontend
+ #把上面的spec.replicas后面的值改成5，保存退出
+ [root@master1 ~]# kubectl get rs           
+NAME       DESIRED   CURRENT   READY   AGE
+frontend   5         5         5       16h
+[root@master1 ~]# kubectl get pods         
+NAME             READY   STATUS    RESTARTS   AGE
+frontend-6nc9v   1/1     Running   0          5m41s
+frontend-cmcwg   1/1     Running   1          16h
+frontend-csfxl   1/1     Running   0          5s
+frontend-v4nds   1/1     Running   1          16h
+frontend-w72ts   1/1     Running   1          16h
+</code></pre>
+<h3 id="replicaset实现pod的动态缩容">replicaset实现pod的动态缩容</h3>
+<p>如果觉得5个<code>pod</code>副本太多了，想要减少，同样只需要修改配置文件<code>rs-guestbook.yaml</code>的<code>replicas</code>的值即可。</p>
+<pre><code class="language-bash">#把replicas: 5变成replicas: 2，修改之后，执行如下命令更新：
+[root@master1 ~]# kubectl apply -f rs-guestbook.yaml 
+replicaset.apps/frontend configured
+[root@master1 ~]# kubectl get rs
+NAME       DESIRED   CURRENT   READY   AGE
+frontend   2         2         2       16h
+[root@master1 ~]# kubectl get pods                   
+NAME             READY   STATUS    RESTARTS   AGE
+frontend-v4nds   1/1     Running   1          16h
+frontend-w72ts   1/1     Running   1          16h
+#同样也可以直接编辑控制器实现缩容
+</code></pre>
+<h3 id="replicaset实现pod的更新">replicaset实现pod的更新</h3>
+<pre><code class="language-bash">1）#把myapp-v2.tar.gz上传到node1和node2上，手动解压：
+[root@node1 ~]# docker load -i myapp-v2.tar.gz 
+[root@node2 ~]# docker load -i myapp-v2.tar.gz 
+Loaded image: ikubernetes/myapp:v2
+
+2）#编辑控制器修改镜像image: yecc/gcr.io-google_samples-gb-frontend:v3变成image: ikubernetes/myapp:v2，
+#修改之后保存退出
+ spec:
+   containers:
+   - image: ikubernetes/myapp:v2
+     imagePullPolicy: IfNotPresent
+     name: php-redis
+[root@master1 ~]# kubectl apply -f rs-guestbook.yml
+
+3）#可以看到镜像变成了ikubernetes/myapp:v2，说明滚动升级成功了
+[root@master1 ~]# kubectl get rs frontend -o wide
+NAME       DESIRED   CURRENT   READY   AGE   CONTAINERS   IMAGES                 SELECTOR
+frontend   2         2         2       16h   php-redis    ikubernetes/myapp:v2   tier=frontend
+[root@master1 ~]# kubectl get pods -o wide
+NAME             READY   STATUS    RESTARTS   AGE   IP               NODE    
+frontend-v4nds   1/1     Running   1          16h   10.244.166.181   node1   
+frontend-w72ts   1/1     Running   1          16h   10.244.166.180   node1
+
+4）#访问pod的IP可以看到虽然镜像已经更新了，但是原来的pod使用的还是之前的镜像
+[root@master1 ~]# curl 10.244.166.181
+&lt;div style=&quot;width: 50%; margin-left: 20px&quot;&gt;
+   &lt;h2&gt;Guestbook&lt;/h2&gt;
+&lt;form&gt;
+&lt;fieldset&gt;
+[root@master1 ~]# curl 10.244.166.180
+&lt;div style=&quot;width: 50%; margin-left: 20px&quot;&gt;
+   &lt;h2&gt;Guestbook&lt;/h2&gt;
+&lt;form&gt;
+&lt;fieldset&gt;
+    
+5）#删除旧的pod，新创建的pod才会使用最新的镜像
+#删除10.244.166.181这个ip对应的pod
+[root@master1 ~]# kubectl delete pods frontend-v4nds
+pod &quot;frontend-v4nds&quot; deleted
+#重新生成一个新的pod：frontend-zp8zb 
+[root@master1 ~]# kubectl get pods -o wide          
+NAME             READY   STATUS    RESTARTS   AGE   IP               NODE 
+frontend-w72ts   1/1     Running   1          16h   10.244.166.180   node1  
+frontend-zp8zb   1/1     Running   0          21s   10.244.104.3     node2
+#新生成的pod镜像已经变成了myapp的，说明更新完成了
+[root@master1 ~]# curl 10.244.104.3
+Hello MyApp | Version: v2 | &lt;a href=&quot;hostname.html&quot;&gt;Pod Name&lt;/a&gt;
+</code></pre>
+<p>生产环境如果升级，可以删除一个<code>pod</code>，观察一段时间之后没问题再删除另一个<code>pod</code>，但是这样需要人工干预多次；实际生产环境一般采用蓝绿发布，原来有一个<code>rs1</code>，再创建一个<code>rs2</code>(控制器)，通过修改<code>service</code>标签，可以匹配到<code>rs2</code>的控制器，这样才是蓝绿发布；这个也需要我们精心的部署规划，我们有一个控制器就是建立在<code>rs</code>之上完成的，叫做<code>deployment</code>。</p>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/pod-sheng-ming-zhou-qi-he-jian-kang-tan-ce/">
+              <h3 class="post-title">
+                下一篇：pod生命周期和健康探测
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

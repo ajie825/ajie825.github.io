@@ -1,0 +1,275 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>一键获取linux内存、cpu、磁盘IO等信息 | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">一键获取linux内存、cpu、磁盘IO等信息</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-07-12</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/QVJpgtMyu/">
+                    脚本
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <pre><code class="language-bash">[root@localhost scripts]# cat system.sh 
+#!/bin/bash
+# 获取要监控的本地服务器IP地址
+IP=`ifconfig | grep inet | grep -vE 'inet6|127.0.0.1' | awk '{print $2}'`
+echo &quot;IP地址：&quot;$IP
+
+# 获取cpu总核数
+cpu_num=`grep -c &quot;model name&quot; /proc/cpuinfo`
+echo &quot;cpu总核数：&quot;$cpu_num
+
+# 1、获取CPU利用率
+################################################
+#us 用户空间占用CPU百分比
+#sy 内核空间占用CPU百分比
+#ni 用户进程空间内改变过优先级的进程占用CPU百分比
+#id 空闲CPU百分比
+#wa 等待输入输出的CPU时间百分比
+#hi 硬件中断
+#si 软件中断
+#################################################
+# 获取用户空间占用CPU百分比
+cpu_user=`top -b -n 1 | grep Cpu | awk '{print $2}' | cut -f 1 -d &quot;%&quot;`
+echo &quot;用户空间占用CPU百分比：&quot;$cpu_user
+
+# 获取内核空间占用CPU百分比
+cpu_system=`top -b -n 1 | grep Cpu | awk '{print $4}' | cut -f 1 -d &quot;%&quot;`
+echo &quot;内核空间占用CPU百分比：&quot;$cpu_system
+
+# 获取空闲CPU百分比
+cpu_idle=`top -b -n 1 | grep Cpu | awk '{print $8}' | cut -f 1 -d &quot;%&quot;`
+echo &quot;空闲CPU百分比：&quot;$cpu_idle
+
+# 获取等待输入输出占CPU百分比
+cpu_iowait=`top -b -n 1 | grep Cpu | awk '{print $10}' | cut -f 1 -d &quot;%&quot;`
+echo &quot;等待输入输出占CPU百分比：&quot;$cpu_iowait
+
+#2、获取CPU上下文切换和中断次数
+# 获取CPU中断次数
+cpu_interrupt=`vmstat -n 1 1 | sed -n 3p | awk '{print $11}'`
+echo &quot;CPU中断次数：&quot;$cpu_interrupt
+
+# 获取CPU上下文切换次数
+cpu_context_switch=`vmstat -n 1 1 | sed -n 3p | awk '{print $12}'`
+echo &quot;CPU上下文切换次数：&quot;$cpu_context_switch
+
+#3、获取CPU负载信息
+# 获取CPU15分钟前到现在的负载平均值
+cpu_load_15min=`uptime | awk '{print $11}' | cut -f 1 -d ','`
+echo &quot;CPU 15分钟前到现在的负载平均值：&quot;$cpu_load_15min
+
+# 获取CPU5分钟前到现在的负载平均值
+cpu_load_5min=`uptime | awk '{print $10}' | cut -f 1 -d ','`
+echo &quot;CPU 5分钟前到现在的负载平均值：&quot;$cpu_load_5min
+
+# 获取CPU1分钟前到现在的负载平均值
+cpu_load_1min=`uptime | awk '{print $9}' | cut -f 1 -d ','`
+echo &quot;CPU 1分钟前到现在的负载平均值：&quot;$cpu_load_1min
+
+# 获取任务队列(就绪状态等待的进程数)
+cpu_task_length=`vmstat -n 1 1 | sed -n 3p | awk '{print $1}'`
+echo &quot;CPU任务队列长度：&quot;$cpu_task_length
+
+#4、获取内存信息
+# 获取物理内存总量
+mem_total=`free | grep Mem | awk '{print $2}'`
+echo &quot;物理内存总量：&quot;$mem_total
+
+# 获取操作系统已使用内存总量
+mem_sys_used=`free | grep Mem | awk '{print $3}'`
+echo &quot;已使用内存总量(操作系统)：&quot;$mem_sys_used
+
+# 获取操作系统未使用内存总量
+mem_sys_free=`free | grep Mem | awk '{print $4}'`
+echo &quot;剩余内存总量(操作系统)：&quot;$mem_sys_free
+
+# 获取应用程序已使用的内存总量
+mem_user_used=`free | sed -n 3p | awk '{print $3}'`
+echo &quot;已使用内存总量(应用程序)：&quot;$mem_user_used
+
+# 获取应用程序未使用内存总量
+mem_user_free=`free | sed -n 3p | awk '{print $4}'`
+echo &quot;剩余内存总量(应用程序)：&quot;$mem_user_free
+
+
+# 获取交换分区总大小
+mem_swap_total=`free | grep Swap | awk '{print $2}'`
+echo &quot;交换分区总大小：&quot;$mem_swap_total
+
+# 获取已使用交换分区大小
+mem_swap_used=`free | grep Swap | awk '{print $3}'`
+echo &quot;已使用交换分区大小：&quot;$mem_swap_used
+
+# 获取剩余交换分区大小
+mem_swap_free=`free | grep Swap | awk '{print $4}'`
+echo &quot;剩余交换分区大小：&quot;$mem_swap_free
+
+#5、获取磁盘I/O统计信息
+echo &quot;指定设备(/dev/sda)的统计信息&quot;
+# 每秒向设备发起的读请求次数
+disk_sda_rs=`iostat -kx | grep sda| awk '{print $4}'`
+echo &quot;每秒向设备发起的读请求次数：&quot;$disk_sda_rs
+
+# 每秒向设备发起的写请求次数
+disk_sda_ws=`iostat -kx | grep sda| awk '{print $5}'`
+echo &quot;每秒向设备发起的写请求次数：&quot;$disk_sda_ws
+
+# 向设备发起的I/O请求队列长度平均值
+disk_sda_avgqu_sz=`iostat -kx | grep sda| awk '{print $9}'`
+echo &quot;向设备发起的I/O请求队列长度平均值&quot;$disk_sda_avgqu_sz
+
+# 每次向设备发起的I/O请求平均时间
+disk_sda_await=`iostat -kx | grep sda| awk '{print $10}'`
+echo &quot;每次向设备发起的I/O请求平均时间：&quot;$disk_sda_await
+
+# 向设备发起的I/O服务时间均值
+disk_sda_svctm=`iostat -kx | grep sda| awk '{print $11}'`
+echo &quot;向设备发起的I/O服务时间均值：&quot;$disk_sda_svctm
+
+# 向设备发起I/O请求的CPU时间百分占比
+disk_sda_util=`iostat -kx | grep sda| awk '{print $12}'`
+echo &quot;向设备发起I/O请求的CPU时间百分占比：&quot;$disk_sda_util
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/er-jin-zhi-an-zhuang-duo-master-jie-dian-de-k8s-ji-qun-120-yi-shang-wen-ding-ban-ben/">
+              <h3 class="post-title">
+                下一篇：二进制安装多master节点的k8s集群-1.20以上稳定版本
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

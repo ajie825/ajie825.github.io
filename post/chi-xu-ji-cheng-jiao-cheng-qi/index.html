@@ -1,0 +1,253 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>持续集成教程 (七) | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">持续集成教程 (七)</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2023-10-14</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/orkaNU-rT/">
+                    devops
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="配置jenkins权限管理">配置Jenkins权限管理</h2>
+<p>默认<code>Jenkins</code>用户可以执行所有操作，为了更好的分层控制，可以实现基于角色的权限管理，先创建角色和用户，给角色授权，然后把用户管理到角色。</p>
+<h3 id="查看默认的权限设置">查看默认的权限设置</h3>
+<p>我们可以从系统管理---&gt;全局安全设置看到，默认的权限为登录用户可以做任何事<br>
+<img src="https://ajie825.github.io/post-images/1697263051209.png" alt="" loading="lazy"></p>
+<h3 id="安装插件">安装插件</h3>
+<p><code>Jenkins</code>需要安装一个<code>Role-based Authorization Strategy </code>插件来实现精准的权限控制，在系统管理---&gt;插件管理里安装此插件<br>
+<img src="https://ajie825.github.io/post-images/1697265911519.png" alt="" loading="lazy"></p>
+<p>安装好插件后，重启<code>Jenkins</code>再次打开系统管理---&gt;全局安全配置，可以看到多了我们刚刚安装的插件，将授权策略勾选为<code>Role-Based Strategy</code>，然后点击保存<br>
+<img src="https://ajie825.github.io/post-images/1697267621273.png" alt="" loading="lazy"></p>
+<p>同时在系统管理中也多了<code>Manage and Assign Roles</code>菜单，在此处即可设置角色和权限<br>
+<img src="https://ajie825.github.io/post-images/1697267978899.png" alt="" loading="lazy"></p>
+<p>我们查看一下现有的项目，如下图，有<code>freestyle-job</code>和<code>maven-job</code>两个项目，我们需要实现给<code>test1</code>分配<code>freestyle-job</code>的项目，给<code>test02</code>分配<code>maven-job</code>项目<br>
+<img src="https://ajie825.github.io/post-images/1697268551204.png" alt="" loading="lazy"></p>
+<h3 id="创建新用户">创建新用户</h3>
+<p>进入系统管理---&gt;管理用户---&gt;新建用户，依次创建<code>test01</code>、<code>test02</code>两个用户<br>
+<img src="https://ajie825.github.io/post-images/1697269058552.png" alt="" loading="lazy"></p>
+<h3 id="创建角色和对角色分配权限">创建角色和对角色分配权限</h3>
+<p>打开系统管理---&gt;<code>Manage and Assign Roles</code>，我们主要用到管理角色和分配角色这两个菜单，我们先进入<code>Manage Roles</code><br>
+<img src="https://ajie825.github.io/post-images/1697269430000.png" alt="" loading="lazy"></p>
+<p>一个用户想要能正常控制项目，就必须要有两种角色，<code>Global roles</code>和<code>Item roles</code><br>
+<img src="https://ajie825.github.io/post-images/1697270136875.png" alt="" loading="lazy"></p>
+<p>首先添加一个全局角色<code>baserole</code>并勾选全部的<code>Read</code>权限<br>
+<img src="https://ajie825.github.io/post-images/1697270544348.png" alt="" loading="lazy"></p>
+<p>然后添加<code>Item roles</code>，此处相当于是给角色赋予项目权限，这里我将角色的名称设置成和用户名一致，这样方便给每个用户精准指定项目，在<code>Pattern</code>中可以使用正则表达式来匹配项目，多个项目使用竖线<code>|</code>分割<br>
+<img src="https://ajie825.github.io/post-images/1697273466773.png" alt="" loading="lazy"></p>
+<p>最后记得点<code>Save</code>保存</p>
+<h3 id="将用户关联到角色">将用户关联到角色</h3>
+<p>进入<code>Assign Roles</code>，此处是将用户和角色关联起来，在<code>Global roles</code>部分添加用户<code>test01</code>、<code>test02</code>并且勾选中<code>baserole</code>角色<br>
+<img src="https://ajie825.github.io/post-images/1697272042743.png" alt="" loading="lazy"></p>
+<p>在<code>Item roles</code>，中添加<code>test01</code>用户并和<code>test01</code>角色关联，添加<code>test02</code>用户并和<code>test02</code>角色关联<br>
+<img src="https://ajie825.github.io/post-images/1697272489419.png" alt="" loading="lazy"></p>
+<p>测试效果，登录<code>test01</code>用户，只能看到<code>freestyle-job</code>项目<br>
+<img src="https://ajie825.github.io/post-images/1697276132727.png" alt="" loading="lazy"></p>
+<p>登录<code>test02</code>用户，只能看到<code>maven-job</code>项目<br>
+<img src="https://ajie825.github.io/post-images/1697276362730.png" alt="" loading="lazy"></p>
+<h2 id="publish-over-ssh-插件"><code>publish Over SSH</code> 插件</h2>
+<p><code>Publish Over SSH</code>插件可以实现<code>jenkins</code>服务器免密访问其它服务器，执行一些操作和命令，进行远程部署服务。</p>
+<h3 id="生成ssh密钥并将公钥发布到各服务器">生成<code>SSH</code>密钥，并将公钥发布到各服务器</h3>
+<p>登录<code>Jenkins</code>服务器，执行<code>ssh-keygen</code>命令</p>
+<pre><code class="language-shell">[root@jenkins ~]# ssh-keygen
+Generating public/private rsa key pair.
+Enter file in which to save the key (/root/.ssh/id_rsa): 
+Enter passphrase (empty for no passphrase): 
+Enter same passphrase again: 
+Your identification has been saved in /root/.ssh/id_rsa.
+Your public key has been saved in /root/.ssh/id_rsa.pub.
+The key fingerprint is:
+SHA256:ErEP9ffd+VVbSlywRSxcQOpuRLs7mV3JYwqReYjLq8E root@web01
+The key's randomart image is:
++---[RSA 2048]----+
+|      . .    o+*=|
+|       + .   oo+.|
+|      +   o B +.o|
+|       + . O = o*|
+|      . S . * +o=|
+|      .. o + . =+|
+|       E  . =+o.o|
+|        .. .+o.  |
+|       ..   ..   |
++----[SHA256]-----+
+</code></pre>
+<p>这里会让你选择一个存放密钥的路径，使用了默认的<code>/root/.ssh/id_rsa</code>，还有<code>passphrase</code>，可以不加密码直接回车，生成成功后，进入到<code>/root/.ssh</code>目录下查看是否有密钥文件。</p>
+<pre><code class="language-shell">[root@jenkins ~]# cd .ssh/
+[root@jenkins .ssh]# ll
+total 12
+-rw------- 1 root root 1675 Oct 17 02:07 id_rsa
+-rw-r--r-- 1 root root  392 Oct 17 02:07 id_rsa.pub
+</code></pre>
+<p>然后将公钥发送到要远程的各服务器，执行<code>ssh-copy-id root@192.168.x.x</code>，<code>root</code>是远程服务器的登录名，<code>@</code>后面是<code>IP</code>。</p>
+<pre><code class="language-shell">[root@jenkins ~]# ssh-copy-id root@192.168.40.180
+/usr/bin/ssh-copy-id: INFO: Source of key(s) to be installed: &quot;/root/.ssh/id_rsa.pub&quot;
+/usr/bin/ssh-copy-id: INFO: attempting to log in with the new key(s), to filter out any that are already installed
+/usr/bin/ssh-copy-id: INFO: 1 key(s) remain to be installed -- if you are prompted now it is to install the new keys
+root@192.168.40.180's password: 
+Number of key(s) added: 1
+Now try logging into the machine, with:   &quot;ssh 'root@192.168.40.180'&quot;
+and check to make sure that only the key(s) you wanted were added.
+</code></pre>
+<p>可以用<code>ssh root@192.168.x.x</code>，验证下是否发布成功，如果成功登录到远程服务器，就<code>OK</code>了。</p>
+<h3 id="插件安装">插件安装</h3>
+<p>在<code>Jenkins</code>的插件管理模块，搜索<code>publish over ssh</code>，选择安装即可<br>
+<img src="https://ajie825.github.io/post-images/1697524094256.png" alt="" loading="lazy"></p>
+<h3 id="jenkins系统配置"><code>Jenkins</code>系统配置</h3>
+<p>在<code>Jenkins</code>的系统配置中拉到最下面，找到<code>Publish over SSH</code>，添加要远程的服务器，并进行配置<br>
+<img src="https://ajie825.github.io/post-images/1697525314832.png" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1697528675881.png" alt="" loading="lazy"></p>
+<p>完成配置后，点击下方的<code>Test configuration</code>，如果出现<code>success</code>说明通了<br>
+<img src="https://ajie825.github.io/post-images/1697525717525.png" alt="" loading="lazy"></p>
+<h3 id="jenkins-job中进行远程服务器配置"><code>Jenkins job</code>中进行远程服务器配置</h3>
+<ol>
+<li>在<code>Job</code>中新增一个&quot;构建后操作&quot;，选择<code>Send build artifacts over SSH</code></li>
+<li>在<code>SSH Server</code>---<code>Name</code>中选择配置的远程主机</li>
+<li>在<code>Source files</code>中填写源文件，相对路径，基于<code>Job</code>目录，我们的文件路径为<code>${WORKSPACE}/{Job}/target/dist.zip</code>，这里填写<code>target/*.zip</code>用于匹配<code>target</code>目录下的所有以<code>zip</code>结尾的文件</li>
+<li>在<code>Remove prefix</code>中填写需要删除的路径前缀，如果不填写，那么复制到远程主机的结构为<code>target/dist.zip</code>，我们不需要<code>target</code>这个目录，所以这里填写<code>target</code></li>
+<li>在<code>Remote directory</code>中填写远程目录路径，这个路径是基于在配置远程主机时填写的路径，前面我们填写的路径为<code>/opt/jenkins</code>，这里填写<code>target</code>，组合起来就是<code>/opt/jenkins/target</code>目录</li>
+<li>在<code>Exec command</code>中填写复制完成后需要在目标主机中执行的命令，如果命令过多，可以写一个脚本，在这里调用它<br>
+<img src="https://ajie825.github.io/post-images/1697609201141.png" alt="" loading="lazy"></li>
+</ol>
+<h2 id="jenkins参数化构建"><code>Jenkins</code>参数化构建</h2>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/chi-xu-ji-cheng-jiao-cheng-liu/">
+              <h3 class="post-title">
+                下一篇：持续集成教程 (六)
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

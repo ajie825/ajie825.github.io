@@ -1,0 +1,458 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>主从复制（二） | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">主从复制（二）</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-06-17</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/eb_lZhnX62/">
+                    mysql
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h3 id="延时从库">延时从库   *****</h3>
+<p>1、介绍</p>
+<pre><code class="language-mysql">是我们配置的一种特殊从库，人为配置从库和主库延时N小时
+</code></pre>
+<p>2、为什么要有延时从库</p>
+<pre><code class="language-mysql">普通主从复制非常擅长物理损坏，但没有办法解决逻辑损坏
+</code></pre>
+<p>3、配置延时从库</p>
+<pre><code class="language-bash">SQL线程延时：数据已经写入relay-log中，SQL线程“慢点”运行
+一般企业建议3-6小时，具体看公司运维人员对于故障的反应时间
+mysql&gt;stop slave;
+mysql&gt;CHANGE MASTER TO MASTER_DELAY = 300;
+mysql&gt;start slave;
+mysql&gt; show slave status \G
+SQL_Delay: 300
+SQL_Remaining_Delay: NULL
+</code></pre>
+<p>4、延时从库应用</p>
+<p>4.1、故障恢复思路</p>
+<pre><code class="language-bash">1）一主一从，从库延时5分钟，主库误删除1个库
+2）5分钟之内，侦测到误删除操作
+3）停止从库SQL线程
+4）截取relay-log日志
+   起点：停止SQL线程时，relay-log最后应用位置
+   show slave status \G
+   Relay_Log_File: mysqld-relay-bin.000002
+   Relay_Log_Pos: 320
+   终点：误删除之前的positon（GTID）
+   show relaylog events in 'db01-relay-bin.000002'	
+5）恢复截取的日志到从库
+情况一：就一个库的话，从库替代主库工作
+情况二：从库导出故障库，还原到主库中
+</code></pre>
+<p>4.2、故障模拟及恢复</p>
+<pre><code class="language-bash">1）主库数据操作
+mysql&gt; create database relay charset utf8;
+mysql&gt; use relay
+mysql&gt; insert into t1 values(1);
+mysql&gt; drop database relay;
+
+2）停止从库SQL线程
+mysql&gt; stop slave sql_thread;
+
+3）截取relay-log的起点和终点
+起点：
+mysql&gt; show slave status \G
+Relay_Log_File: mysqld-relay-bin.000002
+Relay_Log_Pos: 320
+终点：
+mysql&gt; show relaylog events in 'mysqld-relay-bin.000002';
++-----+----------------+-------------+---------------------------------------+
+| Pos | Event_type     | End_log_pos | Info                                  |
++-----+----------------+-------------+---------------------------------------+
+|   4 | Format_desc    |         123 | Server ver: 5.7.26-log, Binlog ver: 4 |
+| 123 | Previous_gtids |         154 |                                       |
+| 154 | Rotate         |           0 | mysql-bin.000003;pos=609              |
+| 201 | Format_desc    |           0 | Server ver: 5.7.26-log, Binlog ver: 4 |
+| 320 | Anonymous_Gtid |         674 | SET @@SESSION.GTID_NEXT= 'ANONYMOUS'  |
+| 385 | Query          |         784 | create database relay charset utf8    |
+| 495 | Anonymous_Gtid |         849 | SET @@SESSION.GTID_NEXT= 'ANONYMOUS'  |
+| 560 | Query          |         949 | use `relay`; create table t1 (id int) |
+| 660 | Anonymous_Gtid |        1014 | SET @@SESSION.GTID_NEXT= 'ANONYMOUS'  |
+| 725 | Query          |        1087 | BEGIN                                 |
+| 798 | Table_map      |        1133 | table_id: 151 (relay.t1)              |
+| 844 | Write_rows     |        1173 | table_id: 151 flags: STMT_END_F       |
+| 884 | Xid            |        1204 | COMMIT /* xid=736 */                  |
+| 915 | Anonymous_Gtid |        1269 | SET @@SESSION.GTID_NEXT= 'ANONYMOUS'  |
+| 980 | Query          |        1364 | drop database relay                   |
++-----+----------------+-------------+---------------------------------------+
+左边是relay-log的起点，右边是对应的binlog的起点，只需要看左边即可
+mysqlbinlog --start-position=320 --stop-position=915  /data/3308/data/mysqld-relay-bin.000002 &gt;/tmp/relay.sql
+
+4）从库恢复relay-log
+set sql_log_bin=0;
+source /tmp/relay.sql
+set sql_log_bin=1;
+
+5）从库身份解除
+stop slave;
+reset slave all
+</code></pre>
+<h3 id="过滤复制有选择性的复制">过滤复制（有选择性的复制）   ***</h3>
+<p>1、简介</p>
+<pre><code class="language-bash">不能与延时从库为同一节点，延时从库不对外提供服务，只是为了备份恢复时使用
+IO线程截取日志时有 -d 选项、指定库截取日志，根据use语句记录不同库的日志
+SQL线程基于某个库进行回放，这种比较合适一些
+主库：
+show master status;
+Binlog_Do_DB                 #白名单
+Binlog_Ignore_DB             #黑名单
+二选一，Binlog_Do_DB=库名字，多行不能用逗号分隔，记录日志的库
+从库：
+show slave status\G
+Replicate_Do_DB:             #库级别的，应用最多
+Replicate_Ignore_DB: 
+Replicate_Do_Table:          #表级别的
+Replicate_Ignore_Table: 
+Replicate_Wild_Do_Table:     #模糊
+Replicate_Wild_Ignore_Table: 
+</code></pre>
+<p>2、快速恢复测试环境</p>
+<pre><code class="language-bash">从库：
+mysql&gt; drop database relay;
+主库：
+mysql -S /data/3307/mysql.sock
+mysql&gt; reset master;
+从库：
+CHANGE MASTER TO 
+MASTER_HOST='10.0.0.51',
+MASTER_USER='repl',
+MASTER_PASSWORD='123',
+MASTER_PORT=3307,
+MASTER_LOG_FILE='mysql-bin.000001',
+MASTER_LOG_POS=154,
+MASTER_CONNECT_RETRY=10;
+start slave;
+</code></pre>
+<p>3、过滤复制例子</p>
+<pre><code class="language-bash">从库：
+vim /data/3308/my.cnf
+replicate_do_db=ppt
+replicate_do_db=word
+systemctl restart mysqld3308
+主库：
+mysql&gt; create database word;
+Query OK, 1 row affected (0.00 sec)
+mysql&gt; create database ppt;
+Query OK, 1 row affected (0.00 sec)
+mysql&gt; create database excel;
+Query OK, 1 row affected (0.01 sec)
+</code></pre>
+<h3 id="半同步复制">半同步复制   ***</h3>
+<p>1、介绍</p>
+<pre><code class="language-mysql">解决主从复制数据一致性（安全问题）
+从库relay-log写入磁盘，IO线程会返回给主库ACK_reciver线程一个ACK，主库事务才能提交，
+如果一直ACK没收到，超过10秒钟会切换为异步复制
+性能不太好，用的不多
+</code></pre>
+<p>2、配置</p>
+<pre><code class="language-bash">加载插件
+主:
+INSTALL PLUGIN rpl_semi_sync_master SONAME 'semisync_master.so';
+从:
+INSTALL PLUGIN rpl_semi_sync_slave SONAME 'semisync_slave.so';
+查看是否加载成功:
+show plugins;
+启动:
+主:
+SET GLOBAL rpl_semi_sync_master_enabled = 1;
+从:
+SET GLOBAL rpl_semi_sync_slave_enabled = 1;
+重启从库上的IO线程
+STOP SLAVE IO_THREAD;
+START SLAVE IO_THREAD;
+查看是否在运行
+主:
+show status like 'Rpl_semi_sync_master_status';
+从:
+show status like 'Rpl_semi_sync_slave_status';
+</code></pre>
+<h3 id="gtid复制">GTID复制   *****</h3>
+<p>1、GTID介绍</p>
+<pre><code class="language-bash">GTID（Global Transaction ID）是一个对已提交事务的唯一编号，并且是一个全局（主从复制）唯一的编号
+官方定义如下：
+GTID = server-uuid ：transaction_id
+server-uuid在数据库初始化后第一次启动时就会生成，不用乱删除
+[root@mysqld data]# cat auto.cnf 
+[auto]
+server-uuid=923a6d2c-9dc4-11ec-922c-000c299152c6
+TID：是一个自增长的数据，从1开始
+923a6d2c-9dc4-11ec-922c-000c299152c6:1-15
+核心特性：全局唯一，幂等性
+</code></pre>
+<p>2、GTID核心参数</p>
+<pre><code class="language-bash">gtid-mode=on                        --启用gtid类型，否则就是普通的复制架构
+enforce-gtid-consistency=true       --强制GTID的一致性
+log-slave-updates=1                 --slave更新是否记入日志
+</code></pre>
+<p>3、GTID复制配置</p>
+<p>3.1、清理环境</p>
+<pre><code class="language-bash">pkill mysqld
+ \rm -rf /data/mysql/data/*
+ \rm -rf /data/binlog/*
+</code></pre>
+<p>3.2、准备配置文件</p>
+<pre><code class="language-bash">主库db01：
+cat &gt; /etc/my.cnf &lt;&lt;EOF
+[mysqld]
+basedir=/data/mysql/
+datadir=/data/mysql/data
+socket=/tmp/mysql.sock
+server_id=51
+port=3306
+secure-file-priv=/tmp
+autocommit=0
+log_bin=/data/binlog/mysql-bin
+binlog_format=row
+gtid-mode=on
+enforce-gtid-consistency=true
+log-slave-updates=1
+[mysql]
+prompt=db01 [\\d]&gt;
+EOF
+
+slave1(db02)：
+cat &gt; /etc/my.cnf &lt;&lt;EOF
+[mysqld]
+basedir=/data/mysql
+datadir=/data/mysql/data
+socket=/tmp/mysql.sock
+server_id=52
+port=3306
+secure-file-priv=/tmp
+autocommit=0
+log_bin=/data/binlog/mysql-bin
+binlog_format=row
+gtid-mode=on
+enforce-gtid-consistency=true
+log-slave-updates=1
+[mysql]
+prompt=db02 [\\d]&gt;
+EOF
+
+slave2(db03)：
+cat &gt; /etc/my.cnf &lt;&lt;EOF
+[mysqld]
+basedir=/data/mysql
+datadir=/data/mysql/data
+socket=/tmp/mysql.sock
+server_id=53
+port=3306
+secure-file-priv=/tmp
+autocommit=0
+log_bin=/data/binlog/mysql-bin
+binlog_format=row
+gtid-mode=on
+enforce-gtid-consistency=true
+log-slave-updates=1
+[mysql]
+prompt=db03 [\\d]&gt;
+EOF
+</code></pre>
+<p>3.3、初始化数据</p>
+<pre><code class="language-bash">mysqld --initialize-insecure --user=mysql --basedir=/data/mysql  --datadir=/data/mysql/data 
+</code></pre>
+<p>3.4、启动数据库</p>
+<pre><code class="language-bash">cat &gt;/etc/systemd/system/mysqld.service &lt;&lt;EOF
+[Unit]
+Description=MySQL Server
+Documentation=man:mysqld(8)
+Documentation=http://dev.mysql.com/doc/refman/en/using-systemd.html
+After=network.target
+After=syslog.target
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+User=mysql
+Group=mysql
+ExecStart=/application/mysql/bin/mysqld --defaults-file=/etc/my.cnf
+LimitNOFILE = 5000
+EOF
+systemctl start mysqld
+</code></pre>
+<p>3.5、构建主从</p>
+<pre><code class="language-bash">master： 51
+slave： 52，53
+
+51：
+grant replication slave  on *.* to repl@'10.0.0.%' identified by '123';
+
+52\53：
+change master to 
+master_host='10.0.0.51',
+master_user='repl',
+master_password='123' ,
+MASTER_AUTO_POSITION=1;
+
+start slave;
+</code></pre>
+<p>3.6、GTID复制和普通复制的区别</p>
+<pre><code class="language-bash">CHANGE MASTER TO
+MASTER_HOST='10.0.0.51',
+MASTER_USER='repl',
+MASTER_PASSWORD='123',
+MASTER_PORT=3307,
+MASTER_LOG_FILE='mysql-bin.000001',
+MASTER_LOG_POS=444,
+MASTER_CONNECT_RETRY=10;
+
+change master to 
+master_host='10.0.0.51',
+master_user='repl',
+master_password='123' ,
+MASTER_AUTO_POSITION=1;
+start slave;
+1）在主从复制环境中，主库发生过的事务，在全局都由唯一GTID记录，更方便Failover
+2）额外功能参数（3个）
+3）change master to的时候不再需要文件名和position号，MASTER_AUTO_POSITION=1;
+4）在复制过程中，从库不再依赖master.info文件名和position号，而是直接读取最后一个relay-log的GTID号
+5）mysqldump备份时，默认会将备份中包含的事务操作，以以下方式
+  SET @@GLOBAL.GTID_PURGED='8c49d7ec-7e78-11e8-9638-000c29ca725d:1';
+  告诉从库，我的备份中已经有以上事务，你就不用运行了，直接从下一个GTID开始请求binlog就行
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/zhu-cong-fu-zhi-yi/">
+              <h3 class="post-title">
+                下一篇：主从复制（一）
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

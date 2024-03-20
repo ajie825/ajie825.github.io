@@ -1,0 +1,932 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>ansible（三） | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">ansible（三）</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-05-28</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/h48tx8qKG1/">
+                    ansible
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="判断语句">判断语句</h2>
+<p>判断在ansible任务中的使用频率非常高，比如yum模块可以检测软件包是否已被安装，而在这个过程中我们不用做太多的人工干预</p>
+<p>但是也有部分任务需要进行判断，比如：web服务器角色都需要安装nginx仓库，但其他的服务器角色并不需要，此时就会用到when判断</p>
+<p>比如：centos与Ubuntu系统都需要安装httpd服务，那么就需要使用when判断主机系统，然后调用不同的模块执行</p>
+<p>实践案例一：根据不同操作系统，安装相同的软件包</p>
+<pre><code class="language-shell">[root@ansible project]# cat when.yml 
+---
+
+- hosts: webservers
+
+  tasks:
+
+  #通过fact变量判断系统为centos才会安装httpd
+  - name: Install httpd Server
+    yum: name=httpd state=present
+    when: ansible_distribution == &quot;CentOS&quot;
+
+  #通过fact变量判断系统为ubuntu才会安装httpd
+  - name: Install httpd Server
+    apt: name=httpd2 state=present
+    when: ansible_distribution == &quot;Ubuntu&quot;
+    
+ [root@ansible project]# ansible-playbook when.yml 
+
+PLAY [webservers] ***********************************************************************************************************************
+
+TASK [Gathering Facts] ******************************************************************************************************************
+ok: [web02]
+ok: [web01]
+
+TASK [Install httpd Server] *************************************************************************************************************
+ok: [web02]
+ok: [web01]
+
+TASK [Install httpd Server] *************************************************************************************************************
+skipping: [web01]
+skipping: [web02]
+
+PLAY RECAP ******************************************************************************************************************************
+web01                      : ok=2    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+web02                      : ok=2    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+</code></pre>
+<p>ansible_distribution变量：获取被控制端主机的操作系统版本</p>
+<p>实践案例二、所有为web主机名的添加nginx仓库，其余的都跳过添加</p>
+<p>1）如何添加yum仓库</p>
+<p>2）如何判断，判断什么内容</p>
+<pre><code class="language-shell">[root@ansible project]# cat when2.yml 
+---
+
+- hosts: all
+
+  tasks:
+    - name: Add Nginx Repos
+      yum_repository:
+        name: nginx_text
+        description: Nginx YUM repo
+        baseurl: http://nginx.org/packages/centos/7/$basearch/
+        gpgcheck: no
+      when: (ansible_hostname is match (&quot;web*&quot;)) or (ansible_hostname is match (&quot;lb*&quot;))
+      
+ [root@ansible project]# ansible-playbook when2.yml 
+
+PLAY [all] ******************************************************************************************************************************
+
+TASK [Gathering Facts] ******************************************************************************************************************
+ok: [web01]
+ok: [web02]
+
+TASK [Add Nginx Repos] ******************************************************************************************************************
+changed: [web01]
+changed: [web02]
+
+PLAY RECAP ******************************************************************************************************************************
+web01                      : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+web02                      : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0 
+
+</code></pre>
+<p>#yum_repository：添加yum仓库模块，将会放置在/etc/yum.repos.d/目录下，添加nginx_text.repo的yum源</p>
+<p>#when和模块名是同级的，注意when的语法</p>
+<p>#ansible_hostname：是获取主机名的facts变量</p>
+<p>实践案例三、通过register将命令执行结果保存至变量，然后通过when语句进行判断</p>
+<pre><code class="language-shell">[root@ansible project]# cat when3.yml 
+---
+
+- hosts: webservers
+
+  tasks:
+    - name: Check Httpd Server
+      command: systemctl is-active httpd
+      ignore_errors: yes
+      register: check_httpd
+   #- name: debug outprint                          #仅仅只是输出结果
+   #debug: var=check_httpd
+    - name: Httpd Restart
+      service: name=httpd state=restarted
+      when: check_httpd.rc == 0
+
+[root@ansible project]# ansible-playbook when3.yml 
+
+PLAY [webservers] ***********************************************************************************************************************
+
+TASK [Gathering Facts] ******************************************************************************************************************
+ok: [web02]
+ok: [web01]
+
+TASK [Check Httpd Server] ***************************************************************************************************************
+changed: [web02]
+changed: [web01]
+
+TASK [Httpd Restart] ********************************************************************************************************************
+changed: [web02]
+changed: [web01]
+
+PLAY RECAP ******************************************************************************************************************************
+web01                      : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+web02                      : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+</code></pre>
+<h2 id="循环语句">循环语句 ****</h2>
+<p>有时候我们写playbook的时候发现了很多task都要重复引用某个模块，比如一次启动10个服务，或者一次拷贝10个文件，如果按照传统的写法最少要写10次，这样会显得playbook很臃肿，如果使用循环的方式来编写playbook，这样可以减少重复使用某个模块</p>
+<p>实践案例一、使用循环启动多个服务</p>
+<pre><code class="language-shell">[root@ansible project]# cat loop-service.yml 
+---
+
+- hosts: webservers
+
+  tasks:
+    - name: Installed Httpd Mariadb Package
+      yum: name=httpd,mariadb-server state=latest
+
+    - name: Start Httpd Mariadb Server
+      systemd: name={ item } state=started enabled=yes
+
+      with_items:
+        - httpd
+        - mariadb
+ [root@ansible project]# ansible-playbook loop-service.yml 
+
+PLAY [webservers] ***********************************************************************************************************************
+
+TASK [Gathering Facts] ******************************************************************************************************************
+ok: [web01]
+ok: [web02]
+
+TASK [Installed Httpd Mariadb Package] **************************************************************************************************
+ok: [web01]
+ok: [web02]
+
+TASK [Start Httpd Mariadb Server] *******************************************************************************************************
+ok: [web02] =&gt; (item=httpd)
+ok: [web01] =&gt; (item=httpd)
+changed: [web02] =&gt; (item=mariadb)
+changed: [web01] =&gt; (item=mariadb)
+
+PLAY RECAP ******************************************************************************************************************************
+web01                      : ok=3    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+web02                      : ok=3    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0        
+</code></pre>
+<p>实践案例二、使用定义变量方式循环安装软件包</p>
+<pre><code class="language-shell">[root@ansible project]# cat loop-service-v2.yml
+---
+
+- hosts: webservers
+
+  tasks:
+    - name: ensure a list of packages installed
+      yum: name= &quot;{ packages }&quot; state=present
+      vars:
+        packages:
+          - httpd
+          - httpd-tools
+
+[root@ansible project]# ansible-playbook loop-service-v2.yml 
+
+PLAY [webservers] ***********************************************************************************************************************
+
+TASK [Gathering Facts] ******************************************************************************************************************
+ok: [web01]
+ok: [web02]
+
+TASK [ensure a list of packages installed] **********************************************************************************************
+ok: [web01]
+ok: [web02]
+
+PLAY RECAP ******************************************************************************************************************************
+web01                      : ok=2    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+web02                      : ok=2    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+#弃用的方式，但也可以用
+[root@ansible project]# cat loop-service-v2.yml 
+---
+
+- hosts: webservers
+
+  tasks:
+    - name: ensure a list of packages installed
+      yum: name= &quot;{ item }&quot; state=present
+      with_items:
+        - httpd
+        - httpd-tools
+
+[root@ansible project]# ansible-playbook loop-service-v2.yml 
+
+PLAY [webservers] ***********************************************************************************************************************
+
+TASK [Gathering Facts] ******************************************************************************************************************
+ok: [web02]
+ok: [web01]
+
+TASK [ensure a list of packages installed] **********************************************************************************************
+ok: [web02] =&gt; (item=httpd)
+ok: [web01] =&gt; (item=httpd)
+ok: [web01] =&gt; (item=httpd-tools)
+ok: [web02] =&gt; (item=httpd-tools)
+
+PLAY RECAP ******************************************************************************************************************************
+web01                      : ok=2    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+web02                      : ok=2    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0  
+</code></pre>
+<p>实践案例三、使用字典循环方式创建用户和批量拷贝文件</p>
+<p>1）批量创建用户，使用key values字典的方式</p>
+<pre><code class="language-shell">[root@ansible project]# cat loop-user.yml 
+---
+
+- hosts: webservers
+
+  tasks:
+    - name: Add Users
+      user: name={ item.name } groups={ item.groups } state=present
+      with_items:
+        - { name: 'testuser1', groups: 'bin' }
+        - { name: 'testuser2', groups: 'root' }
+        
+[root@ansible project]# ansible-playbook loop-user.yml 
+
+PLAY [webservers] ***********************************************************************************************************************
+
+TASK [Gathering Facts] ******************************************************************************************************************
+ok: [web01]
+ok: [web02]
+
+TASK [Add Users] ************************************************************************************************************************
+changed: [web02] =&gt; (item={u'name': u'testuser1', u'groups': u'bin'})
+changed: [web01] =&gt; (item={u'name': u'testuser1', u'groups': u'bin'})
+changed: [web01] =&gt; (item={u'name': u'testuser2', u'groups': u'root'})
+changed: [web02] =&gt; (item={u'name': u'testuser2', u'groups': u'root'})
+
+PLAY RECAP ******************************************************************************************************************************
+web01                      : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+web02                      : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0          
+</code></pre>
+<p>2）批量拷贝文件，使用key values字典方式</p>
+<pre><code class="language-shell">[root@ansible project]# cat loop-files.yml 
+---
+
+- hosts: webservers
+
+  tasks:
+    - name: Copy Rsync configure and Rsync passwd
+      copy: src={ item.src } dest={ item.dest } mode={ item.mode }
+      with_items:
+        - { src: &quot;./rsyncd.conf&quot;, dest: &quot;/etc/rsyncd.conf&quot;, mode: &quot;0644&quot; }
+        - { src: &quot;./rsync.passwd&quot;, dest: &quot;/tmp/rsync.passwd&quot;, mode: &quot;0600&quot; }
+ 
+[root@ansible project]# ansible-playbook loop-files.yml 
+
+PLAY [webservers] ***********************************************************************************************************************
+
+TASK [Gathering Facts] ******************************************************************************************************************
+ok: [web01]
+ok: [web02]
+
+TASK [Copy Rsync configure and Rsync passwd] ********************************************************************************************
+changed: [web01] =&gt; (item={u'dest': u'/etc/rsyncd.conf', u'src': u'./rsyncd.conf', u'mode': u'0644'})
+changed: [web02] =&gt; (item={u'dest': u'/etc/rsyncd.conf', u'src': u'./rsyncd.conf', u'mode': u'0644'})
+changed: [web01] =&gt; (item={u'dest': u'/tmp/rsync.passwd', u'src': u'./rsync.passwd', u'mode': u'0600'})
+changed: [web02] =&gt; (item={u'dest': u'/tmp/rsync.passwd', u'src': u'./rsync.passwd', u'mode': u'0600'})
+
+PLAY RECAP ******************************************************************************************************************************
+web01                      : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+web02                      : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+</code></pre>
+<h2 id="handlers触发器">handlers触发器</h2>
+<pre><code class="language-shell">[root@ansible project]# cat handlers.yml 
+---
+
+- hosts: webservers
+
+  vars:
+    - http_port: 8083
+
+  tasks:
+    - name: Install Http Server
+      yum: name=httpd state=present
+
+    - name: configure httpd server
+      template: src=./httpd.conf.j2 dest=/etc/httpd/conf/httpd.conf
+
+      notify:
+        - Restart Httpd Server
+        - Restart PHP Server
+
+    - name: start httpd server
+      service: name=httpd state=started enabled=yes
+
+  handlers:
+    - name: Restart Httpd Server
+      systemd: name=httpd state=restarted
+
+    - name: Restart PHP Server
+      systemd: name=php-fpm state=restarted
+</code></pre>
+<p>handlers注意事项</p>
+<p>1）无论多少个task通知了相同的handlers，handlers仅会在所有tasks结束后运行一次</p>
+<p>2）只有task发生改变了才会通知handlers，没有改变则不会触发handlers</p>
+<p>3）不能使用handlers替代tasks</p>
+<h2 id="任务标签">任务标签</h2>
+<p>用途：主要用于调试的场景</p>
+<p>默认情况下，ansible在执行一个playbook时，会执行playbook中定义的所有任务，ansible的标签（tags）功能可以给单独任务甚至整个playbook打上标签，然后利用这些标签来指定要运行playbook中的个别任务，或不执行指定的任务</p>
+<p>1）打标签的方式有几种，比如：</p>
+<p>对一个task打一个标签、对一个task打多个标签、对多个task打一个标签</p>
+<p>2）对task打完标签应该如何使用</p>
+<p>-t：执行指定的tag标签任务</p>
+<p>--skip-tags：执行--skip-tags之外的标签任务</p>
+<pre><code class="language-shell">[root@ansible project]# cat tag.yml 
+---
+
+- hosts: webservers
+
+  vars:
+    - http_port: 8083
+
+  tasks:
+    - name: Install Http Server
+      yum: name=httpd state=present
+      tags:
+        - install_httpd
+        - httpd_server
+
+    - name: configure httpd server
+      template: src=./httpd.conf.j2 dest=/etc/httpd/conf/httpd.conf
+
+      notify: Restart Httpd Server
+      tags:
+        - confiure_httpd
+        - httpd_server
+
+    - name: start httpd server
+      service: name=httpd state=started enabled=yes
+      tags: service_httpd
+
+  handlers:
+    - name: Restart Httpd Server
+      systemd: name=httpd state=restarted
+      
+ 
+[root@ansible project]# ansible-playbook tag.yml --list-tags
+[root@ansible project]# ansible-playbook tag.yml -t httpd_server
+[root@ansible project]# ansible-playbook tag.yml -t install_httpd,confiure_httpd
+[root@ansible project]# ansible-playbook tag.yml --skip-tags httpd_server
+</code></pre>
+<h2 id="文件复用">文件复用</h2>
+<p>include用来动态的包含tasks任务列表 include_tasks新版/include老版<br>
+<img src="https://ajie825.github.io/post-images/1653880536249.png" alt="" loading="lazy"></p>
+<p>include调用任务方式</p>
+<p>import_playbook：调用文件</p>
+<p>include_task：调用任务</p>
+<pre><code class="language-shell">[root@ansible project]# cat task.yml 
+---
+
+- hosts: webservers
+
+  vars:
+    - http_port: 801
+
+  tasks:
+    - include_tasks: task_install.yml
+    - include_tasks: task_configure.yml
+    - include_tasks: task_start.yml
+
+  handlers:
+    - name: Restart Httpd Server
+      systemd: name=httpd state=restarted
+      
+[root@ansible project]# cat task_install.yml 
+- name: Install Http Server
+  yum: name=httpd state=present
+  
+[root@ansible project]# cat task_configure.yml 
+- name: configure httpd server
+  template: src=./httpd.conf.j2 dest=/etc/httpd/conf/httpd.conf
+  notify: Restart Httpd Server
+  
+[root@ansible project]# cat task_install.yml 
+- name: Install Http Server
+  yum: name=httpd state=present
+</code></pre>
+<h2 id="忽略错误">忽略错误</h2>
+<p>默认playbook会检查tasks执行的返回状态，如遇到错误则会立即终止playbook的后续的tasks执行，然而有些时候playbook即使执行错误了也要其继续执行</p>
+<p>加入参数：ignore_errors: yes 忽略错误</p>
+<pre><code class="language-shell">[root@ansible project]# cat ignore_errors.yml
+---
+
+- hosts: webservers
+
+  tasks:
+    - name: Ignore False
+      command: /bin/false
+      ignore_errors: yes
+
+    - name: touch new file
+      file: path=/tmp/bgx_ignore state=touch
+      
+[root@ansible project]# ansible-playbook ignore_errors.yml 
+
+PLAY [webservers] ***********************************************************************************************************************
+
+TASK [Gathering Facts] ******************************************************************************************************************
+ok: [web01]
+ok: [web02]
+
+TASK [Ignore False] *********************************************************************************************************************
+fatal: [web01]: FAILED! =&gt; {&quot;changed&quot;: true, &quot;cmd&quot;: [&quot;/bin/false&quot;], &quot;delta&quot;: &quot;0:00:00.004827&quot;, &quot;end&quot;: &quot;2022-05-29 23:55:06.054025&quot;, &quot;msg&quot;: &quot;non-zero return code&quot;, &quot;rc&quot;: 1, &quot;start&quot;: &quot;2022-05-29 23:55:06.049198&quot;, &quot;stderr&quot;: &quot;&quot;, &quot;stderr_lines&quot;: [], &quot;stdout&quot;: &quot;&quot;, &quot;stdout_lines&quot;: []}
+...ignoring
+fatal: [web02]: FAILED! =&gt; {&quot;changed&quot;: true, &quot;cmd&quot;: [&quot;/bin/false&quot;], &quot;delta&quot;: &quot;0:00:00.005108&quot;, &quot;end&quot;: &quot;2022-05-29 23:55:06.050275&quot;, &quot;msg&quot;: &quot;non-zero return code&quot;, &quot;rc&quot;: 1, &quot;start&quot;: &quot;2022-05-29 23:55:06.045167&quot;, &quot;stderr&quot;: &quot;&quot;, &quot;stderr_lines&quot;: [], &quot;stdout&quot;: &quot;&quot;, &quot;stdout_lines&quot;: []}
+...ignoring
+
+TASK [touch new file] *******************************************************************************************************************
+changed: [web01]
+changed: [web02]
+
+PLAY RECAP ******************************************************************************************************************************
+web01                      : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=1   
+web02                      : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=1
+</code></pre>
+<h2 id="错误处理">错误处理</h2>
+<p>通常情况下，当task执行失败后，playbook将会终止，任何在前面已经被tasks notify的handlers都不会被执行，如何你在play中设置了force_handlers: yes参数，被通知的handlers就会被强制执行(有些特殊场景可能会使用到)</p>
+<p>force_handlers: yes                      #强制调用handlers</p>
+<p>changed_when: false                    #被管理主机没有发生变化，可以使用参数将change状态改为ok</p>
+<p>changed_when:httpd_check.stdout.find('OK')  #查看变量中的某个字符串</p>
+<pre><code class="language-shell">[root@ansible project]# cat changed_when.yml 
+- hosts: webservers
+  #force_handlers: yes
+
+  vars:
+    - http_port: 8083
+
+  tasks:
+    - name: configure httpd server
+      template: src=./httpd.conf.j2 dest=/etc/httpd/conf/httpd.conf
+      notify: Restart Httpd Server
+
+    - name: Check HTTPD
+      shell: /usr/sbin/httpd -t
+      register: httpd_check
+      changed_when:
+        - httpd_check.stdout.find('OK')
+        - false
+
+    - name: start httpd server
+      service: name=httpd state=started enabled=yes
+
+  handlers:
+    - name: Restart Httpd Server
+      systemd: name=httpd state=restarted
+</code></pre>
+<p>failed_when：命令不依赖返回状态码来判定是否执行失败，而是要查看命令返回内容来决定，比如返回内容中包括 failed 字符串，则判定为失败。示例如下：</p>
+<pre><code class="language-shell">- name: this command prints FAILED when itfails
+  command: /usr/bin/example-command -x -y -z
+  register: command_result
+  failed_when: &quot;'FAILED' in command_result.stderr&quot;
+</code></pre>
+<h2 id="ansible加密模块">ansible加密模块</h2>
+<p>ansible Vault作为ansible的一项新功能可将例如password，keys等敏感数据文件进行加密，而非存放在明文的playbooks或roles中</p>
+<p>ansible加密使用的是ansible-vault命令进行加密，语法示例</p>
+<pre><code class="language-shell">[root@ansible project]# ansible-vault --help
+Usage: ansible-vault [create|decrypt|edit|encrypt|encrypt_string|rekey|view][options] [vaultfile.yml]
+
+#加密一个文件
+[root@ansible project]# ansible-vault encrypt facts.yml
+New Vault password: 
+Confirm New Vault password: 
+Encryption successful
+
+#查看一个文件
+[root@ansible project]# ansible-vault view facts.yml
+Vault password: #如果没有密码则无法查看
+
+#修改加密的文件内容
+[root@ansible project]# ansible-vault edit facts.yml
+Vault password: #输入密码才可以编辑
+
+#rekey修改密码
+[root@ansible project]# ansible-vault rekey facts.yml
+Vault password: #旧密码
+New Vault password: #新密码
+Confirm New Vault password:
+Rekey successful
+
+#指定密码文件，避免重复输入密码
+[root@ansible project]# echo &quot;123456&quot;&gt; file_pass 
+[root@ansible project]# ansible-vault encrypt facts.yml --vault-password-file=file_pass     
+Encryption successful
+[root@ansible project]# ansible-vault edit facts.yml --vault-password-file=file_pass
+
+#移除加密的文件
+[root@ansible project]# ansible-vault decrypt facts.yml
+Vault password: 
+Decryption successful
+[root@ansible project]# cat facts.yml  #移除密码后可正常查看
+---
+
+- hosts: webservers
+
+  tasks:
+    - name: Output variables ansible facts
+      debug:
+        msg: &gt;
+          this default IPv4 address &quot;{ ansible_fqdn}&quot; is &quot;{ ansible_default_ipv4.address}&quot;
+</code></pre>
+<h2 id="jinja2模板">jinja2模板</h2>
+<h3 id="什么是jinja2">什么是jinja2</h3>
+<p>Jinja2是Python的全功能模板引擎</p>
+<h3 id="jinja2模板与ansible有什么关系">jinja2模板与ansible有什么关系</h3>
+<p>ansible通常会使用jinja2模板来修改被管理主机的配置文件，例如给10台远程主机都安装httpd服务，但是要求每个服务器的端口不一样，如果解决？</p>
+<h3 id="如何使用jinja2模板">如何使用jinja2模板</h3>
+<p>使用ansible的jinja2模板，也将是template模块，该模块和copy模块一样，都是将文件复制到远端主机上去，但是区别在于template模块可以获取要复制的文件中变量的值，而copy则是原封不动的把文件内容复制过去，比如：针对不同的主机定义不同的变量，template会在将配置文件分发出去前读取变量到jinja模板，然后分发到不同的被管理主机上</p>
+<p>ansible使用jinja注意事项</p>
+<p>ansible允许jinja2模板中使用条件判断和循环，但是不允许在playbook中使用</p>
+<p>注意：不是每个管理员都需要这个特性，但是有些时候jinja2模板能大大提高效率</p>
+<h3 id="jinja2基本使用">jinja2基本使用</h3>
+<p>1、jinja模板基本语法</p>
+<p>{ EXPR } 输出变量的值(会输出自定义变量的值或fact)</p>
+<p>playbook文件使用template参数</p>
+<p>模板文件里面变量使用{ 名称 }，比如{ PORT }或者使用facts</p>
+<p>2、jinja 模板逻辑关系</p>
+<p>{ % for i in EXPR % }.....{ % endfor % } 作为循环表达式</p>
+<p>{ % if EXPR % }......{ % elif EXPR % }......{ % endif% }作为条件判断</p>
+<p>{ # COMMENT # } 表示注释</p>
+<p>3、jinja模板使用示例、使用fact变量的示例</p>
+<pre><code class="language-shell">#使用playbook推送文件
+[root@ansible project]# cat jinja1.yml 
+- hosts: web01
+
+  tasks:
+    - name: Copy Template File /etc/motd
+      template: src=./motd.j2 dest=/etc/motd
+      
+#准备motd.j2文件
+[root@ansible project]# cat motd.j2 
+Welcome to { ansible_hostname }
+This system total Memory is :{ansible_memtotal_mb }
+This system free Memory is :{ansible_memfree_mb }
+
+#执行playbook并查看
+[root@ansible project]# ansible-playbook jinja1.yml
+
+PLAY [web01] ****************************************************************************************************************************
+
+TASK [Gathering Facts] ******************************************************************************************************************
+ok: [web01]
+
+TASK [Copy Template File /etc/motd] *****************************************************************************************************
+changed: [web01]
+
+PLAY RECAP ******************************************************************************************************************************
+web01                      : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0 
+
+[root@ansible project]# ansible web01 -m shell -a &quot;cat /etc/motd&quot;    
+web01 | CHANGED | rc=0 &gt;&gt;
+Welcome to web01
+This system total Memory is :1819
+This system free Memory is :1311
+</code></pre>
+<p>4、 jinja2管理nginx负载均衡</p>
+<p>ansible使用jinja2的for循环表达式渲染出nginx负载均衡的配置文件</p>
+<pre><code class="language-shell">#使用playbook推送文件
+[root@ansible project]# cat proxy.yml 
+- hosts: webservers
+
+  vars:
+    - http_port: 80
+    - server_name: www.oldboyedu.com
+
+  tasks:
+
+    - name: Copy Nginx COnfigure
+      template: src=./oldboyedu.conf.j2 dest=/etc/nginx/conf.d/oldboyedu_proxy.conf
+      
+#准备oldboyedu.conf.j2文件
+[root@ansible project]# cat oldboyedu.conf.j2 
+upstream { server_name } {
+   { % for i in range(51,55) % }
+       server 10.0.0.{i}:{http_port};
+   {%endfor%}
+
+}
+
+server {
+  listen { http_port };
+  server_name { server_name };
+  location / {
+    proxy_pass http://{ server_name };
+    proxy_set_header Host $http_host;
+    }
+}
+</code></pre>
+<p>5、jinja2管理keepalived</p>
+<p>ansible使用jinja2的if判断表达式渲染出keepalived高可用配置文件，并推送至lb组</p>
+<pre><code class="language-shell">#使用playbook推送keepalived配置文件
+[root@ansible project]# cat keepalived.yml 
+- hosts: webservers
+
+  tasks:
+    - name: Copy Keepalived Configure
+      template: src=./keepalived.conf.j2 dest=/tmp/keepalived.conf
+
+      #notify: Restart Keepalived Server
+
+   #handlers:
+     #- name: Restart Keepalived Server
+       #service: name=keepalived state=restarted
+       
+#准备keepalived.conf.j2配置文件
+[root@ansible project]# cat keepalived.conf.j2
+global_defs {   
+    router_id { ansible_hostname }
+}
+
+vrrp_instance VI_1 {
+  {%if ansible_hostname ==&quot;web01&quot; %}
+    state MASTER
+    priority 150
+
+    {%elif ansible_hostname ==&quot;web02&quot; %}
+    state BACKUP
+    priority 100
+  {%endif%}
+
+    interface ens33
+    virtual_router_id 50
+    advert_int 1
+    authentication {
+        auth_type PASS
+        auth_pass 1111
+}
+
+    virtual_ipaddress {
+        10.0.0.3
+    }
+}
+</code></pre>
+<p>6、使用ansible jinja if生成不同的mysql配置文件(自定义变量)</p>
+<pre><code class="language-shell">#推送配置文件
+[root@ansible project]# cat jinja_mysql.yml 
+- hosts: webservers
+
+  gather_facts: no
+
+  vars:
+    PORT: 13306
+    #PORT: false  #相当于开关
+
+  tasks:
+    - name: Copy MySQL Configure
+      template: src=./my.cnf.j2 dest=/tmp/my.cnf   
+      
+#准备my.cnf.j2配置文件
+[root@ansible project]# cat my.cnf.j2 
+{% if PORT %}
+   bind-address=0.0.0.0:{ PORT }
+  {% else %}
+   bind-address=0.0.0.0:3306
+{%endif%}
+</code></pre>
+<h2 id="roles角色">roles角色</h2>
+<h3 id="roles基本概述">roles基本概述</h3>
+<p>前面已经学习过tasks和handlers，那怎样组织playbook才是最好的方式呢？简单的回答就是：使用roles！roles基于一个已知的文件结构，去自动的加载某些vars_files，tasks以及handlers，以便playbook更好的调用，相比playbook，roles的结构更加的清晰有层次</p>
+<p>例如：我们无论安装什么软件都会安装时间同步服务，那么每个playbook都要编写时间同步服务的task，此时我们可以将时间同步服务task写好，等到用的时候再调用就行了</p>
+<p>ansible注意事项：在编写roles的时候，最好能够将一个task拆分为一个文件，方便后续复用(彻底的打散)</p>
+<h3 id="roles目录结构">roles目录结构</h3>
+<p>1、roles官方目录的结构，必须这么定义</p>
+<pre><code class="language-shell">[root@ansible ~]# cd /etc/ansible/roles/
+[root@ansible roles]# mkdir {nfs,rsync,web}/{vars,tasks,templates,handlers,files,meta} -p
+[root@ansible roles]# tree
+.
+├── nfs
+│   ├── files            #角色名称
+│   ├── handlers         #触发任务
+│   ├── meta             #依赖关系
+│   ├── tasks            #具体任务
+│   ├── templates        #模板文件
+│   └── vars             #定义变量
+├── rsync
+│   ├── files
+│   ├── handlers
+│   ├── meta
+│   ├── tasks
+│   ├── templates
+│   └── vars
+└── web
+    ├── files
+    ├── handlers
+    ├── meta
+    ├── tasks
+    ├── templates
+    └── vars
+
+21 directories, 0 files
+</code></pre>
+<h3 id="roles依赖关系">roles依赖关系</h3>
+<p>roles允许在使用role时自动引入其他的role，role依赖关系存储在role目录中 meta/main.yml 文件中</p>
+<p>例如：安装wordpress需要先确保nginx与php都能正常运行，此时可以在wordpress的role中定义，依赖nginx与php-fpm的roles</p>
+<pre><code class="language-shell">#role依赖必须使用经典的role语法定义
+[root@ansible ~]# cat /etc/ansible/roles/web/meta/main.yml
+---
+
+dependencies:
+  - { role: nginx }
+  - { role: php-fpm }
+</code></pre>
+<p>此时wordpress的role会先执行nginx的role，然后执行php-fpm的role，最后在执行wordpress本身的role</p>
+<h3 id="roles案例实战">roles案例实战</h3>
+<p>roles小技巧：</p>
+<p>1）创建role目录结构，手动或使用ansible-galaxy init test roles</p>
+<p>2）编写role功能内容</p>
+<p>3）在playbook中引用</p>
+<pre><code class="language-shell">#ansible roles重构nfs服务
+[root@ansible ~]# cd /etc/ansible/roles/
+[root@ansible roles]# mkdir nfs/{tasks,templates,handlers} -p
+[root@ansible roles]# tree nfs/
+nfs/
+├── handlers
+├── tasks
+└── templates
+
+3 directories, 0 files
+
+[root@ansible roles]# cat group_vars/all 
+nfs_dir: /data
+
+[root@ansible roles]# cat nfs/tasks/install.yml
+- name: Install NFS-utils Server
+  yum: name=nfs-utils state=present
+  
+[root@ansible roles]# cat nfs/tasks/config.yml
+- name: Configure Nfs-utils Server
+  template: src=./exports.j2 dest=/etc/exports owner=root group=root mode=0644
+  notify: Restart NFS Server
+  
+[root@ansible roles]# cat nfs/tasks/start.yml
+- name: Start NFS Server
+  systemd: name=nfs state=started enabled=yes 
+  
+[root@ansible roles]# cat nfs/tasks/main.yml
+- include_tasks: install.yml
+- include_tasks: config.yml
+- include_tasks: start.yml
+
+[root@ansible roles]# cat nfs/templates/exports.j2
+{ nfs_dir } 10.0.0.0/24(rw,sync,all_squash,anonuid=666,anongid=666)
+
+[root@ansible roles]# cat nfs-client/tasks/main.yml
+- name: Mount NFS Server
+  mount: path=/opt src=10.0.0.52:/data fstype=nfs opts=defaults state=mounted
+  
+[root@ansible roles]# cat site.yml
+- hosts: web01
+  roles:
+    - nfs
+
+- hosts: web02
+  roles:
+    - nfs-client  
+</code></pre>
+<h2 id="ansible-galaxy">ansible galaxy</h2>
+<p>galaxy是一个免费网站，类似于github网站，网站上基本都是共享的roles角色，从galaxy下载roles角色是快速启动自动化项目方式之一</p>
+<p>ansible提供了一个ansible-galaxy命令行工具，可以用来init(初始化)、search(查找)、install(安装)、remove(移除)等操作</p>
+<p>官网地址：https://galaxy.ansible.com/</p>
+<p>ansible学习可参考：https://www.xuliangwei.com/oldxu/tag/ansible</p>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/ansibleer/">
+              <h3 class="post-title">
+                下一篇：ansible（二）
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

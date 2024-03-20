@@ -1,0 +1,406 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>nginx https实践 | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">nginx https实践</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-08-08</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/YBDfkYHYeR/">
+                    nginx
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="https安全证书基本概述">HTTPS安全证书基本概述</h2>
+<pre><code class="language-bash">为什么需要使用HTTPS，因为HTTP不安全。当我们使用http网站时，会遭到劫持和篡改，如果采用https协议，那么数据在传输
+过程中是加密的，所以黑客无法窃取或者篡改数据报文信息，同时也避免网站传输时信息泄露。
+那么我们在实现https时，需要了解ssl协议，但我们现在使用的更多的是TLS加密协议。
+那么TLS是怎么保证明文消息被加密的呢？在OSI七层模型中，应用层是http协议，那么在应用层协议之下，我们的表示层，是ssl
+协议所发挥作用的一层，它通过（握手、交互密钥、告警、加密）等方式，使应用层http协议没有感知的情况下做到了数据的安全
+加密。
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1660007696893.jpg" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">那么在数据进行加密与解密过程中，如何确定双方的身份，此时就需要有一个权威机构来验证双方身份。那么这个权威机构则是
+CA机构，那CA机构又是如何颁发证书的？
+</code></pre>
+<figure data-type="image" tabindex="2"><img src="https://ajie825.github.io/post-images/1660007935443.jpg" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">我们首先需要申请证书，需要进行登记，登记我是谁，我是什么组织，我想做什么，到了登记机构在通过CSR发给CA，CA中心会
+生成一对公钥和私钥，那么公钥会在CA证书链中保存，公钥和私钥证书订阅人拿到后，会将其部署在web服务器上。
+1）当浏览器访问我们的https站点时，它会去请求我们的证书
+2）nginx服务器会将我们的公钥证书发给浏览器
+3）浏览器会去验证我们的证书是否是合法和有效的
+4）CA机构会将过期的证书放置在CRL服务器，那么CRL服务的验证效率是非常差的，所以CA又推出了OCSP响应程序，OCSP响应
+程序可以查询指定的一个证书是否过期，所以浏览器可以直接查询OCSP响应程序，但OCSP响应程序性能还不是很高
+5）nginx会有一个OCSP的开关，当我们开启后，nginx会主动上OCSP上查询，这样大量的客户端直接从nginx获取，证书是否有
+效。
+</code></pre>
+<pre><code class="language-bash">那么证书究竟是怎样组成的呢，接下来我们看一下证书有哪几种类型？
+</code></pre>
+<figure data-type="image" tabindex="3"><img src="https://ajie825.github.io/post-images/1660009143282.jpg" alt="" loading="lazy"></figure>
+<h3 id="https证书购买选择">HTTPS证书购买选择</h3>
+<pre><code class="language-bash">保护1个域名 www
+保护5个域名 www  images  cdn  test  m
+通配符域名  *.oldboy.com
+</code></pre>
+<h3 id="https注意事项">HTTPS注意事项</h3>
+<pre><code class="language-bash">HTTPS不支持续费，证书到期需重新申请并进行替换
+HTTPS不支持三级域名解析，如test.m.oldboy.com
+HTTPS显示绿色，说明整个网站的url都是https的
+HTTPS显示黄色，因为网站代码中包含http的不安全连接
+HTTPS显示红色，要么证书是假的，要么证书过期
+</code></pre>
+<h2 id="nginx单台实现https实战">nginx单台实现HTTPS实战</h2>
+<pre><code class="language-bash">1）环境准备
+#nginx必须有ssl模块
+[root@web01 ~]# nginx -V
+--with-http_ssl_module
+#创建存放ssl证书的路径
+[root@web01 ~]# mkdir -p /etc/nginx/ssl_key
+[root@web01 ~]# cd /etc/nginx/ssl_key/
+</code></pre>
+<pre><code class="language-bash">2）使用openssl命令充当CA权威机构创建证书（生产不使用此方式生成证书，不被互联网认可的黑户证书）
+[root@Nginx ssh_key]# openssl genrsa -idea -out server.key 2048
+Generating RSA private key, 2048 bit long modulus
+.....+++
+#记住配置密码, 我这里是1234
+Enter pass phrase for server.key:
+Verifying - Enter pass phrase for server.key:
+</code></pre>
+<pre><code class="language-bash">3）生成自签证书，同时去掉私钥的密码
+[root@Nginx ssl_key]# openssl req -days 36500 -x509 \
+-sha256 -nodes -newkey rsa:2048 -keyout server.key -out server.crt
+Country Name (2 letter code) [XX]:CN
+State or Province Name (full name) []:WH
+Locality Name (eg, city) [Default City]:WH
+Organization Name (eg, company) [Default Company Ltd]:edu    
+Organizational Unit Name (eg, section) []:SA
+Common Name (eg, your name or your servers hostname) []:bgx
+Email Address []:bgx@foxmail.com
+# req  --&gt;用于创建新的证书
+# new  --&gt;表示创建的是新证书
+# x509 --&gt;表示定义证书的格式为标准格式
+# key  --&gt;表示调用的私钥文件信息
+# out  --&gt;表示输出证书文件信息
+# days --&gt;表示证书的有效期
+[root@web01 ssl_key]# ls
+server.crt  server.key
+</code></pre>
+<pre><code class="language-bash">4）证书申请完成后需要了解nginx如何配置HTTPS
+#启动ssl功能
+Syntax : ssl on | off;
+Default: ssl off;
+Context: http, server
+#证书文件
+Syntax : ssl_certificate file;
+Default: —
+Context: http, server
+#私钥文件
+Syntax : ssl_certificate_key file;
+Default: —
+Context: http, server
+</code></pre>
+<pre><code class="language-bash">5）nginx配置https实例
+[root@web01 ~]# cd /etc/nginx/conf.d/
+[root@web01 conf.d]# cat ssl.conf 
+server {
+    listen 443 ssl;
+    server_name s.oldboy.com;
+    ssl_certificate   ssl_key/server.crt;
+    ssl_certificate_key  ssl_key/server.key;
+    location / {
+        root /code;
+        index index.html;
+    }
+}
+#准备对应的站点目录, 并重启Nginx服务
+[root@web01 conf.d]# mkdir -p /code
+[root@web01 conf.d]# echo &quot;Https&quot; &gt; /code/index.html
+[root@web01 conf.d]# nginx -t
+[root@web01 conf.d]# systemctl reload nginx
+</code></pre>
+<pre><code class="language-bash">6）浏览器输入https://s.oldboy.com访问, 由于该证书非第三方权威机构颁发，而是我们自己签发的，所以浏览器会警告
+</code></pre>
+<figure data-type="image" tabindex="4"><img src="https://ajie825.github.io/post-images/1660011504588.jpg" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">7）如果用户忘记在浏览器输入https://那么将不会跳转至https，建议配置将用户访问http请求强制跳转https----生产建议
+[root@web01 conf.d]# cat ssl.conf 
+server {
+    listen 443 ssl;
+    server_name s.oldboy.com;
+    ssl_certificate   ssl_key/server.crt;
+    ssl_certificate_key  ssl_key/server.key;
+    location / {
+        root /code;
+        index index.html;
+    }
+}
+server {
+        listen 80;
+        server_name s.oldboy.com;
+        rewrite ^(.*) https://$server_name$1 redirect;  #rewrite跳转方式
+        #return 302 https://$server_name$request_uri;   #return跳转方式   
+}
+</code></pre>
+<h2 id="nginx集群实现https实践">Nginx集群实现HTTPS实践</h2>
+<h3 id="nginx负载均衡nginx-web配置https安全">Nginx负载均衡+Nginx WEB配置HTTPS安全</h3>
+<figure data-type="image" tabindex="5"><img src="https://ajie825.github.io/post-images/1660013326588.jpg" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">1）环境准备
+主机名           外网IP(NAT)         内网IP(LAN)           角色
+lb01             10.0.0.5	         172.16.1.5	        nginx-proxy
+web01            10.0.0.7	         172.16.1.7	        nginx-web01
+web02            10.0.0.8	         172.16.1.8	        nginx-web02
+</code></pre>
+<pre><code class="language-bash">2）配置后端两台web节点监听80端口，如已配置则无需修改
+#web01的配置
+[root@web01 conf.d]# cat ssl.conf 
+server {
+  listen 80;
+  server_name s.oldboy.com;
+
+  location / {
+     root /code;
+     index index.html;
+  }
+}
+[root@web01 conf.d]# nginx -t
+[root@web01 conf.d]# systemctl reload nginx
+[root@web01 conf.d]# echo &quot;Web01 Https&quot; &gt; /code/index.html
+
+#web02的配置
+[root@web02 conf.d]# cat ssl.conf 
+server {
+  listen 80;
+  server_name s.oldboy.com;
+
+  location / {
+     root /code;
+     index index.html;
+  }
+}
+[root@web02 conf.d]# nginx -t
+[root@web02 conf.d]# systemctl reload nginx
+[root@web02 conf.d]# echo &quot;Web02 Https&quot; &gt; /code/index.html 
+</code></pre>
+<pre><code class="language-bash">3）配置负载均衡，管理我们的ssl证书，并进行配置nginx
+[root@lb01 ~]# scp -rp 10.0.0.7:/etc/nginx/ssl_key /etc/nginx 
+[root@lb01 conf.d]# cat upstream.conf 
+# 定义后端资源池
+upstream site {
+    server 172.16.1.7:80 max_fails=2 fail_timeout=10s;
+    server 172.16.1.8:80 max_fails=2 fail_timeout=10s;
+}
+[root@lb01 conf.d]# cat proxy_ssl.conf 
+# https配置
+server {
+    listen 443 ssl;
+    server_name s.oldboy.com;
+   
+    ssl_certificate  ssl_key/server.crt;
+    ssl_certificate_key  ssl_key/server.key;
+    location / {
+        proxy_pass http://site;
+        include proxy_params;
+    }
+}
+# 用户http请求跳转至https
+server {
+    listen 80;
+    server_name s.oldboy.com;
+    return 302 https://$server_name$request_uri;
+}
+[root@lb01 conf.d]# nginx -t
+[root@lb01 conf.d]# systemctl restart nginx
+</code></pre>
+<h3 id="将wordpress-wecenter-phpadmin在负载均衡添加https">将WordPress、WeCenter、phpAdmin在负载均衡添加HTTPS</h3>
+<pre><code class="language-bash">#配置文件都类似，只需要更改域名即可
+[root@lb01 conf.d]# cat proxy_blog.conf 
+# https配置
+server {
+    listen 443 ssl;
+    server_name blog.oldboy.com;
+   
+    ssl_certificate  ssl_key/server.crt;
+    ssl_certificate_key  ssl_key/server.key;
+    location / {
+        proxy_pass http://site;
+        include proxy_params;
+    }
+}
+# 用户http请求跳转至https
+server {
+    listen 80;
+    server_name blog.oldboy.com;
+    return 302 https://$server_name$request_uri;
+}
+[root@lb01 conf.d]# nginx -t
+[root@lb01 conf.d]# systemctl restart nginx
+</code></pre>
+<pre><code class="language-bash">#问题
+当负载均衡配置为HTTPS时，后端的php-fpm节点为HTTP，WordPress、WeCenter访问的页面会出现破图，phpAdmin无法进行登
+录，需要在后端web节点配置fastcgi_param HTTPS on参数
+[root@web01 conf.d]# cat blog.oldboy.com.conf 
+server {
+        listen 80;
+        server_name blog.oldboy.com;
+        root /code/wordpress;
+        client_max_body_size 100m;
+        location / {
+                index index.php index.html;
+        }
+
+        location ~ \.php$ {
+                fastcgi_pass 127.0.0.1:9000;
+                fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+                fastcgi_param HTTPS on; 
+                include fastcgi_params;
+        }
+}
+[root@web01 conf.d]# nginx -t 
+[root@web01 conf.d]# systemctl restart nginx
+</code></pre>
+<h3 id="ssl优化相关的参数">SSL优化相关的参数</h3>
+<pre><code class="language-bash">ssl_session_cache shared:SSL:10m;        #在建立完ssl握手后如果断开连接，在session_timeout时间内再次连接，是不需要再次建立握手，可以复用之前的连接
+ssl_session_timeout 1440m;               #ssl连接断开后的超时时间
+ssl_protocols TLSv1 TLSv1.1 TLSv1.2;     #使用的TLS版本协议
+ssl_prefer_server_ciphers on;            #Nginx决定使用哪些协议与浏览器进行通讯
+ssl_ciphers ECDHE-RSA-AES128-GCM-SHA256:ECDHE:ECDH:AES:HIGH:!NULL:!aNULL:!MD5:!ADH:!RC4; #加密套件
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/nginx-rewrite-chong-xie/">
+              <h3 class="post-title">
+                下一篇：nginx rewrite重写
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

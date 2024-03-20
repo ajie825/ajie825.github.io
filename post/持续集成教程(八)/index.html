@@ -1,0 +1,429 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>持续集成教程 (八) | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">持续集成教程 (八)</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2023-10-19</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/orkaNU-rT/">
+                    devops
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="什么是jenkins-pipeline">什么是<code>Jenkins pipeline</code></h2>
+<p><code>pipeline</code>是一套运行在<code>Jenkins</code>上的工作流框架，<code>Jenkins 2.X</code>版本的核心功能，主要是将一个大的工作流拆分成多个独立的功能模块，实现单个任务难以完成的复杂流程编排和可视化。</p>
+<p><code>Jenkins pipeline</code>也是实现<code>CICD As file</code>的一个重要工具，将<code>pipeline</code>编写成<code>Jenkinsfile</code>与业务代码一起存放。</p>
+<p><code>pipeline</code>支持两种语法：</p>
+<ol>
+<li>
+<p>声明式语法</p>
+<p><code>Jenkins</code>新加入的语法规则，在<code>Jenkinsfile</code>固定的关键字之内，所采用的语法风格大多与<code>shell</code>类似，这种风格更加符合日常的阅读习惯，也更简单，以后都将采用这种方式进行介绍以及深入。</p>
+</li>
+<li>
+<p>脚本式语法</p>
+<p>不是<code>shell</code>脚本形式，而是基于<code>Groovy</code>语言的语法风格，学习成本相对较高</p>
+</li>
+</ol>
+<p>建议直接使用声明式语法清晰简单明了，适合大部分人入门</p>
+<h2 id="pipeline和freestyle对比"><code>pipeline</code>和<code>FreeStyle</code>对比</h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>灵活方式</th>
+<th>显示形式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>FreeStyle</code></td>
+<td>图形化操作，适合入门操作，后期流程多后，不易于快速构建</td>
+<td>只有统一日志展示，没有完整阶段流程信息展示</td>
+</tr>
+<tr>
+<td><code>Pipeline</code></td>
+<td>结构化代码语法，易于阅读和管理，可以实现<code>CICD as Code</code></td>
+<td>阶段流程信息展示清晰，每个阶段构建时间和对应的构建日志清晰可读</td>
+</tr>
+</tbody>
+</table>
+<h2 id="从一个简单的项目开始">从一个简单的项目开始</h2>
+<p>日常工作中的持续集成，最简单的，莫过于一些前端项目，只需要将开发的代码同步到远程主机定义好的目录即可，因此这里就创建一个简单的文件，模拟这种发布情景，暂不纠结复杂的编译之类的事情，先从简单的构建开始，以学习语法规范为要。</p>
+<h3 id="准备工作">准备工作</h3>
+<p><strong>主机分布</strong></p>
+<table>
+<thead>
+<tr>
+<th>主机</th>
+<th>软件</th>
+<th>IP</th>
+<th>版本</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CentOS 7.9.2009 (Core)</code></td>
+<td><code>Gitlab</code></td>
+<td>192.168.40.181</td>
+<td>12.3.5</td>
+</tr>
+<tr>
+<td><code>CentOS 7.9.2009 (Core)</code></td>
+<td><code>Jenkins</code></td>
+<td>192.168.40.182</td>
+<td>2.401</td>
+</tr>
+</tbody>
+</table>
+<p><strong>安装软件</strong></p>
+<p>安装软件的工作，这里就不再说明，另外两台主机都需要安装如下基础软件：</p>
+<pre><code class="language-shell">yum -y install git rsync ntpdate &amp;&amp; ntpdate -u cn.pool.ntp.org
+</code></pre>
+<p><strong>创建项目</strong></p>
+<p>为后边实验顺利，这里先在<code>gitlab</code>创建一个测试项目，项目地址如下：</p>
+<pre><code class="language-shell">http://192.168.40.181/oldboy/hello-world.git
+</code></pre>
+<p>里边只有一个<code>readme</code>文件，用于验证简单发布的一些结果。</p>
+<p><strong>密钥安排</strong></p>
+<p>同样是为了后边实验顺利，这里提前将各处需要的密钥给安排妥当。在<code>Jenkins</code>创建密钥对，然后将公钥放到<code>gitlab</code>管理员账号的<code>SSH Key</code>里边进行配置，认证完成之后，在<code>Jenkins</code>主机，拉取一下刚刚项目的代码，做一下简单的连通性工作，否则后边在添加了代码<code>URL</code>之后会一直认证不过去，就是因为没有初始认证的缘故：</p>
+<pre><code class="language-shell">[root@jenkins opt]# git clone git@192.168.40.181:oldboy/hello-world.git
+</code></pre>
+<h3 id="配置项目"><strong>配置项目</strong></h3>
+<p><strong>简单配置</strong></p>
+<p>现在直接去<code>Jenkins</code>里边，创建一个<code>pipelne</code>风格的项目：<br>
+<img src="https://ajie825.github.io/post-images/1697771475218.png" alt="" loading="lazy"></p>
+<p>进入项目的配置，直接在最下边的流水线处，按如下内容配置：<br>
+<img src="https://ajie825.github.io/post-images/1697772324416.png" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1697772340213.png" alt="" loading="lazy"></p>
+<p>将项目仓库地址填入，然后脚本路径一般写成默认的<code>Jenkinsfile</code>，就这么简单的配置可以了，直接点击保存即可。</p>
+<p>现在需要准备编写<code>Jenkinsfile</code>了，事实在日常流程中，这个文件应该是准备好了之后，再来创建项目的，只不过这里为了便于理解整个流程，特别把顺序做了调整。</p>
+<p>现在来到项目的根目录中：</p>
+<pre><code class="language-shell">[root@git hello-world]# ls
+Jenkinsfile  README.md
+[root@git hello-world]# cat README.md 
+Jenkins pipeline test。
+</code></pre>
+<p>接着是<code>Jenkinsfile</code>的内容：</p>
+<pre><code class="language-shell">pipeline {
+    agent any
+    environment {
+        git_url     = &quot;git@192.168.40.181:oldboy/hello-world.git&quot;
+        remote_ip   = &quot;192.168.40.182&quot;
+        remote_dir  = &quot;/opt/hello/&quot;
+    }
+    options {
+        // 表示保留10次构建历史
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        // 不允许同时执行流水线，被用来防止同时访问共享资源等
+        disableConcurrentBuilds()
+        // 设置流水线运行的超时时间，在此之后，Jenkins将中止流水线
+        timeout(time: 10, unit: 'MINUTES')
+        // 输出构建的时间信息
+        timestamps()
+    }
+    stages {
+        stage('rsync') {
+            steps {
+                echo 'rsync'
+                sh '''
+                   rsync -avz --progress -e 'ssh -p 22' --exclude='Jenkinsfile' --exclude='.git' --delete ${WORKSPACE}/  root@$remote_ip:$remote_dir
+                '''
+            }
+        }
+        stage('delete') {
+            steps {
+                echo '清理工作目录'
+                cleanWs()
+            }
+        }
+    }
+    post {
+        success {
+            sh &quot;echo 成功了&quot;
+        }
+        failure {
+            sh &quot;echo 失败了&quot;
+        }
+    }
+}
+</code></pre>
+<p>如上的参数内容暂时先不讲解，去做一下构建看看效果。</p>
+<p><strong>手动构建</strong></p>
+<p>构建日志内容如下：</p>
+<pre><code class="language-shell">Started by user admin
+Obtained Jenkinsfile from git git@192.168.40.181:oldboy/hello-world.git
+[Pipeline] Start of Pipeline
+[Pipeline] node
+Running on Jenkins in /var/lib/jenkins/workspace/hello-world
+[Pipeline] {
+[Pipeline] stage
+[Pipeline] { (Declarative: Checkout SCM)
+[Pipeline] checkout
+Selected Git installation does not exist. Using Default
+The recommended git tool is: NONE
+using credential jenkins
+Cloning the remote Git repository
+Cloning repository git@192.168.40.181:oldboy/hello-world.git
+ &gt; git init /var/lib/jenkins/workspace/hello-world # timeout=10
+Fetching upstream changes from git@192.168.40.181:oldboy/hello-world.git
+ &gt; git --version # timeout=10
+ &gt; git --version # 'git version 1.8.3.1'
+using GIT_SSH to set credentials 
+Verifying host key using known hosts file
+ &gt; git fetch --tags --progress git@192.168.40.181:oldboy/hello-world.git +refs/heads/*:refs/remotes/origin/* # timeout=10
+ &gt; git config remote.origin.url git@192.168.40.181:oldboy/hello-world.git # timeout=10
+ &gt; git config --add remote.origin.fetch +refs/heads/*:refs/remotes/origin/* # timeout=10
+Avoid second fetch
+ &gt; git rev-parse refs/remotes/origin/master^{commit} # timeout=10
+Checking out Revision caa7c6e8354b262875cb927bcad317f98f7cae19 (refs/remotes/origin/master)
+ &gt; git config core.sparsecheckout # timeout=10
+ &gt; git checkout -f caa7c6e8354b262875cb927bcad317f98f7cae19 # timeout=10
+Commit message: &quot;modify Jenkinsfile&quot;
+ &gt; git rev-list --no-walk 2d7cb5e5762c9243707bda7cfeedb5682d5d6ddf # timeout=10
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] withEnv
+[Pipeline] {
+[Pipeline] withEnv
+[Pipeline] {
+[Pipeline] timeout
+Timeout set to expire in 10 min
+[Pipeline] {
+[Pipeline] timestamps
+[Pipeline] {
+[Pipeline] stage
+[Pipeline] { (rsync)
+[Pipeline] echo
+14:30:36  rsync
+[Pipeline] sh
+14:30:37  + rsync -avz --progress -e 'ssh -p 22' --exclude=Jenkinsfile --exclude=.git --delete /var/lib/jenkins/workspace/hello-world/ root@192.168.40.182:/opt/hello/
+14:30:37  sending incremental file list
+14:30:37  created directory /opt/hello
+14:30:37  ./
+14:30:37  README.md
+14:30:37  
+             24 100%    0.00kB/s    0:00:00  
+             24 100%    0.00kB/s    0:00:00 (xfr#1, to-chk=0/2)
+14:30:37  
+14:30:37  sent 166 bytes  received 71 bytes  158.00 bytes/sec
+14:30:37  total size is 24  speedup is 0.10
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (delete)
+[Pipeline] echo
+14:30:37  清理工作目录
+[Pipeline] cleanWs
+14:30:37  [WS-CLEANUP] Deleting project workspace...
+14:30:37  [WS-CLEANUP] Deferred wipeout is used...
+14:30:37  [WS-CLEANUP] done
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Declarative: Post Actions)
+[Pipeline] sh
+14:30:37  + echo 成功了
+14:30:37  成功了
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] }
+[Pipeline] // timestamps
+[Pipeline] }
+[Pipeline] // timeout
+[Pipeline] }
+[Pipeline] // withEnv
+[Pipeline] }
+[Pipeline] // withEnv
+[Pipeline] }
+[Pipeline] // node
+[Pipeline] End of Pipeline
+Finished: SUCCESS
+</code></pre>
+<p><img src="https://ajie825.github.io/post-images/1698048233671.png" alt="" loading="lazy"><br>
+刚刚的结果，其实是将代码同步到<code>Jenkins</code>本机了，那么去看一眼效果是否如我们所想：</p>
+<pre><code class="language-shell">[root@jenkins hello]# cd
+[root@jenkins ~]# cd /opt/hello/
+[root@jenkins hello]# ls
+README.md
+[root@jenkins hello]# cat README.md 
+Jenkins pipeline test
+</code></pre>
+<p>一个简单的项目就配置好了，这种将配置<code>code</code>化的方式，不仅优雅，节约了大量的配置时间，而且提高了不少的效率。</p>
+<h3 id="配置讲解">配置讲解</h3>
+<ul>
+<li>
+<p><code>pipeline</code></p>
+<p>用于声明表示流水线的标识，表示这里将采用声明式的语法风格，与之对应的还有另外一种，叫做脚本式。</p>
+</li>
+<li>
+<p><code>agent</code></p>
+<p>此关键字用于表示当前流水线将要执行的位置，当我们的<code>Jenkins</code>是主从那种集群的时候，可以通过<code>agent</code>进行指定，同时也可以基于<code>docker</code>容器的构建，后边会详细介绍，这里的<code>any</code>表示任一客户端，因为当前<code>Jenkins</code>是单机的，因此就在当前主机执行。</p>
+</li>
+<li>
+<p><code>environment</code></p>
+<p>用于设置环境变量，以便于代码复用的时候，更加清晰明了的简化工作内容，只要项目是类似的，那么直接在<code>environment</code>区域进行配置即可，而无需穿梭到复杂的内容里更改配置。需要注意的一点是，变量的声明可以在<code>pipeline</code>以及<code>stage</code>区域当中，与大多数语言一样，不同的区域作用域也是不一样的。</p>
+</li>
+<li>
+<p><code>options</code></p>
+<p>用来配置<code>Jenkins</code>应用自身的一些配置项，这个地方简单列举了几个，后面在详解参数配置的文章里边，会详细介绍。</p>
+</li>
+<li>
+<p><code>stages</code></p>
+<p>用于表示流水线各个步骤的声明，其下一层级是<code>stage</code>，通常<code>stages</code>只有1个，里面包含多个<code>stage</code>。</p>
+</li>
+<li>
+<p><code>stage</code></p>
+<p>表示实际构建的阶段，阶段必须命名，因为<code>Jenkins</code>将在界面上显示每个阶段，每个阶段做不同的事情，一般分为拉取代码、编译构建、部署等阶段。</p>
+</li>
+<li>
+<p><code>steps</code></p>
+<p>标识阶段之中具体的构建步骤，在<code>stage</code>中有且只能有一个<code>steps</code>，里面是<code>shell</code>脚本、<code>git</code>拉取代码、<code>ssh</code>远程发布等任意内容。</p>
+</li>
+<li>
+<p><code>post</code></p>
+<p>用于定义在整个流水线执行结果的情况，通常可配合通知进行对项目构建状态的告知。</p>
+</li>
+</ul>
+<p>目前，这个项目所用到的语法，就是这些，一开始学习的时候，实在不必于纠结每一个语法的原理或者深意，只需大致了解，然后专注于自己所想要的，只要完成自己所想的，就是最好的。</p>
+<p>比如基于上边只有<code>rsync</code>单步骤情景，往<code>Java</code>项目上套，也是很简单的，只需要将日常构建的几个步骤，一个个<code>stage</code>来表示，这样，一个简单好用的流水线就完成了，在完成基础功能构建之后，再去深入各个参数，进行比较花哨的配置应用。</p>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/chi-xu-ji-cheng-jiao-cheng-qi/">
+              <h3 class="post-title">
+                下一篇：持续集成教程 (七)
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

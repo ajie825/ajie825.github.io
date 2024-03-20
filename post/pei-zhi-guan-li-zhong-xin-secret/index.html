@@ -1,0 +1,285 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>配置管理中心secret | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">配置管理中心secret</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-09-07</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/vN0im2GW5W/">
+                    k8s
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="secret概述">secret概述</h2>
+<h3 id="secret是什么">secret是什么？</h3>
+<p>前面学习的<code>configmap</code>一般是用来存放明文数据的，如配置文件，对于一些敏感数据，如密码、私钥等数据时，要用<code>secret</code>类型。</p>
+<p><code>secret</code>解决了密码、<code>token</code>、密钥等敏感数据的配置问题，而不需要把这些敏感数据暴露到镜像或者<code>pod</code>中，<code>secret</code>可以以<code>volume</code>或者环境变量的方式使用。</p>
+<p>要使用<code>secret</code>，<code>pod</code>可以用两种方式引用<code>secret</code>：作为<code>volume</code>中的文件被挂载到<code>pod</code>中的一个或者多个容器里，或者当<code>kubelet</code>为<code>pod</code>拉取镜像时使用。</p>
+<p><code>secret</code>可选参数有三种：</p>
+<ol>
+<li><code>generic</code>：通用类型，通常用于存储密码数据。</li>
+<li><code>tls</code>：此类型仅用于存储私钥和证书。</li>
+<li><code>docker-registry</code>：若要保存<code>docker</code>仓库的认证信息的话，就必须使用此种类型来创建。</li>
+</ol>
+<p><code>secret</code>三种类型：</p>
+<ol>
+<li><code>Service Account</code>：用于被<code>sa</code>引用，<code>sa</code>创建时<code>k8s</code>默认会生成对应的<code>secret</code>，<code>pod</code>如果使用了<code>sa</code>，对应的<code>secret</code>会自动挂载到<code>pod</code>的<code>/run/secrets/kubernetes.io/serviceaccount</code>目录中。</li>
+<li><code>Opaque</code>：<code>base64</code>编码格式的<code>secret</code>，用来存储密码、密钥等，可以通过<code>base64 --decode</code>解码获得原始数据，因此安全性较弱。</li>
+<li><code>kubernetes.io/dockerconfigjson</code>：用来存储私有<code>docker registry</code>的认证信息。</li>
+</ol>
+<h2 id="使用secret">使用secret</h2>
+<h3 id="通过环境变量引入secret">通过环境变量引入secret</h3>
+<pre><code class="language-bash">1）#把mysql的root用户的password在命令行创建成secret
+[root@master1 secret]# kubectl create secret generic mysql-password --from-literal=password=oldboy123@
+secret/mysql-password created
+[root@master1 secret]# kubectl get secrets|grep mysql-password                                             
+NAME                          TYPE              DATA   AGE
+mysql-password                Opaque            1      34s
+[root@master1 secret]# kubectl describe secrets mysql-password 
+Name:         mysql-password
+Namespace:    default
+Labels:       &lt;none&gt;
+Annotations:  &lt;none&gt;
+
+Type:  Opaque
+
+Data
+====
+password:  10 bytes
+</code></pre>
+<p><code>password</code>的值是加密的，但<code>secret</code>的加密是一种伪加密，它仅仅是将数据做了<code>base64</code>的编码。</p>
+<pre><code class="language-bash">2）#创建pod，引用secret
+[root@master1 secret]# cat pod-secret.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-secret
+  labels:
+    app: myapp
+spec:
+  containers:
+  - name: myapp
+    image: ikubernetes/myapp:v1
+    imagePullPolicy: IfNotPresent
+    ports:
+    - containerPort: 80
+    env:
+    - name: MYSQL_ROOT_PASSWORD     #它是pod启动成功后，pod中容器的环境变量名
+      valueFrom:
+        secretKeyRef:
+          name: mysql-password      #这是secret的对象名
+          key: password             #这是secret的key名
+[root@master1 secret]# kubectl apply -f pod-secret.yaml 
+pod/pod-secret created
+[root@master1 ~]# kubectl exec -it pod-secret -- /bin/sh
+/ # printenv|grep MYSQL_ROOT_PASSWORD
+MYSQL_ROOT_PASSWORD=oldboy123@
+</code></pre>
+<h3 id="通过volume挂载secret">通过volume挂载Secret</h3>
+<pre><code class="language-bash">1）#基于base64加密
+[root@master1 secret]# echo 'admin' | base64
+YWRtaW4K
+[root@master1 secret]# echo 'oldboy123456f' | base64
+b2xkYm95MTIzNDU2Zgo=
+You have new mail in /var/spool/mail/root
+[root@master1 secret]# echo YWRtaW4K | base64 -d
+admin
+[root@master1 secret]# echo b2xkYm95MTIzNDU2Zgo= | base64 -d        
+oldboy123456f
+</code></pre>
+<pre><code class="language-bash">2）#创建secret的yaml文件
+[root@master1 secret]# cat secret.yaml 
+apiVersion: v1
+kind: Secret
+metadata:
+  name: my-secret
+data:
+  username: YWRtaW4K                 #key值自己定义
+  password: b2xkYm95MTIzNDU2Zgo=
+[root@master1 secret]# kubectl apply -f secret.yaml 
+secret/my-secret created
+[root@master1 secret]# kubectl get secrets|grep my-secret
+my-secret                     Opaque                        2
+[root@master1 secret]# kubectl describe secrets my-secret 
+Name:         my-secret
+Namespace:    default
+Labels:       &lt;none&gt;
+Annotations:  &lt;none&gt;
+
+Type:  Opaque
+
+Data
+====
+password:  14 bytes
+username:  6 bytes
+</code></pre>
+<pre><code class="language-bash">3）#将secret挂载到volume
+[root@master1 secret]# cat pod-secret-volume.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-secret-volume
+spec:
+  containers:
+  - name: myapp
+    image: registry.cn-beijing.aliyuncs.com/google_registry/myapp:v1
+    imagePullPolicy: IfNotPresent
+    volumeMounts:
+    - name: secret-volume
+      mountPath: /etc/secret
+      readOnly: true
+  volumes:
+  - name: secret-volume
+    secret:
+      secretName: my-secret
+[root@master1 secret]# kubectl apply -f pod-secret-volume.yaml 
+pod/pod-secret-volume created
+[root@master1 secret]# kubectl exec -it pod-secret-volume -- /bin/sh
+/ # ls /etc/secret/
+password  username
+/ # cat /etc/secret/username 
+admin
+/ # cat /etc/secret/password
+oldboy123456f
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/pei-zhi-guan-li-zhong-xin-configmap/">
+              <h3 class="post-title">
+                下一篇：配置管理中心configmap
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

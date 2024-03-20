@@ -1,0 +1,279 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>索引及执行计划（二） | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">索引及执行计划（二）</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-06-07</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/eb_lZhnX62/">
+                    mysql
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="上节回顾">上节回顾</h2>
+<pre><code class="language-mysql">information_schema.tables
+TABLE_SCHEMA               表所在的库名
+TABLE_NAME	                  表名
+ENGINE		                  存储引擎
+TABLE_ROWS	                  数据行
+AVG_ROW_LENGTH	              平均行长度
+INDEX_LENGTH                  索引长度
+INNODB_LOCKS                  锁
+INNODB_TRX                    事务
+INNODB_LOCK_WAITS             锁等待
+INNODB_BUFFER_POOL_STATS      内存
+</code></pre>
+<pre><code class="language-mysql">B树查找算法
+
+B树功能分类
+聚集索引
+辅助索引
+
+辅助索引分类
+单列辅助索引
+联合索引
+唯一索引
+前缀索引
+</code></pre>
+<p>执行计划分析</p>
+<pre><code class="language-mysql">table：表名
+
+type：ALL、index、range、ref、eq_ref、const（system）、NULL
+    ALL（全表扫描）：
+        select * from t1;
+        select * from t1 where  xxx   #where条件无索引
+        select * from t1 where  !=、not in、like '%xaa%'  #非主键
+
+    index（全索引扫描）：
+        select id from city;	
+
+    range（索引范围扫描）： &gt;、&lt;、&gt;=、&lt;=、like xx%、in、or
+
+    ref（辅助索引等值查询）：
+        select * from city where countrycode='CHN';
+    eq_ref : 多表连接时,子表使用主键列或唯一列作为连接条件
+
+    const（system）：主键和唯一键的等值查询
+</code></pre>
+<pre><code class="language-mysql">mysql&gt; desc select  * from city where countrycode like 'CH%'; 
++----+-------------+-------+------------+-------+---------------+-------------+---------+
+| id | select_type | table | partitions | type  | possible_keys | key         | key_len |  
++----+-------------+-------+------------+-------+---------------+-------------+---------+
+|  1 | SIMPLE      | city  | NULL       | range | CountryCode   | CountryCode | 3       | 
++----+-------------+-------+------------+-------+---------------+-------------+---------+
+
+possible_key：  可能会用到的索引
+key ：          真正选择了哪个索引
+
+key_len： 索引覆盖长度，数据类型的最大预留长度 *****
+int 保留长度4个字节
+varchar(20)  utf8mb4
+1）能存20个任意字符
+2）不论存储的是字符、数字、中文，1个字符最大预留长度是4个字节
+3）1个中文占4个字节
+4）1个数字和字母实际占用大小是1个字节
+最大预留长度为83，其中1个标识是否非空 NOT NULL，还有2个表示开始和结束，char类型则没有
+select length() from test;
+</code></pre>
+<pre><code class="language-mysql">Extra: Using filesort
+1）当我们看到执行计划extra位置出现filesort,说明由文件排序出现
+2）观察需要排序(ORDER BY,GROUP BY ,DISTINCT )的条件,有没有索引
+3）根据子句的执行顺序,去创建联合索引
+</code></pre>
+<h2 id="联合索引应用细节">联合索引应用细节</h2>
+<p>在有联合索引执行计划查看的时候，一定是key_len覆盖长度越长越好</p>
+<pre><code class="language-mysql">1）&lt;等值&gt;查询条件下，无关排列顺序，优化器会自动调整where的条件顺序
+SELECT * FROM t1  WHERE a=    b=   
+我们建立联合索引时:
+ALTER TABLE t1 ADD INDEX idx_a_b(a,b);  
+ALTER TABLE t1 ADD INDEX idx_b_a(b,a);  
+注意: 我们在这种情况下建索引时,需要考虑哪个列的唯一值更多,哪个放在索引左边
+
+2）如果where 条件中出现不等值查询条件
+DESC  SELECT * FROM t_100w WHERE num &lt;1000 AND k2='DEEF';
+我们建索引时:
+ALTER TABLE t_100w ADD INDEX idx_2_n(k2,num);
+语句书写时
+DESC  SELECT * FROM t_100w WHERE k2='DEEF'AND num &lt;1000;
+3）如果查询中出现多子句
+我们要按照子句的执行顺序进行建立索引
+DESC select * from test where k1='aa' order by k2;
+alter table test add index idx3(k1,k2);
+</code></pre>
+<h2 id="explaindesc使用场景面试题">explain(desc)使用场景（面试题）</h2>
+<pre><code class="language-mysql">题目意思:  我们公司业务慢,请你从数据库的角度分析原因
+mysql出现性能问题,我总结有两种情况:
+1、应急性的慢：突然夯住
+应急情况:数据库hang(卡了,资源耗尽)
+处理过程:
+1）show processlist;  获取到导致数据库hang的语句
+2）explain 分析SQL的执行计划,有没有走索引,索引的类型情况
+3）建索引,改语句
+
+2、一段时间慢(持续性的):
+1）记录慢日志slowlog,分析slowlog
+2）explain 分析SQL的执行计划,有没有走索引,索引的类型情况
+3）建索引,改语句
+</code></pre>
+<h2 id="索引应该规范">索引应该规范</h2>
+<h3 id="建立索引的原则dba运维规范">建立索引的原则（DBA运维规范）</h3>
+<p>为了使索引的使用效率更高，在创建索引时，必须考虑在哪些字段上创建索引和创建什么类型的索引</p>
+<pre><code class="language-mysql">1）建表必须要有主键,一般是无关列,自增长
+2）经常做为where条件列、order by、group by、join on、distinct 的条件
+3）最好使用唯一值多的列作为联合索引前导列,其他的按照联合索引优化细节来做
+4）列值长度较长的索引列,我们建议使用前缀索引
+5）降低索引条目,一方面不要创建没用索引,不常使用的索引清理（percona toolkit）
+6）索引维护要避开业务繁忙期
+7） 小表不建索引
+</code></pre>
+<h3 id="不走索引的情况开发规范">不走索引的情况（开发规范）</h3>
+<pre><code class="language-mysql">1）没有查询条件，或者查询条件没有建立索引
+2）查询结果集是原表中的大部分数据，应该是25％以上
+3）索引本身失效，统计数据不真实
+4）查询条件使用函数在索引列上，或者对索引列进行运算，运算包括(+，-，*，/，! 等)
+5）隐式转换导致索引失效.这一点应当引起重视.也是开发中经常会犯的错误
+6）&lt;&gt;、not in 不走索引（辅助索引）
+7）like &quot;%_&quot; 百分号在最前面不走
+8）联合索引
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/suo-yin-ji-zhi-xing-ji-hua-yi/">
+              <h3 class="post-title">
+                下一篇：索引及执行计划（一）
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

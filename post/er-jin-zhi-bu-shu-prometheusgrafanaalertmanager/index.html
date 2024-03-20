@@ -1,0 +1,370 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>二进制部署prometheus+grafana+alertmanager （二） | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">二进制部署prometheus+grafana+alertmanager （二）</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-04-25</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/kCEk_FSFT4/">
+                    prometheus
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <!-- more -->
+<h2 id="二进制部署prometheus">二进制部署prometheus</h2>
+<h3 id="下载和部署"><strong>下载和部署</strong></h3>
+<pre><code class="language-shell">[root@prometheus ~]# wget https://github.com/prometheus/prometheus/releases/download/v2.22.0/prometheus-2.22.0.linux-amd64.tar.gz
+[root@prometheus ~]# tar xf prometheus-2.22.0.linux-amd64.tar.gz -C /usr/local/src/
+[root@prometheus ~]# ln -s /usr/local/src/prometheus-2.22.0.linux-amd64/ /usr/local/prometheus
+</code></pre>
+<h3 id="配置文件详解">配置文件详解</h3>
+<pre><code class="language-shell">[root@prometheus ~]# vim /usr/local/prometheus/prometheus.yml
+#全局配置
+global:
+  scrape_interval:     15s # 将抓取间隔设置为每15秒一次.默认为每1分种一次.
+  evaluation_interval: 15s # 每15秒评估一次规则.默认为每一分钟一次.
+  # scrape_timeout 设置为全局默认值(10秒)
+
+#报警管理器配置
+alerting:
+  alertmanagers:
+  - static_configs:
+    - targets:
+      # - alertmanager:9093
+      
+#加载规则一次并根据全局&quot;evaluation_interval&quot;定期评估它们
+rule_files:
+  # - &quot;first_rules.yml&quot;
+  # - &quot;second_rules.yml&quot;
+  
+#一个只包含一个要抓取的端点的抓取配置:
+#这是 Prometheus 本身.
+scrape_configs:
+  #job名称会增加到拉取到的所有采样点上，同时还有一个instance目标服务的host：port标签也会增加到采样点上
+  - job_name: 'prometheus'
+    # metrics_path 默认为“/metrics”
+    # 方案默认为“http”.
+    static_configs:
+    # 监控本地及端口
+    - targets: ['localhost:9090']
+</code></pre>
+<p><strong>作业和实例</strong></p>
+<p>可以抓取的目标称为实例（Instances）</p>
+<p>具有相同目标的实例集合称为作业（Job）</p>
+<pre><code class="language-shell">scrape_configs:
+  - job_name: 'prometheus' #作业
+    static_configs:
+      - targets: ['localhost:9090'] #实例
+  - job_name: 'node'
+    static_configs:
+      - targets: ['192.168.1.10:9090']
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1650865154032.png" alt="" loading="lazy"></figure>
+<h3 id="启动服务">启动服务</h3>
+<pre><code class="language-shell">cat &gt;/usr/lib/systemd/system/prometheus.service &lt;&lt;'EOF'
+[Unit]
+Description=Prometheus Server
+After=network.target
+[Service]
+Restart=on-failure
+ExecStart=/usr/local/prometheus/prometheus --config.file=/usr/local/prometheus/prometheus.yml --storage.tsdb.retention=3d
+[Install]
+WantedBy=multi-user.target
+EOF
+#这里只指定了一个配置文件选项,可以添加其它选项  使用 ./prometheus --help 查看其它选项
+#常用选项
+# --storage.tsdb.path=&quot;data/&quot; 指定数据目录 
+# --storage.tsdb.retention=15d 指定留存数据时间范围
+# --web.listen-address=&quot;0.0.0.0:9090&quot; 监听地址
+# --web.max-connections=512 最大连接数
+</code></pre>
+<pre><code class="language-shell">[root@prometheus ~]# systemctl enable prometheus &amp;&amp; systemctl start prometheus
+Created symlink from /etc/systemd/system/multi-user.target.wants/prometheus.service to /usr/lib/systemd/system/prometheus.service.
+[root@prometheus ~]# ss -lnpt|grep 9090
+LISTEN     0      128       [::]:9090                  [::]:*                   users:((&quot;prometheus&quot;,pid=1554,fd=9))
+</code></pre>
+<h2 id="二进制部署grafana">二进制部署grafana</h2>
+<h3 id="grafana介绍">Grafana介绍</h3>
+<p>Grafana是一个跨平台的开源的度量分析和可视化工具，可以将采集的数据可视化的展示，并及时通知给告警接收方。它主要有以下特点：</p>
+<p>1）展示方式：快速灵活的客户端图表，面板插件有许多不同方式的可视化指标和日志，官方库中具有丰富的仪表盘插件，比如热图、折线图、图表等多种展示方式；</p>
+<p>2）数据源：Graphite，InfluxDB，OpenTSDB，Prometheus，Elasticsearch，CloudWatch和KairosDB等；</p>
+<p>3）通知提醒：以可视方式定义最重要指标的警报规则，Grafana将不断计算并发送通知，在数据达到阈值时通过Slack、PagerDuty等获得通知；</p>
+<p>4）混合展示：在同一图表中混合使用不同的数据源，可以基于每个查询指定数据源，甚至自定义数据源；</p>
+<p>5）注释：使用来自不同数据源的丰富事件注释图表，将鼠标悬停在事件上会显示完整的事件元数据和标记。</p>
+<h3 id="安装grafana">安装grafana</h3>
+<pre><code class="language-shell">[root@prometheus ~]# wget https://dl.grafana.com/oss/release/grafana-7.3.1-1.x86_64.rpm
+[root@prometheus ~]# yum install -y grafana-7.3.1-1.x86_64.rpm
+[root@prometheus ~]# systemctl enable grafana-server.service &amp;&amp; systemctl start grafana-server.service
+[root@prometheus ~]# ss -tnl |grep 3000
+LISTEN     0      128       [::]:3000                  [::]:*  
+</code></pre>
+<p>浏览器访问 http://10.0.0.51:3000/login</p>
+<p>默认账号密码 admin admin 首次登陆必须修改密码</p>
+<h3 id="配置grafana数据源">配置grafana数据源</h3>
+<p>选择import→Prometheus</p>
+<p>填写Prometheus的HTTP地址 10.0.0.51:9090，save即可<br>
+<img src="https://ajie825.github.io/post-images/1650866269051.png" alt="" loading="lazy"></p>
+<h2 id="二进制部署alertmanager">二进制部署alertmanager</h2>
+<h3 id="部署">部署</h3>
+<pre><code class="language-shell">[root@prometheus ~]# wget https://github.com/prometheus/alertmanager/releases/download/v0.21.0/alertmanager-0.21.0.linux-amd64.tar.gz 
+[root@prometheus ~]# tar xf alertmanager-0.21.0.linux-amd64.tar.gz -C /usr/local/src/
+[root@prometheus ~]# ln -s /usr/local/src/alertmanager-0.21.0.linux-amd64 /usr/local/alertmanager
+cat &gt;/usr/lib/systemd/system/alertmanager.service &lt;&lt;'EOF'
+[Unit]
+Description=alertmanager Server
+After=network.target
+[Service]
+Restart=on-failure
+ExecStart=/usr/local/alertmanager/alertmanager --config.file=/usr/local/alertmanager/alertmanager.yml
+[Install]
+WantedBy=multi-user.target
+EOF
+[root@prometheus ~]# systemctl enable alertmanager &amp;&amp; systemctl start alertmanager
+[root@prometheus ~]#  ss -tnlp |grep alertmanager 
+LISTEN     0      128       [::]:9093                  [::]:*                   users:((&quot;alertmanager&quot;,pid=11501,fd=8))
+LISTEN     0      128       [::]:9094                  [::]:*                   users:((&quot;alertmanager&quot;,pid=11501,fd=3))
+</code></pre>
+<h3 id="alertmanager概念介绍">alertmanager概念介绍</h3>
+<p>prometheus本身并不提供告警功能，所有告警信息都是发送给alertmanager处理。alertmanager接收到告警信息后负责将它们分组，抑制，静默，然后路由到相关接收者。</p>
+<p>grouping分组</p>
+<p>分组功能将多个同一类型的告警合并一起后发送，这在某个服务发生故障从而影响其他几十，上百个相关依赖性的服务非常有用，可以有效避免告警信息轰炸。例如当网络出现问题时，可能改网络下的数百个服务都出现访问故障，结果数以百计的告警被发送给alertmanager。此时alertmanager将同类型的服务合并到一起仅仅使用单条告警通知发送给接收者。</p>
+<p>inhibition抑制、禁止</p>
+<p>抑制是指如果某个告警已经触发，那么抑制其他有关改服务的告警消息。</p>
+<p>例如如果某个集群A不可达，已经触发了告警，那么其他B、C、D等集群和服务发出的A集群不可达的告警通知将被alertmanager抑制。告警抑制机制可以防止数百上千的重复故障告警。</p>
+<p>silences静默</p>
+<p>silence静默配置的作用类似于zabbix中的maingtenance维护功能，可以配置一个时间区间和相关规则，符合改配置的事件将不会进行告警。比如明确凌晨会暂停服务，这个时候就可以提前设置好静默规则，减少不必要的告警骚扰。Prometheus的silence规则只需要通过alertmanager的web界面就可以完成，不需要配置文件。</p>
+<h3 id="alertmanager主要处理流程">alertmanager主要处理流程</h3>
+<p>1）接收到alert，根据labels判断属于哪些route（可存在多个route，一个route有多个group，一个group有多个alert）。</p>
+<p>2）将alert分配到group中，没有则新建group。</p>
+<p>3）新的group等待group_wait指定的时间（等待时可能收到同一group的alert），根据resolve_timeout判断alert是否解决，然后发送通知。</p>
+<p>4）已有的group等待group_interval指定的时间，判断alert是否解决，当上次发送通知到现在的间隔大于repeat_interval或者group有更新时会发送通知。</p>
+<h3 id="alertmanager配置文件">alertmanager配置文件</h3>
+<p>alertmanager.yml 配置文件主要字段有如下几个：</p>
+<pre><code class="language-shell">global:
+#顶级路由,在route下可以定义routes子路由树
+route:
+#告警接收者,如果有多个routes,那么需要在receivers下定义多个接收者
+receivers:
+#告警抑制配置
+inhibit_rules:
+</code></pre>
+<p>route</p>
+<p>route字段定义路由树的节点，以及子节点的相关配置。子节点可以从父节点继承所有配置参数。</p>
+<p>每个告警进入到顶级配置的route。改route必须是一个默认路由，匹配所有的prometheus的告警规则。然后去遍历所有的子路由。如果continue设置为false，在匹配到第一个子路由（routes）后就停止匹配，并且交给子路由的receiver发出告警。如果continue设置为true，则继续与后续的其他子路由（routes匹配）。如果某条告警信息不匹配任何子路由，或者当前没有配置任何子路由，则交给默认的顶级route处理。</p>
+<p>下面是一个route路由配置的案例</p>
+<pre><code class="language-shell">route:
+  resolve_timeout: 5m #一条告警消息发出后,如果在多长时间内没有再次告警,则认为该故障已经解除,发送告警恢复消息
+  group_by: ['alertname']  #根据告警规则名称分组 也就是rule文件的顶部定义的名称.还可以根据标签label或者job来分组
+  group_wait: 30s #一组警报消息到达后等待多少秒发送,这允许在这期间收集更多同组警报消息
+  group_interval: 5m #发送某组的第一个警告信息后,等待多久继续发送改组新的警告消息
+  repeat_interval: 4h #如果告警信息已经成功发送,等待多久重新发送
+  receiver: 'default' #顶级route的默认接收者,所有未匹配到子路由的消息都发送到该receiver
+  routes: #子路由配置.在子路由下默认继承上面的group_by,group_wait等配置,也可以重写
+    - receiver: &quot;aliyun&quot; #定义子路由的接收者
+      match_re: #匹配告警信息,可以通过Match固定匹配,也可以通过match_re正则匹配
+        service: rabbitmq|mysql #只要是service这个lable标签,值为rabbitmq或者mysql的告警信息都使用该子路由处理
+    - receiver: 'frontend-pager'
+    group_by: [product, environment] #对标签名为product和environment的告警信息作为一组
+    match:
+      team: frontend
+</code></pre>
+<p>receiver</p>
+<p>该配置定义了一个或者多个告警消息接收器。alertmanager并不会主动联系receiver，而是需要第三方webhook插件实现告警接收。</p>
+<p>有多少个子route，就对应多少个receiver。（当然也可以多个子route对应同一个receiver）。receiver定义了告警消息接收地址。</p>
+<p>下面是receiver的配置，定义了2个receiver，对应上面的route。aliyun的receiver用来接收rabbitmq，mysql的告警通知，default用来接收其他所有的告警消息。</p>
+<pre><code class="language-shell">#定义接收者信息 
+receivers:
+- name: 'default'
+  webhook_configs: #第三方插件的webhook地址
+  - url: 'http://localhost:8060/dingtalk/default/send' #这里使用的是我本地运行的钉钉插件的发送告警消息
+- name: 'aliyun'
+  webhook_configs:
+  - url: 'http://localhost:8060/dingtalk/aliyun/send'
+</code></pre>
+<h3 id="配置prometheus与alertmanager通信">配置Prometheus与Alertmanager通信</h3>
+<pre><code class="language-shell">[root@prometheus ~]# vim /usr/local/prometheus/prometheus.yml 
+#prometheus.yml
+alerting:
+  alertmanagers:
+  - static_configs:
+    - targets:
+      - 127.0.0.1:9093
+[root@prometheus ~]# systemctl restart prometheus
+</code></pre>
+<h3 id="配置telegram-webhookalertmanager-bot">配置telegram-webhook（alertmanager-bot）</h3>
+<p>1）打开bot的生成链接 https://telegram.me/botfather，点击 /newbot - create a new bot 生成一个新的bot，系统会让你给它取一个名字，这里可以随便输入，反正方便记忆就可以了</p>
+<p>2）系统会再次让你取一个名字并输入，现在的名字必须以bot结尾，不可以和其他任何bot重名，这一步的名字类似于身份证号码，而之前的名字类似于身份证上面的名字，身份证上的名字可以重复，但是身份证号码不允许重复</p>
+<p>3）一旦你输入的bot名字可用，系统会生成一个token给你，类似于5084624990:AAFY96pzZlbI8i2JkZdf82maW6SG5JdQ12U，请务必保存好此token并且不泄露，这是唯一的用户凭证</p>
+<p>4）此时，你拥有了一个bot，但是还无法使用，因为你知道它，它不知道你，这时候打开 https://t.me/iamthebot 这个链接，注意iamthebot为你刚才新建的bot的名字，点击/start进入对话框，发送 @userinfobot 后并点击它，userinfobot的对话中，点击或者输入/start，你将获取一个ID，具体表现为一串数字，比如 2128309024</p>
+<p>5）新建一个群组，把bot机器人拉入到群组中，执行/start，机器人就会在群里发送报警信息</p>
+<pre><code class="language-shell">mkdir /usr/local/alertmanager-bot
+cd /usr/local/alertmanager-bot
+wget https://github.com/metalmatze/alertmanager-bot/releases/download/0.4.3/alertmanager-bot-0.4.3-linux-amd64
+ln -s /usr/local/alertmanager-bot/alertmanager-bot-0.4.3-linux-amd64  /usr/local/alertmanager-bot/alertmanager-bot
+chmod +x /usr/local/alertmanager-bot/alertmanager-bot-0.4.3-linux-amd64
+</code></pre>
+<pre><code class="language-shell">touch /usr/local/alertmanager-bot/default.tmpl
+vim /usr/lib/systemd/system/alertmanager-bot.service
+[Unit]
+Description=Alertmanager-bot Server
+After=network.target
+[Service]
+Restart=on-failure
+ExecStart=/usr/local/alertmanager-bot/alertmanager-bot --alertmanager.url=http://localhost:9093/ --bolt.path=&quot;/tmp/bot.db&quot; --telegram.admin=179760 --telegram.token=5068922393:AAExoTzpvwefwef23f234r32SN4CM --template.paths=/usr/local/alertmanager-bot/default.tmpl --store=bolt
+[Install]
+WantedBy=multi-user.target
+</code></pre>
+<pre><code class="language-shell">[root@localhost ~]# systemctl start alertmanager-bot
+[root@localhost ~]# ss -lnpt|grep 8080
+LISTEN     0      128       [::]:8080                  [::]:*                   users:((&quot;alertmanager-bo&quot;,pid=2020,fd=5))
+</code></pre>
+<p>报警处理流程如下：<br>
+1）Prometheus Server监控目标主机上暴露的http接口（这里假设接口A），通过上述Prometheus配置的'scrape_interval'定义的时间间隔，定期采集目标主机上监控数据。<br>
+2）当接口A不可用的时候，Server端会持续的尝试从接口中取数据，直到&quot;scrape_timeout&quot;时间后停止尝试。这时候把接口的状态变为“DOWN”。<br>
+3）Prometheus同时根据配置的&quot;evaluation_interval&quot;的时间间隔，定期（默认1min）的对Alert Rule进行评估；当到达评估周期的时候，发现接口A为DOWN，即UP=0为真，激活Alert，进入“PENDING”状态，并记录当前active的时间；<br>
+4）当下一个alert rule的评估周期到来的时候，发现UP=0继续为真，然后判断警报Active的时间是否已经超出rule里的‘for’ 持续时间，如果未超出，则进入下一个评估周期；如果时间超出，则alert的状态变为“FIRING”；同时调用Alertmanager接口，发送相关报警数据。</p>
+<p>5）AlertManager收到报警数据后，会将警报信息进行分组，然后根据alertmanager配置的“group_wait”时间先进行等待。等wait时间过后再发送报警信息。<br>
+6）属于同一个Alert Group的警报，在等待的过程中可能进入新的alert，如果之前的报警已经成功发出，那么间隔“group_interval”的时间间隔后再重新发送报警信息。比如配置的是邮件报警，那么同属一个group的报警信息会汇总在一个邮件里进行发送。<br>
+7）如果Alert Group里的警报一直没发生变化并且已经成功发送，等待‘repeat_interval’时间间隔之后再重复发送相同的报警邮件；如果之前的警报没有成功发送，则相当于触发第6条条件，则需要等待group_interval时间间隔后重复发送。<br>
+同时最后至于警报信息具体发给谁，满足什么样的条件下指定警报接收人，设置不同报警发送频率，这里有alertmanager的route路由规则进行配置。</p>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/prometheus-jian-jie-yi/">
+              <h3 class="post-title">
+                下一篇：prometheus简介（一）
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

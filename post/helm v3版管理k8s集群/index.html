@@ -1,0 +1,522 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>helm v3版管理k8s集群 | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">helm v3版管理k8s集群</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2024-01-29</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/vN0im2GW5W/">
+                    k8s
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="helm官方文档"><a href="https://v3.helm.sh/zh/docs/">helm官方文档</a></h2>
+<h2 id="helm是什么">helm是什么</h2>
+<p><code>helm</code>是<code>kubernetes</code>的包管理器，包管理器类似于在<code>Ubuntu</code>中使用的<code>apt</code>、<code>Centos</code>中使用的<code>yum</code>一样，能快速查找、下载和安装软件包，能够将一组资源对象打包统一管理，是查找、共享和使用为<code>k8s</code>构建软件的最佳方式。</p>
+<p><code>helm</code>类似于<code>yum</code>安装指令，统一对安装服务进行管理，使得用户不需要关心服务之间的依赖关系。</p>
+<h2 id="helm解决了什么痛点">helm解决了什么痛点</h2>
+<p>在<code>kubernetes</code>中部署一个应用，需要涉及到很多的资源对象共同协作，比如安装<code>WordPress</code>博客，用到的资源对象包括<code>Deployment</code>部署应用、<code>Service</code>提供服务发现、<code>Secret</code>配置<code>WordPress</code>的用户名和密码，可能还需要<code>pv</code>和<code>pvc</code>来提供持久化服务，并且<code>WordPress</code>数据是存储在<code>mariadb</code>数据库里面，所以需要<code>mariadb</code>数据库启动就绪后才能启动<code>WordPress</code>，这些<code>k8s</code>资源过于分散，不方便进行管理，直接通过<code>kubectl</code>来管理应用，会发现十分的麻烦和繁琐。</p>
+<p>所以在<code>k8s</code>中部署一个应用，通常面临以下几个问题：</p>
+<ul>
+<li>如何统一管理、配置和更新这些分散的<code>k8s</code>应用资源文件</li>
+<li>如何分发和复用一套应用模板</li>
+<li>如何将应用的一系列资源当做一个软件包管理</li>
+</ul>
+<p><code>kubernetes</code>有非常多的资源对象，在部署服务的时候，往往需要操作多个服务资源对象，且资源对象相互依赖，非常不好管理，<code>helm</code>帮助管理资源对象。</p>
+<p>对于使用者，使用<code>helm</code>后不用需要了解<code>kubernetes</code>的<code>yaml</code>语法并编写应用部署文件，可以通过<code>helm</code>下载并在集群上安装需要的应用。</p>
+<h2 id="helm相关组件及术语">helm相关组件及术语</h2>
+<h3 id="helm">helm</h3>
+<p><code>helm</code>是一个命令行的客户端工具，主要用于应用程序<code>Chart</code>的创建、打包、发布以及管理本地和远程的<code>Chart</code>仓库。</p>
+<h3 id="tiller">Tiller</h3>
+<p><code>Tiller</code>是<code>Helm</code>的服务端，用于接收<code>Helm</code>的请求，并根据<code>chart</code>生成资源声明文件<code>release</code>，然后提交给<code>API</code>创建应用，<code>Tiller</code>还提供了<code>release</code>的升级、删除、回滚等一系统功能。</p>
+<p><code>helm3</code>版本移除了<code>Tiller</code>，直接在客户端就对<code>chart</code>进行解析，然后调用<code>API</code>部署资源声明文件，同时将<code>release</code>的版本信息保存至应用所在名称空间下的<code>secret</code>中。</p>
+<h3 id="chart">Chart</h3>
+<p><code>Chart</code>是<code>helm</code>的软件包，采用<code>TAR</code>格式，其中包含了运行应用所需要的镜像、依赖和资源文件(<code>YAML</code>)等，还可能包含集群中的服务定义，类似<code>APT</code>的<code>DEB</code>或者<code>YUM</code>的<code>RPM</code>包。</p>
+<h3 id="repoistory">Repoistory</h3>
+<p><code>helm</code>的软件仓库，本质上是一个<code>web</code>服务器，该服务器保存了一系列的<code>Chart</code>软件包以供用户查询和下载，<code>helm</code>可以同时管理多个不同的<code>Repoistory</code>。</p>
+<h3 id="release">Release</h3>
+<p>使用<code>helm install</code>命令在集群中部署的<code>Chart</code>实例称为<code>Release</code>，在同一个集群中，一个<code>Chart</code>可以安装很多次，每次安装都会创建一个新的<code>Release</code>，会有自己的<code>Release</code>名称。</p>
+<p>注：<code>Helm</code>中提到的<code>Release</code>和版本有所不同，这里的<code>Release</code>可以理解为<code>Helm</code>使用<code>Chart</code>包部署的一个应用实例。</p>
+<h2 id="helm工作流程">helm工作流程</h2>
+<p>这里使用的是<code>helm3</code>版本，该版本没有了<code>tiller</code>服务端，直接通过<code>kubeconfig</code>连接<code>apiserver</code>，使用更加简单和灵活的架构，简化安全模块，降低了用户的使用壁垒：<br>
+<img src="https://ajie825.github.io/post-images/1706677853015.png" alt="" loading="lazy"></p>
+<ol>
+<li>开发者首先创建并编辑<code>chart</code>的配置</li>
+<li>接着打包并发布至<code>helm</code>的仓库<code>repository</code></li>
+<li>当集群管理员使用<code>helm</code>命令安装时，相关的依赖会从仓库下载</li>
+<li>接着<code>helm</code>会根据下载的配置部署资源至<code>k8s</code></li>
+</ol>
+<h2 id="安装helm">安装helm</h2>
+<p>可以从<code>helm</code>官方网站下载适合自己平台的二进制文件，或使用包管理器安装<code>helm</code>，这里采用二进制安装。</p>
+<pre><code class="language-bash">[root@master1 ~]# tar zxvf helm-v3.6.3-linux-amd64.tar.gz 
+[root@master1 ~]# mv linux-amd64/helm /usr/bin/
+#查看helm版本
+[root@master1 ~]# helm version
+version.BuildInfo{Version:&quot;v3.6.3&quot;, GitCommit:&quot;d506314abfb5d21419df8c7e7e68012379db2354&quot;, GitTreeState:&quot;clean&quot;, GoVersion:&quot;go1.16.5&quot;}
+</code></pre>
+<h3 id="helm命令自动补全">helm命令自动补全</h3>
+<pre><code class="language-bash">helm completion bash
+source &lt;(helm completion bash)
+echo &quot;source &lt;(helm completion bash)&quot; &gt;&gt; ~/.bashrc
+</code></pre>
+<h2 id="远程chart仓库的管理">远程chart仓库的管理</h2>
+<h3 id="添加远程chart仓库">添加远程chart仓库</h3>
+<pre><code class="language-bash">#添加官方稳定仓库
+helm repo add stable https://charts.helm.sh/stable
+&quot;stable&quot; has been added to your repositories
+#添加阿里云的chart仓库
+helm repo add aliyun https://kubernetes.oss-cn-hangzhou.aliyuncs.com/charts
+&quot;aliyun&quot; has been added to your repositories
+#添加bitnami的chart仓库
+helm repo add bitnami https://charts.bitnami.com/bitnami
+&quot;bitnami&quot; has been added to your repositories
+#添加微软的chart仓库
+helm repo add azure http://mirror.azure.cn/kubernetes/charts/
+&quot;azure&quot; has been added to your repositories
+</code></pre>
+<h3 id="查看当前所有远程chart仓库">查看当前所有远程chart仓库</h3>
+<pre><code class="language-bash">helm repo list
+stable  https://charts.helm.sh/stable                         
+aliyun  https://kubernetes.oss-cn-hangzhou.aliyuncs.com/charts
+bitnami https://charts.bitnami.com/bitnami                    
+azure   http://mirror.azure.cn/kubernetes/charts/
+</code></pre>
+<h3 id="删除指定的charts仓库">删除指定的charts仓库</h3>
+<pre><code class="language-bash">helm repo rm/remove 远程仓库别名
+</code></pre>
+<h3 id="更新chart仓库">更新chart仓库</h3>
+<pre><code class="language-bash">helm repo update 
+</code></pre>
+<h2 id="charts的管理">charts的管理</h2>
+<h3 id="搜索和下载chart">搜索和下载chart</h3>
+<pre><code class="language-bash">#查看阿里云chart仓库的memcached
+[root@master1 ~]# helm search repo aliyun|grep memcached
+aliyun/mcrouter                 0.1.0           0.36.0          Mcrouter is a memcached protocol 
+aliyun/memcached                2.0.1                           Free &amp; open 
+#查看chart信息
+[root@master1 ~]# helm show chart aliyun/memcached 
+apiVersion: v1
+description: Free &amp; open source, high-performance, distributed memory object caching
+  system.
+home: http://memcached.org/
+icon: https://upload.wikimedia.org/wikipedia/en/thumb/2/27/Memcached.svg/1024px-Memcached.svg.png
+keywords:
+- memcached
+- cache
+maintainers:
+- email: gtaylor@gc-taylor.com
+  name: Greg Taylor
+name: memcached
+sources:
+- https://github.com/docker-library/memcached
+version: 2.0.1
+</code></pre>
+<pre><code class="language-bash">#下载chart包到本地
+[root@master1 ~]# helm pull aliyun/memcached 
+[root@master1 ~]# tar zxvf memcached-2.0.1.tgz
+#chart目录结构
+[root@master1 ~]# tree memcached/
+memcached/
+├── Chart.yaml                 #包含chartd版本和名字等基本信息
+├── README.md
+├── templates                  #模板文件目录，存放k8s部署资源模板，通过渲染变量得到部署文件
+│   ├── _helpers.tpl           #存放子模板信息的文件
+│   ├── NOTES.txt              #为用户提供一个关于chart部署后使用说明的文件
+│   ├── pdb.yaml
+│   ├── statefulset.yaml
+│   └── svc.yaml
+└── values.yaml                #存放渲染模板的全局变量，templates目录下的文件可以调用
+</code></pre>
+<h3 id="部署chart">部署chart</h3>
+<p><code>helm</code>部署<code>memcached</code>服务</p>
+<pre><code class="language-bash">1) #导入镜像，查看values.yaml文件使用的镜像为memcached:1.4.36-alpine
+[root@node1 ~]# docker load -i memcache_1_4_36.tar.gz 
+[root@node2 ~]# docker load -i memcache_1_4_36.tar.gz 
+2）#修改statefulset.yaml文件
+[root@master1 memcached]# vim templates/statefulset.yaml
+apiVersion: apps/v1    #修改为apps/v1
+kind: StatefulSet
+metadata:
+#spec下添加selector字段，和pod的labels保持一致
+spec:
+  selector:
+    matchLabels:
+      app:  { { template &quot;memcached.fullname&quot; . } }
+      chart: &quot;{ { .Chart.Name }}-{{ .Chart.Version } }&quot;
+      release: &quot;{ { .Release.Name } }&quot;
+      heritage: &quot;{ { .Release.Service } }&quot;
+#删除affinity亲和性配置
+3）#安装memcached服务
+[root@master1 memcached]# helm install memcached ./      
+NAME: memcached
+LAST DEPLOYED: Thu Feb  1 00:38:25 2024
+NAMESPACE: default
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+  export POD_NAME=$(kubectl get pods --namespace default -l &quot;app=memcached-memcached&quot; -o jsonpath=&quot;{.items[0].metadata.name}&quot;)
+  kubectl port-forward $POD_NAME 11211
+  
+In another tab, attempt to set a key:
+  echo -e set mykey 0 60 5\r\nhello\r | nc localhost 11211
+You should see:
+  STORED  
+4) #验证memcached是否部署成功
+[root@master1 memcached]# kubectl get pods -o wide|grep memcached
+memcached-memcached-0    1/1     Running   0    3m34s   10.244.104.30    node2
+memcached-memcached-1    1/1     Running   0    2m47s   10.244.104.31    node2
+memcached-memcached-2    1/1     Running   0    2m34s   10.244.166.150   node1
+5）#测试memcached服务是否正常
+[root@master1 memcached]# yum install nc -y
+[root@master1 memcached]# export POD_NAME=$(kubectl get pods --namespace default -l &quot;app=memcached-memcached&quot; -o jsonpath=&quot;{.items[0].metadata.name}&quot;)
+[root@master1 memcached]# kubectl port-forward $POD_NAME 11211
+[root@master1 ~]# echo -e 'set mykey 0 60 5\r\nhello\r' | nc localhost 11211
+STORED
+</code></pre>
+<h2 id="release相关操作">release相关操作</h2>
+<pre><code class="language-bash">#查看release发布状态
+[root@master1 memcached]# helm list
+NAME            NAMESPACE       REVISION         STATUS          CHART           
+memcached       default         1                deployed        memcached-2.0.1 
+#删除release
+[root@master1 memcached]# helm uninstall memcached 
+#删除release也会删除对应的资源
+[root@master1 memcached]# kubectl get pods|grep memcached
+</code></pre>
+<h2 id="自定义chart">自定义chart</h2>
+<h3 id="自定义chart模板">自定义chart模板</h3>
+<p>当安装好<code>helm</code>之后可以自定义<code>chart</code>，需要先创建一个模板如下：</p>
+<pre><code class="language-bash">[root@master1 helm]# helm create myapp
+[root@master1 helm]# cd myapp/
+[root@master1 myapp]# tree ./
+./
+├── charts                             #存放所依赖的子chart
+├── Chart.yaml                         #描述chart的相关信息，包括名字、描述信息、版本等
+├── templates                          #模板目录，存放k8s部署资源模板，通过渲染变量得到部署文件
+│   ├── deployment.yaml                #deployment资源的go模板文件
+│   ├── _helpers.tpl                   #存放子模板信息的文件
+│   ├── hpa.yaml                       #自动扩缩容go模板文件
+│   ├── ingress.yaml                   #七层代理go模板文件
+│   ├── NOTES.txt
+│   ├── serviceaccount.yaml
+│   ├── service.yaml                   #service的go模板文件
+│   └── tests
+│       └── test-connection.yaml
+└── values.yaml                        #存放渲染模板的全局变量的值文件，这些值会应用到go模板生成部署文件
+</code></pre>
+<h3 id="chartyaml编写规则">Chart.yaml编写规则</h3>
+<p><code>Chart.yaml</code>文件主要用来描述对应<code>chart</code>的相关属性信息</p>
+<pre><code class="language-bash">[root@master1 myapp]# grep -v '#' Chart.yaml &gt; Chart.yaml.bak
+[root@master1 myapp]# \cp Chart.yaml.bak Chart.yaml
+[root@master1 myapp]# cat Chart.yaml 
+apiVersion: v2                            #使用的api版本，默认是v2版本
+name: myapp                               #chart的名称
+description: A Helm chart for Kubernetes  #chart的简单描述信息
+type: application                         #说明是应用程序还是库文件，应用程序类型可以运行为实例，库类型不可以
+version: 0.1.0                            #chart的版本
+appVersion: &quot;1.16.0&quot;                      #内部程序的版本信息
+</code></pre>
+<h3 id="go模板文件渲染">go模板文件渲染</h3>
+<p>部署清单模板文件主要用<code>go</code>语言来写的，通常都是从<code>values.yaml </code>文件中加载对应字段的值作为模板文件相关属性的值。</p>
+<pre><code class="language-bash">[root@master1 myapp]# cat templates/deployment.yaml 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  #取myapp的全名
+  name: { { include &quot;myapp.fullname&quot; . } }
+  labels:
+    #nindent 4表示首行缩进4个字母
+    { {- include &quot;myapp.labels&quot; . | nindent 4 } }
+spec:
+  replicas: { { .Values.replicaCount } }
+  selector:
+    matchLabels:
+      { {- include &quot;myapp.selectorLabels&quot; . | nindent 6 } }
+  template:
+    metadata:
+      labels:
+        { {- include &quot;myapp.selectorLabels&quot; . | nindent 8 } }
+    spec:
+      serviceAccountName: { { include &quot;myapp.serviceAccountName&quot; . } }
+      containers:
+        - name: { { .Chart.Name } }
+          #读取当前目录下values.yaml文件中对应字段的值，或者读取Chart.yaml文件中对应字段的值
+          image: &quot;{ { .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion } }&quot;
+          imagePullPolicy: { { .Values.image.pullPolicy } }
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+[root@master1 myapp]# cat templates/service.yaml 
+apiVersion: v1
+kind: Service
+metadata:
+  name: { { include &quot;myapp.fullname&quot; . } }
+  labels:
+    { {- include &quot;myapp.labels&quot; . | nindent 4 } }
+spec:
+  #读取当前目录values.yaml文件中service.type字段的值
+  type: { { .Values.service.type } }
+  ports:
+    #读取当前目录values.yaml文件中service.port字段的值
+    - port: { { .Values.service.port } }
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    { {- include &quot;myapp.selectorLabels&quot; . | nindent 4 } }
+</code></pre>
+<h3 id="valuesyaml-文件编写">values.yaml 文件编写</h3>
+<pre><code class="language-bash">[root@master1 myapp]# grep -v '#' values.yaml &gt; values.yaml.bak
+[root@master1 myapp]# \cp values.yaml.bak values.yaml
+[root@master1 myapp]# cat values.yaml
+replicaCount: 1
+image:
+  repository: nginx
+  pullPolicy: IfNotPresent
+  tag: &quot;&quot;
+
+imagePullSecrets: []
+nameOverride: &quot;&quot;
+fullnameOverride: &quot;&quot;
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: &quot;&quot;
+
+podAnnotations: {}
+podSecurityContext: {}
+securityContext: {}
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  className: &quot;&quot;
+  annotations: {}
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+
+resources: {}
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+nodeSelector: {}
+tolerations: []
+affinity: {}
+</code></pre>
+<h3 id="部署release">部署release</h3>
+<pre><code class="language-bash">[root@master1 myapp]# helm install  myapp .
+NAME: myapp
+LAST DEPLOYED: Fri Feb  2 02:03:20 2024
+NAMESPACE: default
+STATUS: deployed
+REVISION: 1
+NOTES:
+1. Get the application URL by running these commands:
+  export POD_NAME=$(kubectl get pods --namespace default -l &quot;app.kubernetes.io/name=myapp,app.kubernetes.io/instance=myapp&quot; -o jsonpath=&quot;{.items[0].metadata.name}&quot;)
+  export CONTAINER_PORT=$(kubectl get pod --namespace default $POD_NAME -o jsonpath=&quot;{.spec.containers[0].ports[0].containerPort}&quot;)
+  echo &quot;Visit http://127.0.0.1:8080 to use your application&quot;
+  kubectl --namespace default port-forward $POD_NAME 8080:$CONTAINER_PORT
+  
+[root@master1 myapp]# kubectl get pods|grep myapp
+myapp-777f4ccb8c-vwzz5             1/1     Running
+</code></pre>
+<h2 id="helm常用命令演示">helm常用命令演示</h2>
+<h3 id="检查chart语法格式">检查chart语法格式</h3>
+<pre><code class="language-bash">[root@master1 ~]#  helm lint /data/helm/myapp/
+==&gt; Linting /data/helm/myapp/
+[INFO] Chart.yaml: icon is recommended
+
+1 chart(s) linted, 0 chart(s) failed
+#通过上面可看到语法正确
+</code></pre>
+<h3 id="upgrade升级release">upgrade升级release</h3>
+<pre><code class="language-bash">[root@master1 myapp]# kubectl get svc|grep myapp
+myapp          ClusterIP   10.96.182.84     &lt;none&gt;     80/TCP 
+
+#在命令行使用--set选项给出的值会被直接替换
+[root@master1 myapp]# helm upgrade --set service.type=&quot;NodePort&quot; myapp .
+Release &quot;myapp&quot; has been upgraded. Happy Helming!
+NAME: myapp
+LAST DEPLOYED: Fri Feb  2 21:23:51 2024
+NAMESPACE: default
+STATUS: deployed
+REVISION: 2
+NOTES:
+1. Get the application URL by running these commands:
+  export NODE_PORT=$(kubectl get --namespace default -o jsonpath=&quot;{.spec.ports[0].nodePort}&quot; services myapp)
+  export NODE_IP=$(kubectl get nodes --namespace default -o jsonpath=&quot;{.items[0].status.addresses[0].address}&quot;)
+  echo http://$NODE_IP:$NODE_PORT
+
+#可以看到Service的type类型已经变成了nodePort
+[root@master1 myapp]# kubectl get svc|grep myapp
+myapp                 NodePort    10.96.182.84     &lt;none&gt;        80:30953/TCP
+</code></pre>
+<h3 id="回滚release">回滚release</h3>
+<pre><code class="language-bash">#查看历史版本
+[root@master1 myapp]# helm history myapp 
+REVISION        STATUS          CHART           APP VERSION     DESCRIPTION     
+1               superseded      myapp-0.1.0     1.16.0          Install complete
+2               deployed        myapp-0.1.0     1.16.0          Upgrade complete
+</code></pre>
+<pre><code class="language-bash">#把myapp回滚到版本1
+[root@master1 myapp]# helm rollback myapp 1
+Rollback was a success! Happy Helming!
+[root@master1 myapp]# kubectl get svc|grep myapp
+myapp          ClusterIP   10.96.182.84     &lt;none&gt;     80/TCP 
+</code></pre>
+<h3 id="打包chart">打包chart</h3>
+<pre><code class="language-bash">[root@master1 ~]# helm package /data/helm/myapp/
+Successfully packaged chart and saved it to: /root/myapp-0.1.0.tgz
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/k8s安全管理：认证、授权、准入控制/">
+              <h3 class="post-title">
+                下一篇：k8s安全管理：认证、授权、准入控制
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

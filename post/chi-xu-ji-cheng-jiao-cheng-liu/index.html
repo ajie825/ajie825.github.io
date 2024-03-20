@@ -1,0 +1,272 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>持续集成教程 (六) | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">持续集成教程 (六)</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2023-10-12</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/orkaNU-rT/">
+                    devops
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="jenkins创建maven项目"><code>Jenkins</code>创建<code>maven</code>项目</h2>
+<p><code>Jenkins</code>上安装<code>maven</code>插件，通过<code>Jenkins maven</code>去调用<code>linux</code>的<code>maven</code>。</p>
+<h3 id="gitlab创建java的代码仓库"><code>gitlab</code>创建<code>java</code>的代码仓库</h3>
+<p><img src="https://ajie825.github.io/post-images/1697095109755.png" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1697095137697.png" alt="" loading="lazy"></p>
+<h3 id="把代码推送到代码仓库">把代码推送到代码仓库</h3>
+<pre><code class="language-shell">[root@jenkins maven]# pwd
+/data/maven
+[root@jenkins maven]# tar xf jeesns.tar.gz
+[root@jenkins maven]# rm -f jeesns.tar.gz
+[root@jenkins maven]# cd jeesns/
+[root@jenkins jeesns]# ll
+total 12
+drwxr-xr-x 3 root root   32 Nov 19  2018 jeesns-common
+drwxr-xr-x 3 root root   32 Nov 19  2018 jeesns-core
+drwxr-xr-x 3 root root   32 Nov 19  2018 jeesns-dao
+drwxr-xr-x 2 root root   23 Nov 19  2018 jeesns-mobile
+drwxr-xr-x 3 root root   32 Nov 19  2018 jeesns-model
+drwxr-xr-x 3 root root   32 Nov 19  2018 jeesns-service
+drwxr-xr-x 5 root root   59 Nov 19  2018 jeesns-web
+-rw-r--r-- 1 root root 2530 Nov 19  2018 LICENSE
+-rw-r--r-- 1 root root 1120 Nov 19  2018 pom.xml
+-rw-r--r-- 1 root root 3876 Nov 19  2018 README.md
+[root@jenkins jeesns]# git init
+Reinitialized existing Git repository in /data/maven/jeesns/.git/
+[root@jenkins jeesns]# git remote add origin git@192.168.40.181:oldboy/maven.git
+[root@jenkins jeesns]# git add .
+[root@jenkins jeesns]# git commit -m &quot;Initial commit&quot;
+[root@jenkins jeesns]# git push -u origin master
+Counting objects: 1946, done.
+Compressing objects: 100% (1862/1862), done.
+Writing objects: 100% (1946/1946), 7.09 MiB | 0 bytes/s, done.
+Total 1946 (delta 285), reused 0 (delta 0)
+remote: Resolving deltas: 100% (285/285), done.
+To git@192.168.40.181:oldboy/maven.git
+ * [new branch]      master -&gt; master
+分支 master 设置为跟踪来自 origin 的远程分支 master。
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1697098327814.png" alt="" loading="lazy"></figure>
+<h3 id="jenkins配置maven路径"><code>Jenkins</code>配置<code>maven</code>路径</h3>
+<p>让<code>Jenkins maven</code>可以找到<code>linux</code>上的<code>maven</code>，打开系统管理---&gt;全局工具配置页面，下拉新增<code>maven</code>配置，选择不要自动安装<code>maven</code>，配置好保存<br>
+<img src="https://ajie825.github.io/post-images/1697102930757.png" alt="" loading="lazy"></p>
+<h3 id="创建maven项目">创建<code>maven</code>项目</h3>
+<p>回到<code>Jenkins</code>主页面，点击&quot;新建Item&quot;，进入创建<code>Job</code>页面<br>
+<img src="https://ajie825.github.io/post-images/1697168556719.png" alt="" loading="lazy"></p>
+<p>进入<code>job</code>配置页面，通用部分选择&quot;丢弃旧的构建&quot;<br>
+<img src="https://ajie825.github.io/post-images/1697168897996.png" alt="" loading="lazy"></p>
+<p>源码管理配置从<code>git</code>仓库获取<code>maven</code>代码，复制仓库地址到<code>Jenkins</code><br>
+<img src="https://ajie825.github.io/post-images/1697169230946.png" alt="" loading="lazy"></p>
+<p>配置要执行的<code>maven</code>命令，先清理工作区，然后再打包<br>
+<img src="https://ajie825.github.io/post-images/1697169575737.png" alt="" loading="lazy"></p>
+<p>保存配置，返回<code>job</code>主页面，执行立即构建，构建成功后在工作空间可以看到构建后的<code>war</code>包<br>
+<img src="https://ajie825.github.io/post-images/1697179194100.png" alt="" loading="lazy"></p>
+<pre><code class="language-shell">[root@jenkins target]# pwd
+/var/lib/jenkins/workspace/maven-job/jeesns-web/target
+[root@jenkins target]# ll jeesns-web.war 
+-rw-r--r-- 1 root root 26105995 Oct 12 23:42 jeesns-web.war
+</code></pre>
+<h3 id="web服务器部署tomcat和数据库"><code>web</code>服务器部署<code>tomcat</code>和数据库</h3>
+<pre><code class="language-shell">#上传压缩包
+[root@web01 opt]# ll
+total 174956
+-rw-r--r-- 1 root root   9128610 Oct  3 21:11 apache-tomcat-8.0.27.tar.gz
+-rw-r--r-- 1 root root 170023183 Apr  3  2022 jdk-8u181-linux-x64.rpm
+#安装JDK
+[root@web01 opt]# rpm -ivh jdk-8u181-linux-x64.rpm
+[root@web01 opt]# java -version
+java version &quot;1.8.0_181&quot;
+Java(TM) SE Runtime Environment (build 1.8.0_181-b13)
+Java HotSpot(TM) 64-Bit Server VM (build 25.181-b13, mixed mode)
+#解压tomcat
+[root@web01 opt]# mkdir /application
+[root@web01 opt]# tar xf apache-tomcat-8.0.27.tar.gz -C /application/
+#创建软连接
+[root@web01 opt]# ln -s /application/apache-tomcat-8.0.27/ /application/tomcat
+#修改以下文件，加速启动tomcat
+[root@web01 opt]# vim /usr/java/jdk1.8.0_181-amd64/jre/lib/security/java.security 
+ 117 securerandom.source=file:/dev/urandom 
+ #启动tomcat
+ [root@web01 opt]# /application/tomcat/bin/startup.sh 
+[root@web01 opt]# netstat -lnpt|grep java
+tcp6       0      0 :::8009                 :::*                    LISTEN      2527/java           
+tcp6       0      0 :::8080                 :::*                    LISTEN      2527/java           
+tcp6       0      0 127.0.0.1:8005          :::*                    LISTEN      2527/java  
+</code></pre>
+<p>使用浏览器访问：<code>http://192.168.40.180:8080</code><br>
+<img src="https://ajie825.github.io/post-images/1697248209991.png" alt="" loading="lazy"></p>
+<pre><code class="language-shell">#安装数据库，设置数据库root用户密码为root
+[root@web01 opt]# yum install mariadb-server -y
+[root@web01 opt]# systemctl start mariadb
+[root@web01 opt]# mysqladmin password 'root'
+# 创建jeesns库
+[root@web01 opt]# mysql -uroot -proot -e&quot;create database jeesns;&quot;
+# 将源代码的jeesns.sql文件传输到tomcat节点并进行导入
+[root@jenkins database]# pwd
+/data/maven/jeesns/jeesns-web/database
+[root@jenkins database]# ll
+total 40
+-rwxr-xr-x 1 root root 28667 Nov 19  2018 jeesns.sql
+-rw-r--r-- 1 root root  3491 Nov 19  2018 update_1.2.0to1.2.1.sql
+-rw-r--r-- 1 root root  1026 Nov 19  2018 update_1.2.1to1.3.sql
+-rw-r--r-- 1 root root  1344 Nov 19  2018 update_1.3to1.3.1.sql
+[root@jenkins database]# scp jeesns.sql root@192.168.40.180:/opt
+#将sql文件导入数据库
+[root@web01 opt]# mysql -uroot -proot jeesns &lt; /opt/jeesns.sql
+[root@web01 opt]# mysql -uroot -proot -e &quot;use jeesns; show tables&quot;
+</code></pre>
+<h3 id="jenkins将公钥分发给tomcat节点"><code>Jenkins</code>将公钥分发给<code>tomcat</code>节点</h3>
+<pre><code class="language-shell">[root@jenkins ~]# ssh-copy-id -i.ssh/id_rsa.pub 192.168.40.180
+</code></pre>
+<h3 id="jenkins配置构建后操作"><code>Jenkins</code>配置构建后操作</h3>
+<pre><code>ssh root@192.168.40.180 'mv /application/tomcat/webapps/* /opt'
+scp -rp /var/lib/jenkins/workspace/maven-job/jeesns-web/target/jeesns-web.war root@192.168.40.180:/application/tomcat/webapps/ROOT.war
+</code></pre>
+<figure data-type="image" tabindex="2"><img src="https://ajie825.github.io/post-images/1697252274824.png" alt="" loading="lazy"></figure>
+<h3 id="点击保存立即构建">点击保存，立即构建</h3>
+<figure data-type="image" tabindex="3"><img src="https://ajie825.github.io/post-images/1697252907920.png" alt="" loading="lazy"></figure>
+<p>浏览器访问<code>http://192.168.40.180:8080</code><br>
+<img src="https://ajie825.github.io/post-images/1697253151121.png" alt="" loading="lazy"></p>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/chi-xu-ji-cheng-jiao-cheng-wu/">
+              <h3 class="post-title">
+                下一篇：持续集成教程 (五)
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

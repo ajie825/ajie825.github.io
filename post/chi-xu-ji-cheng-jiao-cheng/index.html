@@ -1,0 +1,252 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>持续集成教程 (一) | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">持续集成教程 (一)</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2023-09-18</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/orkaNU-rT/">
+                    devops
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="一-devops简介">一 <code>DevOps</code>简介</h2>
+<h3 id="什么是devops">什么是<code>DevOps</code></h3>
+<p><code>DevOps</code>是<code>Development</code>和<code>Operations</code>的组合，也就是开发和运维的简写。</p>
+<p><code>DevOps</code>是针对企业中的研发人员、运维人员和测试人员的工作理念，是他们在应用开发、代码部署和质量测试等整条生命周期中协作和沟通的最佳实践，<code>DevOps</code>强调整个组织的合作以及交付和基础设施变更的自动化，从而实现持续集成、持续部署和持续交付。</p>
+<p><code>DevOps</code>四大平台：代码托管(gitlab/svn)、项目管理(jira)、运维平台(腾讯蓝鲸/开源平台)、持续交付(Jenkins/gitlab)。<br>
+<img src="https://ajie825.github.io/post-images/1695021830349.png" alt="" loading="lazy"></p>
+<h3 id="为什么要推广devops">为什么要推广<code>DevOps</code></h3>
+<p><code>DevOps</code>强调团队协作、相互协助、持续发展，然而传统的模式是开发人员只顾开发程序，运维只负责基础环境管理和代码部署及监控等，并不是一起共同实现最终的目标，而<code>DevOps</code>则实现团队作战，即无论是开发、运维还是测试，都为了最终的代码发布、持续部署和业务稳定而付出各自的努力，从而实现产品设计、开发、测试和部署的良性循环，实现产品的最终持续交付。<br>
+<img src="https://ajie825.github.io/post-images/1695021250169.png" alt="" loading="lazy"></p>
+<h2 id="二-cicd介绍">二 <code>CI/CD</code>介绍</h2>
+<h3 id="什么是持续集成ci-continuous-integration"><strong>什么是持续集成(CI-Continuous integration)</strong></h3>
+<p>持续集成是指多名开发者在开发不同功能代码的过程当中，可以频繁的将代码行合并到一起并且不影响工作。</p>
+<h3 id="什么是持续部署cd-continuous-deployment">什么是持续部署(CD-continuous deployment)</h3>
+<p>是基于某种工具或平台实现代码自动化的构建、测试和部署到线上环境以实现交付高质量的产品，持续部署在某种程度上代表了一个开发团队的更新迭代速率。</p>
+<h3 id="什么是持续交付continuous-delivery">什么是持续交付(Continuous Delivery)</h3>
+<p>持续交付是在持续部署的基础上，将产品交付到线上环境，因此持续交付是产品价值的一种交付，是产品价值的一种盈利的实现。<br>
+<img src="https://ajie825.github.io/post-images/1695029036518.png" alt="" loading="lazy"></p>
+<p><strong>常见的部署方式</strong></p>
+<ul>
+<li>开发自己上传---最原始的方案</li>
+<li>开发给运维手动上传---运维自己手动部署</li>
+<li>运维使用脚本复制---半自动化</li>
+<li>结合web界面一键部署---自动化</li>
+</ul>
+<h2 id="三-常见的持续集成开源工具">三 常见的持续集成开源工具</h2>
+<p>在公司的服务器安装某种程序，该程序用于按照特定的格式和方式记录和保存多名开发人员不定期提交的源代码，且后期可以按照某种标记及方式对用户提交的数据进行还原回滚。</p>
+<h3 id="cvsconcurrent-version-system"><code>CVS(Concurrent Version System)</code></h3>
+<p>早期的集中式版本控制系统，现已基本淘汰，会出现数据提交后不完整的情况。</p>
+<h3 id="svnsubversion集中式版本控制系统"><code>SVN(subversion)</code>—集中式版本控制系统</h3>
+<p><img src="https://ajie825.github.io/post-images/1695794576822.png" alt="" loading="lazy"><br>
+2000年开始开发，目标就是替代<code>CVS</code>，依赖于网络，一台服务器集中管理，如果中央数据仓库挂了或者不可访问，所有的使用者无法使用<code>SVN</code>，无法进行提交或备份文件，目前依然有部分公司在使用。</p>
+<h3 id="git分布式版本控制系统"><code>git</code>—分布式版本控制系统</h3>
+<p><img src="https://ajie825.github.io/post-images/1695794592842.png" alt="" loading="lazy"><br>
+<code>Linus</code>在1991年创建了开源的<code>Linux</code>内核，从此<code>Linux</code>便不断快速发展，不过<code>Linux</code>的壮大是离不开全世界的开发者的参与，这么多人在世界各地为<code>Linux</code>编写代码，那<code>Linux</code>内核的代码是如何管理的呢？事实是，在2002年以前，世界各地的志愿者把源代码文件通过<code>diff</code>的方式发给<code>Linus</code>，然后由<code>Linus</code>本人通过手工方式合并代码！你也许会想，为什么<code>Linus</code>不把<code>Linux</code>代码放到版本控制系统里呢？不是有<code>CVS</code>、<code>SVN</code>这些免费的版本控制系统吗？因为<code>Linus</code>坚定地反对<code>CVS</code>和<code>SVN</code>，这些集中式的版本控制系统不但速度慢，且必须联网才能使用，但是也有一些商用的版本控制系统，虽然比<code>CVS</code>、<code>SVN</code>好用，但那是付费的，和<code>Linux</code>的开源精神不符。</p>
+<p>不过，到了2002年，<code>Linux</code>系统已经发展了十年，代码库之大让<code>Linus</code>很难继续通过手工方式管理了，社区的弟兄们也对这种方式表达了强烈不满，于是<code>Linus</code>选择了一个商业的版本控制系统<code>BitKeeper</code>，<code>BitKeeper</code>的东家<code>BitMover</code>公司出于人道主义精神，授权<code>Linux</code>社区免费使用这个版本控制系统。</p>
+<p>但是安定团结的大好局面在2005年就被打破了，原因是<code>Linux</code>社区牛人聚集，不免沾染了一些梁山好汉的江湖习气，开发<code>Samba</code>的<code>Andrew</code>试图破解<code>BitKeeper</code>的协议（这么干的其实也不只他一个），被<code>BitMover</code>公司发现了（监控工作做得不错！），于是<code>BitMover</code>公司怒了，要收回<code>Linux</code>社区的免费使用权,这时候其实<code>Linus</code>可以向<code>BitMover</code>公司道个歉，保证以后严格管教弟兄们，但这是不可能的，而且实际情况是<code>Linus</code>自己花了两周时间自己用<code>C</code>写了一个分布式版本控制系统，这就是<code>git</code>！一个月之内，<code>Linux</code>内核的源码已经由<code>git</code>管理了！牛是怎么定义的呢？大家可以体会一下，然后<code>git</code>迅速成为最流行的分布式版本控制系统。</p>
+<p>每个使用<code>git</code>的用户在本地都有一个完整的版本库，然后还有一个中央服务器，用户可以先将代码提交到本地，没有网络也可以先提交到本地，然后在有网络的时候再提交到中央服务器，这样就大大方便了开发者，而相比<code>CVS</code>和<code>SVN</code>都是集中式的版本控制系统，工作的时候需要先从中央服务器获取最新的代码，改完之后需要提交，如果是一个比较大的文件则需要足够快的网络才能快速提交完成。</p>
+<h2 id="四-企业常见的代码部署方式">四 企业常见的代码部署方式</h2>
+<h3 id="蓝绿部署">蓝绿部署</h3>
+<p><img src="https://ajie825.github.io/post-images/1695608892874.png" alt="" loading="lazy"><br>
+<strong>关键点：</strong> 需要有两套独立的环境，消耗服务器资源，发布全称都只有一套正式环境在线。</p>
+<p><strong>概念：</strong> 蓝绿部署指的是不停老版本代码（不影响上一个版本访问），而是在另外一套环境部署新版本然后进行测试，测试通过后将用户流量切到新版本，其特点为业务无中断，升级风险相对较小。</p>
+<p><strong>具体过程：</strong></p>
+<ol>
+<li>当前版本业务正常访问(V1)</li>
+<li>在另外一套环境部署新代码(V2)，代码可能是增加了功能或者是修复了某些<code>bug</code></li>
+<li>测试通过之后将用户请求流量切到新版本环境</li>
+<li>观察一段时间，如有异常直接切换旧版本</li>
+<li>下次升级，将旧版本升级到新版本(V3)</li>
+</ol>
+<p><strong>蓝绿部署适用的场景：</strong></p>
+<ol>
+<li>不停止老版本，额外部署一套新版本，等测试发现新版本<code>OK</code>后，删除老版本。</li>
+<li>蓝绿发布是一种用于升级与更新的发布策略，部署的最小维度是容器，而发布的最小维度是应用。</li>
+<li>蓝绿发布对于增量升级有比较好的支持，但是对于涉及数据表结构变更等等不可逆转的升级，并不完全适用蓝绿发布来实现，需要结合一些业务的逻辑以及数据迁移与回滚的策略才可以完全满足需求。</li>
+</ol>
+<h3 id="金丝雀灰度发布">金丝雀/灰度发布</h3>
+<p><img src="https://ajie825.github.io/post-images/1695611331293.png" alt="" loading="lazy"><br>
+&quot;金丝雀&quot;的由来：17世纪英国矿井工人发现，金丝雀对瓦斯这种气体十分敏感。空气中哪怕有极其微量的瓦斯，金丝雀也会停止歌唱；而当瓦斯含量超过一定限度时，虽然鲁钝的人类毫无察觉，金丝雀却早已毒发身亡。当时在采矿设备相对简陋的条件下，工人每次下井都会带上一只金丝雀作为&quot;瓦斯检测指标&quot;，以便在危险状况下紧急撤离。</p>
+<p><strong>关键点：</strong> 在现有环境选择部分服务器升级并测试效果。</p>
+<p><strong>概念：</strong></p>
+<p>金丝雀发布也叫灰度发布，是指在黑与白之间，能够平滑过渡的一种发布方式，灰度发布是增量发布的一种类型，灰度发布是在原有版本可用的情况下，同时部署一个新版本应用作为&quot;金丝雀&quot;(小白鼠)，测试新版本的性能和表现，以保障整体系统稳定的情况下，尽早发现、调整问题。因此，灰度发布可以保证整体系统的稳定，在初始灰度的时候就可以发现、调整问题，以保证其影响度。</p>
+<p><strong>金丝雀发布、灰度发布步骤组成：</strong></p>
+<ol>
+<li>准备好部署各个阶段的组件，包括构建组件、测试脚本、配置文件和部署清单文件。</li>
+<li>从负载均衡列表中移除掉&quot;金丝雀&quot;服务器。</li>
+<li>升级&quot;金丝雀&quot;应用（排掉原有流量并进行部署）。</li>
+<li>对应用进行自动化测试。</li>
+<li>将&quot;金丝雀&quot;服务器重新添加到负载均衡列表中（连通性和健康检查）。</li>
+<li>如果&quot;金丝雀&quot;在线使用测试成功，升级剩余的其他服务器（否则就回滚）。</li>
+</ol>
+<p><strong>灰度发布/金丝雀部署适用的场景：</strong></p>
+<ol>
+<li>不停止老版本，额外搞一套新版本，不同版本应用共存。</li>
+<li>灰度发布中，常常按照用户设置路由权重，例如90%的用户维持使用老版本，10%的用户尝试新版本。</li>
+<li>经常与<code>A/B</code>测试一起使用，用于测试选择多种方案。</li>
+</ol>
+<h3 id="滚动发布">滚动发布</h3>
+<p><strong>概念：</strong></p>
+<ol>
+<li>是在金丝雀发布基础上的进一步优化改进，是一种自动化程度较高的发布方式，用户体验比较平滑。</li>
+<li>取出一个或者多个服务器停止服务，执行更新，并重新将其投入使用，周而复始，直到集群中所有的实例都更新成新版本。</li>
+</ol>
+<p><strong>滚动发布与灰度发布本质区别：</strong></p>
+<ol>
+<li>灰度强调的是部分节点给指定用户体验没问题后再扩大发布（先测试再升级，偏重测试）</li>
+<li>滚动强调的是各个服务器的自动更新（主要是为了完成升级）</li>
+</ol>
+<p><strong>使用场景：</strong></p>
+<ul>
+<li><code>k8s</code>环境</li>
+<li>自动化程度很高的环境</li>
+</ul>
+<h3 id="ab测试"><code>A/B</code>测试</h3>
+<p><strong>关键点：</strong> 两套环境同时上线作比较</p>
+<p><strong>概念：</strong></p>
+<p><code>A/B</code>测试也是同时运行两个<code>APP</code>环境，但是和蓝绿部署完全是两码事，<code>A/B</code>测试是用来测试应用功能表现的方法，例如可用性、受欢迎程度、可见性等等，蓝绿部署的目的是安全稳定地发布新版本应用，并在必要时回滚，即蓝绿部署是同一时间只有一套正式环境在线，而<code>A/B</code>测试是两套环境同时在线，一般用于多个产品竞争时使用。<br>
+<img src="https://ajie825.github.io/post-images/1695631630092.png" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1695631650701.png" alt="" loading="lazy"></p>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/a-li-yun/">
+              <h3 class="post-title">
+                下一篇：阿里云
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

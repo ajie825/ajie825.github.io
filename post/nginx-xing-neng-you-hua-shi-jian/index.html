@@ -1,0 +1,917 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>nginx性能优化实践 | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">nginx性能优化实践</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-08-15</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/YBDfkYHYeR/">
+                    nginx
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="性能优化概述">性能优化概述</h2>
+<pre><code class="language-bash">基于nginx性能优化，那么在性能优化这一章，我们将分为如下几个方面做介绍
+1）首先需要了解性能优化要考虑哪些方面
+2）然后需要了解性能优化必须要用到的压力测试工具ab
+3）最后需要了解系统上有哪些注意和优化的点，以及nginx配置文件
+</code></pre>
+<h3 id="做性能优化工作前重点需要考虑和了解哪些方面">做性能优化工作前，重点需要考虑和了解哪些方面</h3>
+<pre><code class="language-bash">1）首先需要了解当前系统结构和瓶颈，了解当前使用的是什么，运行的是什么业务，都有哪些服务，了解每个服务最大能支撑多大
+并发。
+比如nginx作为静态资源服务的并发是多少，最高瓶颈在哪里，能支持多少qps(每秒查询率)的访问请求，那我们怎么得出这组系
+统结构瓶颈呢，比如top查看系统的cpu负载、内存使用率、总的运行进程等，也可以通过日志去分析请求的情况，当然也可以通过
+前面介绍到的stub_status模块查看当前的连接情况，也可以对线上的业务进行压力测试(低峰期)，去了解当前这套系统能承担多
+少的请求和并发，并做好相应的评估，这个是我们做性能优化最先考虑的地方。
+2）其次需要了解业务模式，虽然是做性能优化，但每一个性能的优化都是为业务所提供服务的，我们需要了解每个业务接口的类
+型。
+比如:电商网站中的抢购模式，这种情况下面，平时没什么流量，但到了抢购时间流量会突增。
+3）还需要了解系统层次化的结构，比如: 我们使用nginx做的是代理、还是动静分离、还是后端直接服务用户，那么这个就需要我
+们对每一层做好相应的梳理，以便更好的服务业务。
+4）最后需要考虑性能与安全，往往注重了性能，但是忽略了安全。往往过于注重安全，性能又会产生影响。
+比如：在设计防火墙功能时，检测过于严密，这样就会给性能带来影响；那么如果对于性能完全追求，却不顾服务的安全，这个也
+会造成很大的隐患，所以需要评估好两者的关系，把握好两者的孰重孰轻，以及整体的相关性，权衡好对应的点。
+</code></pre>
+<h2 id="压力测试工具">压力测试工具</h2>
+<pre><code class="language-bash">在系统业务量没有增长之前，我们就要做好相应的准备工作，已防患业务量徒增带来的接口压力。
+所以对于接口压力测试就显得非常重要了，我们首先要评估好系统压力，然后使用工具检测当前系统情况，是否能满足对应压力的
+需求。
+</code></pre>
+<pre><code class="language-bash">1）安装ab压力测试工具
+[root@web01 ~]# yum install httpd-tools –y
+</code></pre>
+<pre><code class="language-bash">2）了解压测工具使用方式
+[root@web01 ~]# ab -n 200 -c http://127.0.0.1/index.html
+# -n：总的请求次数
+# -c：并发请求数
+# -k：是否开启长连接
+</code></pre>
+<h3 id="压力测试实验">压力测试实验</h3>
+<pre><code class="language-bash">1）配置nginx静态网站与tomcat动态网站环境
+[root@web01 conf.d]# cat jsp.conf 
+server {
+   server_name ab.oldboy.com;
+   listen 80;
+   location / {
+      root /code;
+      try_files $uri $uri/ @java_page;
+  }
+   location @java_page{
+     proxy_pass http://127.0.0.1:8080;
+   }
+}
+</code></pre>
+<pre><code class="language-bash">2）给nginx准备静态网站
+[root@web01 conf.d]# cat /code/abc.html 
+Nginx Ab Load
+</code></pre>
+<pre><code class="language-bash">3）安装tomcat并准备动态网站文件
+[root@web01 ~]# yum install java -y
+[root@web01 ~]# wget http://archive.apache.org/dist/tomcat/tomcat-9/v9.0.36/bin/apache-tomcat-9.0.36.tar.gz
+[root@web01 ~]# tar xf apache-tomcat-9.0.36.tar.gz
+[root@web01 ~]# cd apache-tomcat-9.0.36/webapps/ROOT/
+[root@web01 ROOT]# cat abc.html 
+Tomcat Ab Load
+[root@web01 ROOT]# ../../bin/startup.sh
+</code></pre>
+<pre><code class="language-bash">4）使用ab工具进行压力测试
+#总请求数10000，同时并发200
+[root@web01 ~]# ab -n 10000 -c 200 http://127.0.0.1/abc.html
+Time taken for tests:   1.557 seconds
+Requests per second:    6424.11 [#/sec] (mean)                      #每秒处理6424.11个请求（qps）*****
+Time per request:       31.133 [ms] (mean)   
+Time per request:       0.156 [ms] (mean, across all concurrent requests)       #每个请求处理时间
+Transfer rate:          1900.88 [Kbytes/sec] received               #传输速率，判断网络是否存在问题
+
+[root@web01 conf.d]# curl 127.0.0.1:8080/abc.html
+Time taken for tests:   8.075 seconds
+Requests per second:    1238.42 [#/sec] (mean)
+Time per request:       161.496 [ms] (mean)
+Time per request:       0.807 [ms] (mean, across all concurrent requests)
+Transfer rate:          303.56 [Kbytes/sec] received
+</code></pre>
+<h3 id="了解影响性能指标">了解影响性能指标</h3>
+<pre><code class="language-bash">网络：网络的延迟、网络是否丢包、这些会影响http的请求与调用
+系统：硬件有没有磁盘损坏、磁盘速率，系统负载、内存、系统稳定性
+服务：连接优化、请求优化，根据业务形态做对应的服务设置
+程序：接口性能、处理速度、程序执行效率
+数据库
+每个服务与服务之间都或多或少有一些关联，我们需要将整个架构进行分层，找到对应系统或服务的短板然后进行优化
+nginx和PHP每个worker进程占用内存大约8M，16G的内存处理动态请求大约500-800，处理静态请求大约1-2万
+</code></pre>
+<h2 id="系统性能优化">系统性能优化</h2>
+<pre><code class="language-bash">文件句柄，Linux一切皆文件，文件句柄可以理解为就是一个索引，文件句柄会随着我们进程的调用频繁增加，系统默认文件句柄
+是有限制的，不能让一个进程无限的调用，所以我们需要限制每个进程和每个服务使用多大的文件句柄，文件句柄也是必须要调整
+的优化参数。
+如果购买云主机默认已经调整了该参数  ****
+文件句柄的设置方式：1）系统全局性修改 2）用户局部性修改 3）进程局部性修改
+#查看默认的文件句柄
+[root@web01 ~]# ulimit -n
+1024 
+
+[root@web01 ~]# vim /etc/security/limits.conf
+# 针对root用户，soft仅提醒，hard限制，nofile打开最大文件数
+root soft nofile 65525
+root hard nofile 65535
+
+# *代表所有用户     *****
+* soft nofile 25535
+* hard nofile 25535
+
+# 针对Nginx进程（加到核心模块即可）
+worker_rlimit_nofile 35535;
+
+* - nofile 65535 
+如果文件描述符不够用，会出现open too many files的问题
+
+调整内核参数：让time_wait状态重用(端口重用)
+[root@web01 ROOT]# vim /etc/sysctl.conf
+net.ipv4.tcp_tw_reuse = 1
+net.ipv4.tcp_timestamps = 1
+[root@web01 ROOT]# sysctl -p
+</code></pre>
+<h2 id="代理服务优化">代理服务优化</h2>
+<pre><code class="language-bash">通常nginx作为代理服务，负责转发用户的请求，那么在转发的过程中建议开启HTTP长连接，用于减少握手次数，降低服务器损耗
+upstream keepalive说明：https://www.cnblogs.com/kabi/p/7123354.html
+</code></pre>
+<pre><code class="language-bash">1）长连接语法示例（应用层优化）
+Syntax ：keepalive connections;
+Default： _
+Context：upstream
+This directive appeared in version 1.14
+</code></pre>
+<pre><code class="language-bash">2）配置nginx代理服务使用长连接方式
+upstream http_backend {
+    server 127.0.0.1:8080;
+    keepalive 16;                         #长连接
+}
+server {
+    ...
+    location /http/ {
+        proxy_pass http://http_backend;
+        proxy_http_version 1.1;          #对于http协议应该指定为1.1
+        proxy_set_header Connection &quot;&quot;;  #清除“connection”头字段 
+}
+}
+</code></pre>
+<pre><code class="language-bash">3）nginx代理常用参数
+[root@lb01 ~]# cat /etc/nginx/proxy_params 
+proxy_next_upstream error timeout http_500 http_502 http_503 http_504;                     #平滑过渡
+proxy_set_header Host $http_host;
+proxy_set_header X-Real-IP $remote_addr;
+proxy_set_header X-Forwared-For $proxy_add_x_forwarded_for;
+proxy_connect_timeout 30s;		                                                #代理连接web超时时间
+proxy_read_timeout 60s;	                                                    #代理等待web响应超时时间
+proxy_send_timeout 60s;	                                                  #web回传数据至代理超时时间
+proxy_buffering on;                        #开启代理缓冲区,web回传数据至缓冲区,代理边收边传返回给客户端
+proxy_buffer_size 32k;	                                         #代理接收web响应的头信息的缓冲区大小
+proxy_buffers 4 128k;		                        #缓冲代理接收单个长连接内包含的web响应的数量和大小
+proxy_http_version 1.1;                                                  #对于http协议应该指定为1.1
+proxy_set_header Connection &quot;&quot;;                                             #清除“connection”头字段 
+</code></pre>
+<pre><code class="language-bash">3）对于fastcgi服务器，需要设置fastcgi_keep_conn以便保持长连接
+upstream fastcgi_backend {
+    server 127.0.0.1:9000;
+    keepalive 8;
+}
+server {
+    ...
+    location /fastcgi/ {
+        fastcgi_pass fastcgi_backend;
+	    fastcgi_param  SCRIPT_FILENAME  $document_root$fastcgi_script_name;
+        fastcgi_keep_conn on;
+	    fastcgi_connect_timeout 60s;
+		include  fastcgi_params;
+    }
+}
+</code></pre>
+<pre><code class="language-bash">4）keepalive_requests设置通过一个keepalive连接提供的最大请求数，在发出最大请求数后，将关闭连接
+Syntax ：keepalive_requests number;
+Default：keepalive_requests 100;
+Context：upstream
+#该指令出现在1.15.3版中
+</code></pre>
+<pre><code class="language-bash">5）keepalive_timeout设置超时，在此期间与代理服务器的空闲keepalive连接将保持打开状态
+Syntax ：keepalive_timeout timeout;
+Default：keepalive_timeout 60s;
+Context：upstream
+#该指令出现在1.15.3版中
+</code></pre>
+<pre><code class="language-bash">注意:
+scgi和uwsgi协议没有保持连接的概念。
+但无论是proxy、fastcgi、uwsgi协议都有cache缓存的功能，开启后可加速网站访问的效率。（取决硬件，不建议）
+</code></pre>
+<h2 id="静态资源优化">静态资源优化</h2>
+<pre><code class="language-bash">nginx作为静态资源web服务器，用于静态资源处理，传输非常的高效
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1660553040607.jpg" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">静态资源指的是，非WEB服务器端运行处理而生成的文件，在不同请求中访问到的数据都相同的静态文件。
+</code></pre>
+<pre><code class="language-bash">静态资源类型                            	种类
+浏览器渲染	                            HTML、CSS、JS
+图片文件	                            JPEG、GIF、PNG
+视频文件	                            FLV、Mp4、AVI
+其他文件	                            TXT、DOC、PDF、...
+</code></pre>
+<h3 id="静态资源缓存">静态资源缓存</h3>
+<pre><code class="language-bash">浏览器缓存设置用于提高网站性能，尤其是新闻网站，图片一旦发布，改动的可能性是非常小的。
+所以我们希望能否用户访问一次后，图片缓存在用户的浏览器长时间缓存。
+浏览器是有自己的缓存机制，它是基于HTTP协议缓存机制来实现的，在HTTP协议中很多头信息，那么实现浏览器的缓存就需要依赖
+特殊的头信息来与服务器进行特殊的验证，如expires（http/1.0）；cache-control（http/1.1）
+</code></pre>
+<pre><code class="language-bash">浏览器无缓存
+</code></pre>
+<figure data-type="image" tabindex="2"><img src="https://ajie825.github.io/post-images/1660553439270.jpg" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">浏览器有缓存
+</code></pre>
+<figure data-type="image" tabindex="3"><img src="https://ajie825.github.io/post-images/1660553528694.png" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">浏览器缓存过期校验检查机制，说明如下：
+浏览器请求服务器会先进行expires、cache-control的检查，检查缓存是否过期，如果没有过期则直接从缓存文件中读取
+如果缓存过期，首先检查是否存在etag，如果存在客户端会向web服务器请求if-none-match，与etag值进行比对，由服务器决策返回200还是304
+如果etag不存在，则进行last-modified检查，客户端会向web服务器请求if-modified-since，与last-modifiec进行比对，由服务器决策返回200还是304
+</code></pre>
+<figure data-type="image" tabindex="4"><img src="https://ajie825.github.io/post-images/1660553717694.png" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">配置静态资源缓存expires语法
+#作用：添加cache-control expires头
+Syntax ：expires [modified] time；
+expires epoch | max | off;
+Default：expires off;
+Context：http，server，location，if in location
+</code></pre>
+<pre><code class="language-bash">配置静态资源缓存场景实践
+server {
+    listen 80;
+    server_name static.oldboy.com;
+    location ~ .*\.(jpg|gif|png)$ {
+        expires    7d;
+    }
+}
+如果开发代码没有正式上线时，希望静态文件不被缓存
+#取消js css html等静态文件缓存
+location ~ \.*(css|js|swf|json|mp4|htm|html)$ {
+       #expires 10d;
+       add_header Cache-Control no-store;
+       add_header Pragma no-cache;
+     }
+</code></pre>
+<h3 id="静态资源读取">静态资源读取</h3>
+<pre><code class="language-bash">1）文件读取高效sendfile，如下图
+Syntax ：sendfile on | off;
+Default：sendfile off;
+Context：http，server，location，if inlocation
+传统读取文件方式   VS   sendfile读取文件方式比较
+</code></pre>
+<figure data-type="image" tabindex="5"><img src="https://ajie825.github.io/post-images/1660554447271.jpg" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">2）将多个包一次发送，用于提升网络传输效率，大文件推荐打开，需要开启sendfile才行
+Syntax ：tcp_nopush on | off;
+Default：tcp_nopush off;
+Context：http，server，location
+</code></pre>
+<pre><code class="language-bash">3）提高网络传输实时性，需要开启keepalive
+Syntax ：tcp_nodelay on | off;
+Default：tcp_nodelay on;
+Context：http，server，location
+</code></pre>
+<pre><code class="language-bash">4）生产静态资源读取配置
+sendfile                      on;
+tcp_nopush                    on;
+tcp_nodelay                   on;
+keepalive_timeout             65;
+types_hash_max_size           4096;
+</code></pre>
+<h3 id="静态资源压缩">静态资源压缩  *****</h3>
+<pre><code class="language-bash">nginx将响应报文送至客户端之前启用压缩功能，然后进行传输，这能够有效地节约带宽，并提高响应至客户端的速度。
+</code></pre>
+<figure data-type="image" tabindex="6"><img src="https://ajie825.github.io/post-images/1660555642117.png" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">1）gzip传输压缩，传输前压缩，传输后解压
+Syntax ：gzip on | off;
+Default：gzip off：
+Context：http，server，location，if in location
+</code></pre>
+<pre><code class="language-bash">2）gzip压缩哪些类型的文件
+Syntax ：gzip_types mine-type … ;
+Default：gzip_types text/html；
+Context：http，server，location
+</code></pre>
+<pre><code class="language-bash">3）gzip压缩比率，加快传输，但压缩本身比较耗费服务端性能
+Syntax ：gzip_comp_level level；
+Default：gzip_comp_level 1；
+Context：http，server，location
+</code></pre>
+<pre><code class="language-bash">4）gzip压缩协议版本，压缩使用在http哪个协议，主流选择1.1版本
+Syntax：gzip_http_version 1.0 | 1.1;
+Default：gzip_http_version 1.1；
+Context：http，server，location
+</code></pre>
+<pre><code class="language-bash">5）静态图片配置压缩案例
+[root@web01 conf.d]# cat static_server.conf 
+server {
+    listen 80;
+    server_name static.oldboy.com;
+
+    location ~*  .*\.(jpg|gif|png)$ {
+        root /code/images;
+        gzip on;
+        gzip_http_version 1.1;
+        gzip_comp_level 2;
+        gzip_types  image/jpeg image/gif image/png;
+        }
+}
+
+[root@web01 ~]# cd /code/images/
+
+#测试没有开启gzip图片压缩
+[root@web01 images]# ll -h
+总用量 604K
+-rw-r--r--. 1 root root 604K 8月  21 21:04 oldboy.png
+
+#检查并重启nginx服务
+[root@web01 conf.d]# nginx –t
+[root@web01 conf.d]# systemctl restart nginx
+</code></pre>
+<figure data-type="image" tabindex="7"><img src="https://ajie825.github.io/post-images/1660556044898.png" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">#启用gzip压缩图片后（由于图片之前压缩过，所以压缩比率不太明显）
+</code></pre>
+<figure data-type="image" tabindex="8"><img src="https://ajie825.github.io/post-images/1660556123049.png" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">6）静态文件配置压缩案例
+[root@web01 conf.d]# cat static_server.conf 
+server {
+    listen 80;
+server_name static.oldboy.com;
+    sendfile on;
+location ~ .*\.(txt|xml|html|json|js|css)$ {
+    root /code/doc;
+    gzip on;
+    gzip_http_version 1.1;
+    gzip_comp_level 2;
+    gzip_types text/plain application/json application/x-javascript application/css application/xml text/javascript;
+    }
+}
+#没有启用gzip文件压缩
+</code></pre>
+<figure data-type="image" tabindex="9"><img src="https://ajie825.github.io/post-images/1660556278280.png" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">#启用gzip文件压缩
+</code></pre>
+<figure data-type="image" tabindex="10"><img src="https://ajie825.github.io/post-images/1660556345310.png" alt="" loading="lazy"></figure>
+<h3 id="防止资源盗链">防止资源盗链</h3>
+<pre><code class="language-bash">防盗链，指的是防止资源被其他网站恶意盗用
+基础防盗链设置思路：主要是针对客户端请求过程中所携带的一些header信息来验证请求的合法性
+比如客户端在请求的过程中都会携带Referer信息（Referer会告诉服务器我是从哪一个页面过来的）。
+优点是规则简单，配置和使用都很方便，缺点是防盗链所依赖的Referer验证信息是可以伪造的，所以通过Referer信息防盗链并
+非100%可靠，但是它能够限制大部分的盗链情况。
+</code></pre>
+<pre><code class="language-bash">Syntax ：valid_referers none | blocked | server_names | string …;
+Default：_
+Context：server，location
+#none：        Referer来源头部为空的情况
+#blocked：     Referer来源头部不为空，这些值都不以http://或者https://开头
+#server_names：来源头部包含当前的域名，可以正则匹配
+</code></pre>
+<pre><code class="language-bash">1）在web02准备防盗链服务器，配置如下
+[root@web02 conf.d]# cat fd.oldboy.com.conf 
+server {
+  listen 80;
+  server_name fd.oldboy.com;
+  root /code/public/;
+  access_log /var/log/fd.oldboy.com main;
+
+  location / {
+     index index.html index.htm;
+   }
+ }
+
+[root@web02 ~]# ll /code/public/
+-rw-r--r--. 1 root root 12174 8月  29 23:34 tt.jpeg
+-rw-r--r--. 1 root root 14116 8月  30 13:26 ks.jpeg
+
+#检查配置文件并重启Nginx服务
+[root@web02 ~]# nginx –t
+[root@web02 ~]# systemctl restart nginx
+#在浏览器访问http://fd.oldboy.com/tt.jpeg正常
+</code></pre>
+<figure data-type="image" tabindex="11"><img src="https://ajie825.github.io/post-images/1660632708545.png" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">2）在盗链服务器web01准备配置文件及html代码，偷取fd.oldboy.com网站上的图片
+[root@web01 conf.d]# cat static_server.conf 
+server {
+    listen 80;
+    server_name static.oldboy.com;
+    sendfile on;
+    root /code/images;
+    location / {
+    index index.html index.htm;
+   }
+}
+
+[root@web01 ~]# cd /code/images/
+[root@web01 images]# cat referer_test.html 
+&lt;html&gt;
+&lt;head&gt;
+     &lt;meta charset=&quot;utf-8&quot;&gt;
+     &lt;title&gt;oldboyedu.com&lt;/title&gt;
+&lt;/head&gt;
+&lt;body style=&quot;background-color:red;&quot;&gt;
+     &lt;img src=&quot;http://fd.oldboy.com/tt.jpeg&quot;/&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+
+#检查配置文件并重启Nginx服务
+[root@web01 ~]# nginx –t
+[root@web01 ~]# systemctl restart nginx
+#使用浏览器访问static.oldboy.com/referer_test.html，能看到偷链的资源
+</code></pre>
+<figure data-type="image" tabindex="12"><img src="https://ajie825.github.io/post-images/1660633001807.png" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">3）在fd.oldboy.com服务器上启用基于防盗链
+location ~ .*\.(jpg|jpeg|gif|png)$ {
+     #指定合法的来源referer,这个变量被设置为0,否则设置为1
+      valid_referers none blocked *.xuliangwei.com;
+      if ($invalid_referer) {
+          return 403;	
+      }
+  }
+#以上配置含义表示：所有来自xuliangwei.com都可以访问到当前站点的图片，如果来源域名不在这里列表中，那么
+#$invalid_referer等于1，在if语句中返回一个403给用户，这样用户便会看到一个403的页面
+
+#使用浏览器验证会发现恶意的来源网站已经无法正常盗链
+</code></pre>
+<figure data-type="image" tabindex="13"><img src="https://ajie825.github.io/post-images/1660633312015.png" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">4）如果不使用return 403而使用rewrite，那么盗链图片会返回一个ks.jpeg给用户
+location ~ .*\.(jpg|jpeg|gif|png)$ {
+    #指定合法的来源referer,这个变量被设置为0,否则设置为1
+     valid_referers none blocked *.xuliangwei.com;
+     if ($invalid_referer) {
+      # return 403;
+        rewrite ^(.*)$ /ks.jpeg break;	
+      }
+  }
+#验证rewrite的效果
+</code></pre>
+<figure data-type="image" tabindex="14"><img src="https://ajie825.github.io/post-images/1660633512808.png" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">5）如果希望某些网站能够使用（盗链）资源
+location ~ .*\.(jpg|jpeg|gif|png)$ {
+    #指定合法的来源referer,这个变量被设置为0,否则设置为1
+    valid_referers none blocked *.xuliangwei.com server_names ~\.google\. ~\.baidu\.;
+    if ($invalid_referer) {
+     # return 403;
+       rewrite ^(.*)$ /ks.jpeg break;	
+      }
+  }
+</code></pre>
+<pre><code class="language-bash">6）当然这种防护并不能百分百保证资源被盗链，因为我们可以通过命令或者程序修改来源的Referer信息
+验证：
+#伪造协议头访问
+[root@web01 ~]# curl -e &quot;http://www.baidu.com&quot; -I http://fd.oldboy.com/tt.jpeg
+HTTP/1.1 200 OK
+Server: nginx/1.18.0
+Date: Sun, 30 Aug 2020 10:43:27 GMT
+Content-Type: image/jpeg
+Content-Length: 12174
+Last-Modified: Sat, 29 Aug 2020 15:34:28 GMT
+Connection: keep-alive
+ETag: &quot;5f4a7584-2f8e&quot;
+Accept-Ranges: bytes
+</code></pre>
+<h3 id="允许跨域访问">允许跨域访问</h3>
+<pre><code class="language-bash">什么是跨域访问，当我们通过浏览器访问a网站时，同时会利用到ajax或其他方式，同时也请求b网站，这样的话就出现了请求一个
+页面，使用了2个域名，这种方式对浏览器来说默认是禁止
+</code></pre>
+<figure data-type="image" tabindex="15"><img src="https://ajie825.github.io/post-images/1660634179364.png" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">Nginx允许跨站访问与浏览器有什么关系呢？因为浏览器会读取Access-Control-Allow-Origin的头信息，如果服务端允许，则
+浏览器不会进行拦截
+Syntax ：add_header name value [always];
+Default：_
+Context：http，server，location，if in location
+</code></pre>
+<pre><code class="language-bash">1）在static.oldboy.com网站上准备跨站访问的文件
+[root@web01 ~]# cat /code/images/http_orgin.html 
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+        &lt;meta charset=&quot;UTF-8&quot; /&gt;
+        &lt;title&gt;测试ajax和跨域访问&lt;/title&gt;
+        &lt;script src=&quot;http://libs.baidu.com/jquery/2.1.4/jquery.min.js&quot;&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;script type=&quot;text/javascript&quot;&gt;
+$(document).ready(function(){
+        $.ajax({
+        type: &quot;GET&quot;,
+        url: &quot;http://fd.oldboy.com/ks.jpeg&quot;,			
+        success: function(data) {
+                alert(&quot;sucess!!!&quot;);
+        },
+        error: function() {
+                alert(&quot;fail!!,请刷新再试!&quot;);
+        }
+        });
+});
+&lt;/script&gt;
+        &lt;body&gt;
+                &lt;h1&gt;测试跨域访问&lt;/h1&gt;
+        &lt;/body&gt;
+&lt;/html&gt;
+#通过浏览器测试，该跨站操作一定会被拒绝
+</code></pre>
+<p><img src="https://ajie825.github.io/post-images/1660634361338.png" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1660634377542.png" alt="" loading="lazy"></p>
+<pre><code class="language-bash">2）在fd.oldboy.com的Nginx上配置允许跨域访问
+[root@Nginx conf.d]# cat fd.oldboy.com.conf 
+location ~ .*\.(html|htm|jpeg)$ {
+    add_header Access-Control-Allow-Origin http://static.oldboy.com;
+    add_header Access-Control-Allow-Methods GET,POST,PUT,DELETE,OPTIONS;
+}
+#再次通过浏览器访问，已经能实现跨域访问请求
+</code></pre>
+<p><img src="https://ajie825.github.io/post-images/1660634453110.png" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1660634467817.png" alt="" loading="lazy"></p>
+<h2 id="cpu亲和配置">CPU亲和配置</h2>
+<pre><code class="language-bash">CPU亲和（affinity）减少进程之间不断频繁切换，减少性能损耗，其实现原理是将CPU核心和Nginx工作进程绑定方式，把每个
+worker进程固定对应的cpu上执行，减少切换cpu的cache miss，获得更好的性能
+</code></pre>
+<figure data-type="image" tabindex="16"><img src="https://ajie825.github.io/post-images/1660637031896.jpg" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">1）查看当前CPU物理状态
+[root@nginx ~]# lscpu |grep &quot;CPU(s)&quot;
+CPU(s):                    24										#总的核心数
+On-line CPU(s) list:       0-23
+NUMA node0 CPU(s):     0,2,4,6,8,10,12,14,16,18,20,22
+NUMA node1 CPU(s):     1,3,5,7,9,11,13,15,17,19,21,23
+#本次演示服务器为两颗物理CPU，每颗物理CPU12个核心, 总共有24个核心
+</code></pre>
+<pre><code class="language-bash">2）将Nginx worker进程绑至不同的核心上，官方建议与cpu的核心保持一致
+# 第一种绑定组合方式
+worker_processes 24;
+worker_cpu_affinity 000000000001 000000000010 000000000100 000000001000 000000010000 000000100000 000001000000 000010000000 000100000000 001000000000 010000000000 10000000000;
+# 第二种方式(使用较少)
+worker_processes 2;
+worker_cpu_affinity 101010101010 010101010101;
+#最佳方式绑定方式   *****
+worker_processes auto;
+worker_cpu_affinity auto;
+</code></pre>
+<pre><code class="language-bash">3）查看nginx_worker进程绑定至对应cpu
+ps -eo pid,args,psr|grep [-n]ginx
+</code></pre>
+<h2 id="nginx通用优化配置">nginx通用优化配置</h2>
+<pre><code class="language-bash">[root@nginx ~]# cat nginx.conf
+user www;                      #nginx进程启动用户
+worker_processes auto;         #与cpu核心一致即可
+worker_cpu_affinity auto;      #cpu亲和
+
+error_log /var/log/nginx/error.log warn;    #错误日志
+pid /run/nginx.pid;
+worker_rlimit_nofile 35535;    #每个work能打开的文件描述符，调整至1w以上,负荷较高建议2-3w
+
+events {
+    use epoll;                 #使用epoll高效网络模型
+    worker_connections 10240;  #限制每个进程能处理多少个连接，10240x[cpu核心]
+}
+
+http {
+    include             mime.types;
+    default_type        application/octet-stream;
+    charset utf-8;              #统一使用utf-8字符集
+
+    #定义日志格式
+    log_format  main  '$remote_addr - $remote_user [$time_local] &quot;$request&quot; '
+                      '$status $body_bytes_sent &quot;$http_referer&quot; '
+                      '&quot;$http_user_agent&quot; &quot;$http_x_forwarded_for&quot;';
+    
+    access_log  /var/log/nginx/access.log  main;    #访问日志
+    
+    server_tokens off;          #禁止浏览器显示nginx版本号
+    client_max_body_size 200m;  #文件上传大小限制调整
+    
+    #文件高效传输，静态资源服务器建议打开
+    sendfile            on;
+    tcp_nopush          on;
+    #文件实时传输，动态资源服务建议打开,需要打开keepalive
+    tcp_nodelay         on;
+    keepalive_timeout   65;
+    
+    #gzip压缩
+    gzip on;
+    gzip_disable &quot;MSIE [1-6]\.&quot;;
+    gzip_http_version 1.1;
+	gzip_comp_level 2;
+    gzip_buffers 16 8k;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css application/json application/x-javascript text/xml application/xml application/xml+rss text/javascript image/jpeg;
+
+    #虚拟主机
+    include /etc/nginx/conf.d/*.conf;
+} 
+</code></pre>
+<h3 id="nginx安全与优化总结">nginx安全与优化总结</h3>
+<pre><code class="language-bash">1）cpu亲和、worker进程数、调整每个worker进程打开的文件数
+2）使用epool网络模型、调整每个worker进程的最大连接数
+3）文件的高效读取sendfile、nopush、
+4）文件的传输实时性、nodealy
+5）开启tcp长链接、以及长链接超时时间keepalived
+6）开启文件传输压缩gzip
+7）开启静态文件expires缓存
+8）隐藏nginx的版本号
+9）禁止通过IP地址访问,禁止恶意域名解析,只允许域名访问
+10）配置防盗链、以及跨域访问
+11）防DDOS、cc攻击, 限制单IP并发连接，以及http请求
+12）优雅限制nginx错误页面
+13）nginx加密传输https优化
+14）nginx proxy_cache、fastcgi_cache、uwsgi_cache缓存
+squid、varnish()
+</code></pre>
+<h2 id="php服务优化">PHP服务优化</h2>
+<pre><code class="language-bash">1）php程序配置管理文件/etc/php.ini，主要调整日志、文件上传、禁止危险函数、关闭版本号显示等
+#;;;;;;;;;;;;;;;;;
+# Error  logging ;  #错误日志设置
+#;;;;;;;;;;;;;;;;;
+expose_php = Off                        # 关闭php版本信息
+display_error = Off                     # 屏幕不显示错误日志
+error_reporting = E_ALL                 # 记录PHP的每个错误
+log_errors = On                         # 开启错误日志
+error_log = /var/log/php_error.log      # 错误日志写入的位置
+date.timezone = Asia/Shanghai           # 调整时区,默认PRC
+
+#;;;;;;;;;;;;;;;
+# File Uploads ;    #文件上传设置
+#;;;;;;;;;;;;;;;
+file_uploads = On           # 允许文件上传
+upload_max_filesize = 300M  # 允许上传文件的最大大小
+post_max_size = 300M        # 允许客户端单个POST请求发送的最大数据
+max_file_uploads = 20       # 允许同时上传的文件的最大数量
+memory_limit = 128M         # 每个脚本执行最大内存
+
+#php禁止危险函数执行
+disable_functions = chown,chmod,pfsockopen,phpinfo
+</code></pre>
+<pre><code class="language-bash">2）php-fpm进程管理配置文件/etc/php-fpm.conf
+#第一部分，fpm配置
+;include=etc/fpm.d/*.conf
+
+#第二部分，全局配置
+[global]
+;pid = /var/log/php-fpm/php-fpm.pid         #pid文件存放的位置
+;error_log = /var/log/php-fpm/php-fpm.log   #错误日志存放的位置
+;log_level = error                          #日志级别, alert, error, warning, notice, debug
+rlimit_files = 65535                        #php-fpm进程能打开的文件数
+events.mechanism = epoll                    #使用epoll事件模型处理请求
+
+#第三部分，进程池定义
+[www]       #池名称
+user = www  #进程运行的用户
+group = www #进程运行的组
+;listen = /dev/shm/php-fpm.sock             #监听在本地socket文件
+listen = 127.0.0.1:9000                     #监听在本地tcp的9000端口
+;listen.allowed_clients = 127.0.0.1         #允许访问FastCGI进程的IP，any不限制 
+
+pm = dynamic                                #动态调节php-fpm的进程数
+pm.max_children = 512                       #最大启动的php-fpm进程数
+pm.start_servers = 32                       #初始启动的php-fpm进程数
+pm.min_spare_servers = 32                   #最少的空闲php-fpm进程数
+pm.max_spare_servers = 64                   #最大的空闲php-fpm进程数
+pm.max_requests = 1500                      #每一个进程能响应的请求数
+pm.process_idle_timeout = 15s;
+
+#第四部分，日志相关
+php_flag[display_errors] = off
+php_admin_value[error_log] = /var/log/phpfpm_error.log
+php_admin_flag[log_errors] = on
+#慢日志
+request_slowlog_timeout = 5s              #php脚本执行超过5s的文件
+slowlog = /var/log/php_slow.log           #记录至该文件中
+
+#慢日志示例
+[21-Nov-2013 14:30:38] [pool www] pid 11877
+script_filename = /usr/local/lnmp/nginx/html/www.quancha.cn/www/fyzb.php
+[0xb70fb88c] file_get_contents() /usr/local/lnmp/nginx/html/www.quancha.cn/www/fyzb.php:2
+</code></pre>
+<pre><code class="language-bash">3）php-fpm监控模块，用于监控php-fpm状态使用
+[root@nginx ~]# vim /etc/php-fpm.d/www.conf
+pm.status_path = /phpfpm_status           #开启php的状态页面
+#修改nginx配置
+[root@nginx conf.d]# cat /etc/nginx/conf.d/fpm.conf
+server {
+    listen 80;
+    server_name php.bgx.com;
+    location / {
+        root /code;
+        index index.php;
+    }
+    #新增如下配置
+    location /phpfpm_status {
+        fastcgi_pass 127.0.0.1:9000;
+        fastcgi_param  SCRIPT_FILENAME  $document_root$fastcgi_script_name;
+        include        fastcgi_params;
+    }
+    location ~ \.php$ {
+        fastcgi_pass 127.0.0.1:9000;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        include fastcgi_params;
+    }
+}
+</code></pre>
+<pre><code class="language-bash">4）访问测试phpfpm_status状态页面
+[root@nginx ~]# curl http://127.0.0.1/phpfpm_status
+pool:                 www           #fpm池名称,大多数为www
+process manager:      dynamic       #动态管理phpfpm进程
+start time:           05/Jul/2016   #启动时间，如果重启会发生变化
+start since:          409           #php-fpm运行时间
+accepted conn:        22            #当前池接受的连接数
+listen queue:         0    #请求等待队列,如果这个值不为0,那么需要增加FPM的进程数量
+max listen queue:     0    #请求等待队列最高的数量
+listen queue len:     128  #请求等待队列的长度
+idle processes:       4    #php-fpm空闲的进程数量
+active processes:     1    #php-fpm活跃的进程数量
+total processes:      5    #php-fpm总的进程数量
+max active processes: 2    #php-fpm最大活跃的进程数量(FPM启动开始计算)
+max children reached: 0    #进程最大数量限制的次数，如果数量不为0，则说明phpfpm最大进程数量过小,可以适当调整。
+</code></pre>
+<pre><code class="language-bash">5）PHP-FPM配置文件 4核16G、4核32G
+[root@nginx ~]# cat /etc/php-fpm.d/www.conf
+[global]
+pid = /var/run/php-fpm.pid
+
+error_log = /var/log/php-fpm.log
+log_level = warning
+rlimit_files = 655350
+events.mechanism = epoll
+
+[www]
+user = nginx
+group = nginx
+listen = 127.0.0.1:9000
+listen.owner = www
+listen.group = www
+listen.mode = 0660
+ 
+listen.allowed_clients = 127.0.0.1
+pm = dynamic
+pm.max_children = 512
+pm.start_servers = 32
+pm.min_spare_servers = 32
+pm.max_spare_servers = 64
+pm.process_idle_timeout = 15s;
+pm.max_requests = 2048
+pm.status_path = /phpfpm_status
+
+#php-www模块错误日志
+php_flag[display_errors] = off
+php_admin_value[error_log] = /var/log/php/php-www.log
+php_admin_flag[log_errors] = on
+
+#php慢查询日志
+request_slowlog_timeout = 5s
+slowlog = /var/log/php-slow.log
+</code></pre>
+<h2 id="总结">总结</h2>
+<pre><code class="language-shell">nginx
+	硬件层面	   代理比较的消耗CPU、内存、静态比较消耗磁盘IO
+	网络层面    网络带宽大小、传输速率、是否有丢包
+	系统层面    调整文件描述、timewait重用
+	应用层面    nginx作为代理    keepalive 长连接
+	服务层面    nginx作为静态    浏览器缓存、文件传输、压缩、防盗链、跨域访问、CPU亲和
+			   nginx作为缓存    proxy_cache fastcgi_cache uwsgi_cache
+			   nginx作为安全	   nginx+lua实现waf防火墙
+
+php
+	php.ini		错误日志记录、文件大小的调整、session会话共享的配置、禁止不必要的函数(与开发协商)
+	php-fpm		监听地址、进程的动态调节、日志开启
+	php状态		php自身监控的状态信息
+	php慢查询	什么时间、什么进程、运行什么文件、哪个函数、第几行达到了超时时间
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/nginx-shi-yong-chang-jian-wen-ti/">
+              <h3 class="post-title">
+                下一篇：nginx使用常见问题
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

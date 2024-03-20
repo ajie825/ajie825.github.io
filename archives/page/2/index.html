@@ -1,0 +1,669 @@
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+        <div class="content-container">
+          
+          
+
+<div class="archives-container">
+  
+    <h2 class="year">2022</h2>
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/kubeadm-an-zhuang-duo-master-jie-dian-de-k8s-ji-qun-120-yi-shang-wen-ding-ban-ben/">
+            <h2 class="post-title">
+              kubeadm安装多master节点的k8s集群-1.20以上稳定版本
+              <small>2022-07-13</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/kubeadm-an-zhuang-dan-master-duo-node-ce-shi-huan-jing-k8s-ji-qun/">
+            <h2 class="post-title">
+              Kubeadm安装单master多node测试环境k8s集群
+              <small>2022-07-12</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/yi-jian-huo-qu-linux-nei-cun-cpuci-pan-io-deng-xin-xi/">
+            <h2 class="post-title">
+              一键获取linux内存、cpu、磁盘IO等信息
+              <small>2022-07-12</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/er-jin-zhi-an-zhuang-duo-master-jie-dian-de-k8s-ji-qun-120-yi-shang-wen-ding-ban-ben/">
+            <h2 class="post-title">
+              二进制安装多master节点的k8s集群-1.20以上稳定版本
+              <small>2022-07-08</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/er-jin-zhi-an-zhuang-dan-master-jie-dian-de-k8s-ji-qun/">
+            <h2 class="post-title">
+              二进制安装单master节点的k8s集群
+              <small>2022-07-05</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/k8s-jia-gou-zu-jian-he-xin-zi-yuan/">
+            <h2 class="post-title">
+              k8s架构-组件-核心资源
+              <small>2022-07-01</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/mongodb-he-xin-ji-zhu-yun-wei/">
+            <h2 class="post-title">
+              mongodb核心技术
+              <small>2022-06-28</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/du-xie-fen-chi-jia-gou-atlas/">
+            <h2 class="post-title">
+              读写分离架构-Atlas
+              <small>2022-06-21</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/mha-gao-ke-yong-ji-zhu/">
+            <h2 class="post-title">
+              MHA高可用技术
+              <small>2022-06-21</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/zhu-cong-fu-zhi-er/">
+            <h2 class="post-title">
+              主从复制（二）
+              <small>2022-06-17</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/zhu-cong-fu-zhi-yi/">
+            <h2 class="post-title">
+              主从复制（一）
+              <small>2022-06-15</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/bei-fen-hui-fu-er/">
+            <h2 class="post-title">
+              备份恢复（二）
+              <small>2022-06-15</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/bei-fen-hui-fu-yi/">
+            <h2 class="post-title">
+              备份恢复（一）
+              <small>2022-06-13</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/ri-zhi-guan-li/">
+            <h2 class="post-title">
+              日志管理
+              <small>2022-06-10</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/cun-chu-yin-qing-er/">
+            <h2 class="post-title">
+              存储引擎（二）
+              <small>2022-06-09</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/cun-chu-yin-qing-yi/">
+            <h2 class="post-title">
+              存储引擎（一）
+              <small>2022-06-08</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/suo-yin-ji-zhi-xing-ji-hua-er/">
+            <h2 class="post-title">
+              索引及执行计划（二）
+              <small>2022-06-07</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/suo-yin-ji-zhi-xing-ji-hua-yi/">
+            <h2 class="post-title">
+              索引及执行计划（一）
+              <small>2022-06-06</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/sql-ji-chu-ying-yong-san/">
+            <h2 class="post-title">
+              SQL基础应用（三）
+              <small>2022-06-03</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/sql-ji-chu-ying-yong-er/">
+            <h2 class="post-title">
+              SQL基础应用（二）
+              <small>2022-06-01</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/sql-ji-chu-ying-yong-yi/">
+            <h2 class="post-title">
+              SQL基础应用（一）
+              <small>2022-05-31</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/mysql-ti-xi-jie-gou-yu-ji-chu-guan-li-er/">
+            <h2 class="post-title">
+              MySQL体系结构与基础管理（二）
+              <small>2022-05-31</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/mysql-ti-xi-jie-gou-he-ji-chu-guan-li-yi/">
+            <h2 class="post-title">
+              MySQL体系结构和基础管理（一）
+              <small>2022-05-31</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/mysql-jian-jie-ji-an-zhuang-yi/">
+            <h2 class="post-title">
+              MySQL简介及安装（一）
+              <small>2022-05-30</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/ansiblesan/">
+            <h2 class="post-title">
+              ansible（三）
+              <small>2022-05-28</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/ansibleer/">
+            <h2 class="post-title">
+              ansible（二）
+              <small>2022-05-26</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/ansibleyi/">
+            <h2 class="post-title">
+              ansible（一）
+              <small>2022-05-18</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/bian-yi-an-zhuang-php70/">
+            <h2 class="post-title">
+              编译安装php7.0
+              <small>2022-05-14</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/bian-yi-an-zhuang-php74/">
+            <h2 class="post-title">
+              编译安装php7.4
+              <small>2022-05-14</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/gitlab-runnersan/">
+            <h2 class="post-title">
+              gitlab-runner（三）
+              <small>2022-05-11</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/shi-yong-openresty-shi-xian-waf-fang-huo-qiang-gong-neng/">
+            <h2 class="post-title">
+              使用openresty实现WAF防火墙功能
+              <small>2022-05-10</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/openresty-de-an-zhuang/">
+            <h2 class="post-title">
+              openresty的安装
+              <small>2022-05-05</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/an-zhuang-bao-ta-jiao-ben/">
+            <h2 class="post-title">
+              安装宝塔脚本
+              <small>2022-04-28</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/iptables/">
+            <h2 class="post-title">
+              iptables
+              <small>2022-04-27</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/da-jian-openvpn-jiao-ben/">
+            <h2 class="post-title">
+              搭建openVPN脚本
+              <small>2022-04-27</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/prometheus-jian-kong-mysqlwu/">
+            <h2 class="post-title">
+              prometheus监控mysql（五）
+              <small>2022-04-27</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/er-jin-zhi-bu-shu-node-exporter/">
+            <h2 class="post-title">
+              二进制部署node exporter（四）
+              <small>2022-04-26</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/alertmanager-gao-jing-mo-ban-san/">
+            <h2 class="post-title">
+              alertmanager告警模板（三）
+              <small>2022-04-26</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/er-jin-zhi-bu-shu-prometheusgrafanaalertmanager/">
+            <h2 class="post-title">
+              二进制部署prometheus+grafana+alertmanager （二）
+              <small>2022-04-25</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/prometheus-jian-jie-yi/">
+            <h2 class="post-title">
+              prometheus简介（一）
+              <small>2022-04-25</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/efk-ri-zhi-shou-ji/">
+            <h2 class="post-title">
+              EFK日志收集
+              <small>2022-04-22</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/mysql-innobackup-zeng-bei-jiao-ben/">
+            <h2 class="post-title">
+              mysql innobackup增备脚本
+              <small>2022-04-22</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/mysql-innobackup-quan-bei-jiao-ben/">
+            <h2 class="post-title">
+              mysql innobackup全备脚本
+              <small>2022-04-22</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/nginx-ri-zhi-qie-ge-jiao-ben/">
+            <h2 class="post-title">
+              nginx日志切割脚本
+              <small>2022-04-22</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/bian-yi-an-zhuang-nginx-jiao-ben/">
+            <h2 class="post-title">
+              编译安装nginx脚本
+              <small>2022-04-22</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/pipeline-jian-li/">
+            <h2 class="post-title">
+              pipeline简例
+              <small>2022-04-22</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/jian-kong-zheng-shu-dao-qi-jiao-ben/">
+            <h2 class="post-title">
+              监控证书到期脚本
+              <small>2022-04-22</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/精品收集/">
+            <h2 class="post-title">
+              精品收集
+              <small>2022-04-20</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+      
+        <article class="post">
+          <a href="https://ajie825.github.io/post/docker/">
+            <h2 class="post-title">
+              Docker
+              <small>2022-04-20</small>
+            </h2>
+          </a>
+        </article>
+      
+    
+  
+</div>
+
+
+        </div>
+
+        <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+      </div>
+      <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+    </div>
+  </body>
+</html>

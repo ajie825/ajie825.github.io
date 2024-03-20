@@ -1,0 +1,244 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>k8s架构-组件-核心资源 | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">k8s架构-组件-核心资源</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-07-01</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/vN0im2GW5W/">
+                    k8s
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="kubernets简介">kubernets简介</h2>
+<p><code>kubernets</code>是可移植、可扩展、开源的容器集群管理系统，是<code>Google</code>多年大规模容器管理技术<code>Borg</code>的开源版本，简称<code>k8s</code>，它可以创建应用、更新应用、回滚应用、也可实现应用的扩容缩容，做到故障自恢复，主要功能包括：</p>
+<ul>
+<li>基于容器的应用部署、维护和滚动升级</li>
+<li>负载均衡和服务发现</li>
+<li>跨主机和跨地区的集群调度</li>
+<li>弹性伸缩</li>
+<li>无状态服务和有状态服务</li>
+<li>广泛的<code>Volume</code>支持</li>
+<li>机密和配置管理</li>
+<li>插件机制保证扩展性</li>
+</ul>
+<p><code>kubernets</code>发展非常迅速，已经成为容器编排领域的领导者。</p>
+<h2 id="掌握k8s全栈技术体系">掌握k8s全栈技术体系</h2>
+<ul>
+<li>安装(<code>kubeadm</code>和二进制)、架构(单节点和多<code>master</code>节点)、核心组件、资源对象以及命令行管理工具<code>kubectl</code>、负载均衡<code>service</code>和<code>ingress</code>、服务发现、数据包转发代理<code>kube-proxy</code>、自动扩缩容、网络、故障排查、<code>k8s</code>数据持久化、配置管理、健康检查、安全机制、灰度发布、蓝绿部署、滚动更新、金丝雀发布、<code>k8s</code>可视化<code>UI</code>界面、<code>k8s</code>包管理工具<code>helm</code></li>
+<li>掌握微服务<code>Istio</code>：新一代微服务架构</li>
+<li>掌握可视化监控系统<code>Prometheus+alertmanager+grafana</code></li>
+<li>掌握智能化日志系统采集平台<code>EFK/ELK</code></li>
+<li>掌握<code>Jenkins+gitlab+harbor+k8s</code>构建企业级<code>DevOps</code>平台</li>
+<li>掌握适配边缘计算场景的轻量级的<code>k8s-k3s</code>入门与实战</li>
+<li>掌握<code>rancher</code>管理<code>k8s</code>集群---部署<code>k8s</code>应用</li>
+</ul>
+<h2 id="k8s的物理架构">k8s的物理架构</h2>
+<p><code>k8s</code>的物理架构是<code>master/node</code>模式，<code>k8s</code>集群至少需要一个主节点<code>master</code>和一个工作节点<code>worker</code>，在生产中通常会有多个主节点和工作节点以实现<code>k8s</code>系统服务高可用，<code>master</code>节点是集群的控制节点，负责整个集群的管理和控制，工作节点主要是运行容器的。</p>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1656665514555.png" alt="" loading="lazy"></figure>
+<p>多<code>master</code>节点架构图如下：<br>
+<img src="https://ajie825.github.io/post-images/1656665603659.png" alt="" loading="lazy"></p>
+<h2 id="kubernetes组件">kubernetes组件</h2>
+<ul>
+<li>
+<p><code>kubectl</code>：管理<code>k8s</code>的命令行工具，可以操作<code>k8s</code>中的资源对象，如增删改查等，可以安装在任何工作节点。</p>
+</li>
+<li>
+<p><code>etcd</code>：是一个高可用的键值数据库，存储<code>k8s</code>的资源状态信息和网络信息，<code>etcd</code>中的数据变更是通过<code>apiserver</code>进行的。</p>
+</li>
+<li>
+<p><code>apiserver</code>：为<code>k8s</code>集群提供资源操作的唯一入口，供客户端和其它组件调用，是整个系统的数据总线和数据中心，提供认证、授权、访问控制、<code>API</code>注册和发现等机制，并将操作对象持久化到<code>etcd</code>中。</p>
+</li>
+<li>
+<p><code>scheduler</code>：负责<code>k8s</code>集群中<code>pod</code>的调度，<code>scheduler</code>通过与<code>apiserver</code>交互监听到创建<code>pod</code>副本信息后，它会根据特定的调度算法和策略，将<code>pod</code>调度到最优的工作节点上，相当于&quot;调度室&quot;。</p>
+</li>
+<li>
+<p><code>controller-manager</code>：通过<code>API server</code>提供的接口实时监控集群中特定资源对象的状态变化，当发生各种故障导致某资源对象的状态变化时，会尝试将其状态修复到&quot;期望状态&quot;。</p>
+<p><code>Controller Manager</code>包含以下8种<code>Controller</code>，每种<code>Controller</code>都负责一种特定资源的控制流程，而<code>Controller Manager</code>正是这些<code>Controller</code>的核心管理者。<br>
+<img src="https://ajie825.github.io/post-images/1700720728600.png" alt="" loading="lazy"></p>
+</li>
+<li>
+<p><code>kubelet</code>：每个<code>node</code>节点都会运行<code>kubelet</code>组件，<code>kubelet</code>会在<code>API server</code>上注册节点自身信息，定期调用<code>API server</code>的<code>REST</code>接口报告自身状态，<code>kebelet</code>也通过<code>API server</code>监听<code>pod</code>信息，从而对<code>node</code>节点上的<code>pod</code>进行管理，如创建、删除、更新<code>pod</code>。</p>
+</li>
+<li>
+<p><code>kube-proxy</code>：提供网络代理和负载均衡，是实现<code>service</code>资源的通信与负载均衡机制的重要组件，<code>kebu-proxy</code>从<code>apiserver</code>获取<code>service</code>信息，并根据<code>service</code>信息创建代理服务，实现<code>service</code>到<code>pod</code>的请求路由和转发，从而实现<code>k8s</code>层级的虚拟转发网络。</p>
+</li>
+<li>
+<p><code>coredns</code>：<code>coredns</code>其实就是一个<code>DNS</code>服务，而<code>DNS</code>作为一种常见的服务发现手段，很多开源项目以及工程师都会使用<code>coredns</code>为集群提供服务发现的功能，<code>kubernetes</code>就在集群中使用<code>coredns</code>解决服务发现的问题。</p>
+</li>
+<li>
+<p><code>calico</code>：是一套开源的网络和网络安全方案，主要用于容器、虚拟机、宿主机之间的网络连接，可以用在<code>kubernetes</code>、<code>OpenShift</code>、<code>DockerEE</code>、<code>OpenStrack</code>等<code>PaaS</code>或<code>IaaS</code>平台上。</p>
+</li>
+<li>
+<p><code>docker</code>：容器运行时，负责启动容器的，在<code>k8s1.20</code>版本之后建议废弃<code>docker</code>，使用<code>container</code>作为容器运行时。</p>
+</li>
+</ul>
+<h2 id="kubernetes核心资源解读">kubernetes核心资源解读</h2>
+<h3 id="pod">pod</h3>
+<p><code>pod</code>是<code>k8s</code>中最小的调度单元，<code>k8s</code>通过定义一个<code>pod</code>的资源，然后在<code>pod</code>里面运行容器，容器需要指定镜像，用来运行具体的服务。<code>pod</code>代表集群上运行的一个进程，一个<code>pod</code>封装一个容器(也可以封装多个容器)，pod里的容器共享存储、网络等。也就是说，应该把整个<code>pod</code>看作虚拟机，然后每个容器相当于运行在虚拟机的进程。</p>
+<h3 id="label">label</h3>
+<p><code>label</code>是标签的意思，<code>k8s</code>中的资源对象基本都可以被打上标签，如<code>node</code>、<code>pod</code>、<code>service</code>等，而且一个资源可以绑定多个<code>label</code>，<code>k8s</code>通过<code>label</code>标签可实现多维度的资源分组管理，后续可通过<code>label</code> <code>selector</code>标签选择器查询和筛选拥有某些<code>label</code>的资源对象，例如创建一个<code>pod</code>，给定一个<code>label</code>是<code>app=tomcat</code>，那么<code>service</code>可以通过<code>label selector</code>选择拥有<code>app=tomcat</code>的<code>pod</code>和其相关联，也可通过<code>app=tomcat</code>删除拥有该标签的<code>pod</code>资源。<br>
+<img src="https://ajie825.github.io/post-images/1656924725209.png" alt="" loading="lazy"></p>
+<h3 id="deployment">deployment</h3>
+<p><code>replicaset</code>是<code>kubernetes</code>中的副本控制器，管理<code>pod</code>，使<code>pod</code>副本的数量始终维持在预设的个数，<code>deployment</code>是管理<code>replicaset</code>和<code>pod</code>的副本控制器，<code>deployment</code>可以管理多个<code>replicaset</code>，是比<code>replicaset</code>更高级的控制器，也就是说在创建<code>deployment</code>的时候，会自动创建<code>replicaset</code>，然后由<code>replicaset</code>再创建<code>pod</code>，<code>deployment</code>能对<code>pod</code>扩容、缩容、滚动更新和回滚、维持<code>pod</code>数量。<br>
+<img src="https://ajie825.github.io/post-images/1700789880508.png" alt="" loading="lazy"></p>
+<h3 id="service">service</h3>
+<p>在<code>k8s</code>中，<code>pod</code>是有生命周期的，如果<code>pod</code>重启<code>IP</code>很有可能发生变化，如果我们的服务都是将<code>pod</code>的<code>IP</code>地址写死，<code>pod</code>的挂掉或者重启，和刚才重启的<code>pod</code>相关联的其他服务将会找不到它所关联的<code>pod</code>，为了解决这个问题，在<code>kubenetes</code>中定义了<code>service</code>资源对象，<code>service</code>定义了一个服务访问的入口，客户端通过这个入口即可访问服务背后的应用集群实例，<code>service</code>是一组<code>pod</code>的逻辑集合，这一组<code>pod</code>能够被<code>service</code>访问到，通常是通过<code>label selector</code>实现的。<br>
+可以看下面的图：<br>
+<img src="https://ajie825.github.io/post-images/1700790208799.png" alt="" loading="lazy"></p>
+<h2 id="kubernetes工作流程">kubernetes工作流程</h2>
+<figure data-type="image" tabindex="2"><img src="https://ajie825.github.io/post-images/1702000930849.png" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">第一步：用户通过客户端kubectl向API server发起一个创建deployment资源的请求。
+
+第二步：API server响应请求，通过一系列认证授权，然后检查信息并把数据存储到etcd中，创建deployment资源对象并初始化。
+
+第三步：deployment controller监听发现新的deployment资源，创建replicaset资源，然后replicaset controller创建pod，
+所有controller创建完成后，将deployment、replicaset、pod资源更新存储到etcd。
+
+第四步：scheduler监测发现创建新的pod，经过特定的调度算法和策略，pod绑定到合适的节点，将绑定结果存储到etcd中。
+
+第五步：kubelet向apiserver获取自身node上所要运行的pod清单，创建pod。
+
+第六步：kube-proxy为新创建的pod注册动态dns到Coredns，给pod的service添加iptables/ipvs规则，用于服务发现和负载均衡。
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/mongodb-he-xin-ji-zhu-yun-wei/">
+              <h3 class="post-title">
+                下一篇：mongodb核心技术
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

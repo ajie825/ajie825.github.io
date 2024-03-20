@@ -1,0 +1,501 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>阿里云 | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">阿里云</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2023-09-13</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/hZnaE4H8J/">
+                    阿里云
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="第一章-阿里云与物理服务器">第一章 阿里云与物理服务器</h2>
+<h3 id="11-常见云服务器厂家">1.1 常见云服务器厂家</h3>
+<p>国外：亚马逊、微软云<code>Azure</code>、<code>google</code>云</p>
+<p>国内：阿里云、腾讯云、华为云、京东云、百度云、<code>uclond</code>、七牛云</p>
+<h3 id="12-优势与劣势">1.2 优势与劣势</h3>
+<ol>
+<li>降低了运维成本，不用担心硬件损坏了</li>
+<li>运维变得简单了，可能不需要懂物理服务器知识，点点点就行了</li>
+<li>因为运维变得简单了，减少了人力成本</li>
+<li>上云容易，下云难</li>
+<li>云服务器初期很便宜，后期不便宜</li>
+<li>可以快速的扩缩容，计费方式灵活，可以精确到秒</li>
+</ol>
+<h3 id="13-阿里云服务名词对比">1.3 阿里云服务名词对比</h3>
+<pre><code class="language-markdown">物理架构             阿里云服务
+服务器                 ECS
+负载均衡               SLB
+mysql                 RDS
+redis                redis
+NFS                   NAS
+外网IP                 EIP
+网络                   VPC
+防火墙                安全组
+</code></pre>
+<h2 id="第二章-ecs购买">第二章 <code>ECS</code>购买</h2>
+<p>前提：购买服务器的时候账面上不能低于100元，只要买了没有销毁，就一直扣钱。</p>
+<h3 id="21-控制台">2.1 控制台</h3>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1694588532302.webp" alt="" loading="lazy"></figure>
+<h3 id="22-收藏项目">2.2 收藏项目</h3>
+<figure data-type="image" tabindex="2"><img src="https://ajie825.github.io/post-images/1694588900646.webp" alt="" loading="lazy"></figure>
+<h3 id="23-收费方式">2.3 收费方式</h3>
+<ul>
+<li>
+<p>包年包月：</p>
+<p>按月购买及续费，为预付费模式。</p>
+<p>若购买中国大陆地域的<code>ECS</code>用于网站<code>web</code>访问，请及时备案。</p>
+<p>若<code>ECS</code>用于<code>SLB</code>，请前往<code>SLB</code>新购页面购买带宽，<code>ECS</code>仅需保留少量带宽以便您管理。</p>
+</li>
+<li>
+<p>按量付费：</p>
+<p>按实际开通时长以小时为单位进行收费，后付费模式。</p>
+<p>按量付费<code>ECS</code>不支持备案服务。</p>
+</li>
+<li>
+<p>抢占式实例：</p>
+<p>相对于按量付费实例价格有一定的折扣，价格随供求波动，按实际使用时长进行收费，后付费模式。</p>
+<p>您愿意支付每小时的实例最高价。当您的出价高于当前市场成交价时，您的实例就会运行。</p>
+<p>阿里云会根据供需资源或市场成交价的变化释放您的抢占式实例。</p>
+</li>
+</ul>
+<figure data-type="image" tabindex="3"><img src="https://ajie825.github.io/post-images/1694590187672.webp" alt="" loading="lazy"></figure>
+<h3 id="24-地域和可用区">2.4 地域和可用区</h3>
+<ul>
+<li>
+<p>地域：地域指的是ECS实例所在的物理位置。</p>
+</li>
+<li>
+<p>可用区：可用区是指在同一地域内，电力和网络互相独立的物理区域。在同一地域内可用区与可用区之间内网互通，可用区之间能做到故障隔离。</p>
+<p>如果您的应用需要较高的容灾能力，建议您将云服务器<code>ECS</code>实例部署在同一地域的不同可用区内。</p>
+<p>如果您的应用在实例之间需要较低的网络时延，则建议您将<code>ECS</code>实例创建在相同的可用区内。</p>
+</li>
+</ul>
+<figure data-type="image" tabindex="4"><img src="https://ajie825.github.io/post-images/1694591674939.webp" alt="" loading="lazy"></figure>
+<h3 id="25-创建专有网络">2.5 创建专有网络</h3>
+<p>专有网络<code>VPC</code>不可以跨地域，可以在一个专用网络中创建多个交换机来划分子网，一个专用网络内的子网默认私网互通。</p>
+<p><img src="https://ajie825.github.io/post-images/1694593456333.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694593468514.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694593482624.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694593501079.webp" alt="" loading="lazy"></p>
+<h3 id="26-实例">2.6 实例</h3>
+<figure data-type="image" tabindex="5"><img src="https://ajie825.github.io/post-images/1694654800833.webp" alt="" loading="lazy"></figure>
+<h3 id="27-镜像">2.7 镜像</h3>
+<ul>
+<li>
+<p>公共镜像</p>
+<p>是由阿里云官方或第三方合作商家提供的系统基础镜像，仅包括初始系统环境。请根据您的实际情况自主配置应用环境或相关软件配置。</p>
+</li>
+<li>
+<p>自定义镜像</p>
+<p>基于用户系统快照生成，包括初始系统环境、应用环境和相关软件配置。选择自定义镜像创建云服务器，节省您的重复配置时间。</p>
+</li>
+<li>
+<p>共享镜像</p>
+<p>是其他账号的自定义镜像主动共享给您使用的镜像。阿里云不保证其他账号共享给您的镜像的完整性和安全性，使用共享镜像需要自行承担风险。<a href="https://help.aliyun.com/knowledge_detail/40546.html">了解共享镜像详情&gt;</a></p>
+</li>
+<li>
+<p>镜像市场</p>
+<p>提供严格审核的优质镜像，预装操作系统、应用环境和各类软件，无需配置，可一键部署云服务器。满足建站/应用开发/可视化管理等个性化需求。<a href="https://market.aliyun.com/imagehelp">了解镜像市场服务&gt;</a></p>
+</li>
+</ul>
+<figure data-type="image" tabindex="6"><img src="https://ajie825.github.io/post-images/1694657627943.webp" alt="" loading="lazy"></figure>
+<h3 id="28-存储">2.8 存储</h3>
+<figure data-type="image" tabindex="7"><img src="https://ajie825.github.io/post-images/1694657839227.webp" alt="" loading="lazy"></figure>
+<h3 id="29-安全组">2.9 安全组</h3>
+<figure data-type="image" tabindex="8"><img src="https://ajie825.github.io/post-images/1694658123593.webp" alt="" loading="lazy"></figure>
+<h3 id="210-系统设置">2.10 系统设置</h3>
+<figure data-type="image" tabindex="9"><img src="https://ajie825.github.io/post-images/1694659032960.webp" alt="" loading="lazy"></figure>
+<h3 id="211-确认订单">2.11 确认订单</h3>
+<figure data-type="image" tabindex="10"><img src="https://ajie825.github.io/post-images/1694659266806.webp" alt="" loading="lazy"></figure>
+<h3 id="212-vnc远程连接">2.12 VNC远程连接</h3>
+<p><img src="https://ajie825.github.io/post-images/1694659779146.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694659794226.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694659806872.webp" alt="" loading="lazy"></p>
+<h3 id="213-弹性公网ip">2.13 弹性公网IP</h3>
+<p><img src="https://ajie825.github.io/post-images/1694660344696.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694660365130.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694660391636.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694660407894.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694660419698.webp" alt="" loading="lazy"></p>
+<h3 id="214-公网ip远程连接">2.14 公网IP远程连接</h3>
+<p><img src="https://ajie825.github.io/post-images/1694660697365.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694660709026.webp" alt="" loading="lazy"></p>
+<h2 id="第三章-阿里云数据库rds">第三章 阿里云数据库RDS</h2>
+<h3 id="31-购买rds实例">3.1 购买RDS实例</h3>
+<p><img src="https://ajie825.github.io/post-images/1694668486914.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694668511119.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694668523510.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694668538333.webp" alt="" loading="lazy"></p>
+<h3 id="32-设置白名单">3.2 设置白名单</h3>
+<p><img src="https://ajie825.github.io/post-images/1694669725813.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694669769540.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694669782680.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694669796580.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694669809722.webp" alt="" loading="lazy"></p>
+<h3 id="33-创建数据库">3.3 创建数据库</h3>
+<p><img src="https://ajie825.github.io/post-images/1694670873573.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694670895158.webp" alt="" loading="lazy"></p>
+<h3 id="34-创建账号并关联数据库">3.4 创建账号并关联数据库</h3>
+<p><img src="https://ajie825.github.io/post-images/1694671900285.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694671914510.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694671932296.webp" alt="" loading="lazy"></p>
+<h3 id="35-测试连接">3.5 测试连接</h3>
+<pre><code class="language-shell">yum install mariadb -y
+mysql -hrm-wz9g898um673f7k6a.mysql.rds.aliyuncs.com -uwordpress -pAdmin-123
+</code></pre>
+<h2 id="第四章-阿里云部署wordpress">第四章 阿里云部署wordpress</h2>
+<h3 id="41-安装配置nginx">4.1 安装配置nginx</h3>
+<pre><code class="language-shell">yum install nginx -y
+sed -i '37,87d' /etc/nginx/nginx.conf
+cat &gt;/etc/nginx/conf.d/blog.conf&lt;&lt;EOF
+server {
+    listen 8080;
+    server_name localhost;
+    root /code/wordpress;
+    index index.php index.html;
+    location ~ \.php\$ {
+        root /code/wordpress;
+        fastcgi_pass 127.0.0.1:9000;
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+        include fastcgi_params;
+    }
+}
+EOF
+nginx -t
+systemctl start nginx
+netstat -lntup|grep 8080
+</code></pre>
+<h3 id="42-安装配置php">4.2 安装配置php</h3>
+<pre><code class="language-shell">mkdir /opt/soft/php7 -p
+tar xf php71.tar.gz -C /opt/soft/php7/
+yum localinstall *.rpm -y
+sed -i 's#user = apache#user = nginx#g' /etc/php-fpm.d/www.conf
+sed -i 's#group = apache#group = nginx#g' /etc/php-fpm.d/www.conf
+systemctl start php-fpm
+netstat -lntup|grep php
+ps -ef|grep php
+</code></pre>
+<h3 id="43-部署代码">4.3 部署代码</h3>
+<pre><code class="language-shell">yum install unzip -y
+cd /opt/
+mkdir /code/
+unzip wordpress-5.3.2.zip -d /code/
+chown -R nginx:nginx /code/
+curl -I 127.0.0.1:8080 
+</code></pre>
+<h3 id="44-配置安全组">4.4 配置安全组</h3>
+<p><img src="https://ajie825.github.io/post-images/1694678291485.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694678305765.webp" alt="" loading="lazy"></p>
+<h3 id="45-修改windows的host地址">4.5 修改windows的host地址</h3>
+<pre><code class="language-shell">C:\Windows\System32\drivers\etc
+</code></pre>
+<h3 id="46-网页访问">4.6 网页访问</h3>
+<p><img src="https://ajie825.github.io/post-images/1694682148234.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694682163789.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694682180641.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694682196020.webp" alt="" loading="lazy"></p>
+<h2 id="第五章-slb配置">第五章 SLB配置</h2>
+<p><img src="https://ajie825.github.io/post-images/1694743739668.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694743765427.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694743783936.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694744558813.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694744582410.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694744601936.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694744613128.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694744628216.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694744636904.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694744645563.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694744653059.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694744662778.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694744673734.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694744684020.webp" alt="" loading="lazy"></p>
+<h2 id="第六章-共享存储nas">第六章 共享存储NAS</h2>
+<h3 id="61-购买">6.1 购买</h3>
+<p><img src="https://ajie825.github.io/post-images/1694746241818.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694746259199.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694746273959.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694746284298.webp" alt="" loading="lazy"></p>
+<h3 id="62-添加挂载点">6.2 添加挂载点</h3>
+<p><img src="https://ajie825.github.io/post-images/1694747047336.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694747059390.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694747076596.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694747092959.webp" alt="" loading="lazy"></p>
+<h3 id="63-wordpress挂载命令">6.3 wordpress挂载命令</h3>
+<pre><code class="language-shell">yum install nfs-utils -y
+cd /code/wordpress/wp-content/
+cp -a uploads uploads_bak
+mount -t nfs -o vers=4,minorversion=0,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport 3c74648ba1-yck89.cn-shanghai.nas.aliyuncs.com:/ /code/wordpress/wp-content/uploads
+cp -a uploads_bak/* uploads/
+df -h
+</code></pre>
+<figure data-type="image" tabindex="11"><img src="https://ajie825.github.io/post-images/1694747464669.webp" alt="" loading="lazy"></figure>
+<h3 id="64-开机自动挂载">6.4 开机自动挂载</h3>
+<pre><code class="language-shell">UUID=3c74648ba1-yck89.cn-shanghai.nas.aliyuncs.com:/ /code/wordpress/wp-content/uploads nfs defaults 0 0
+</code></pre>
+<h2 id="第七章-阿里云数据库redis">第七章 阿里云数据库redis</h2>
+<h3 id="71-购买redis">7.1 购买redis</h3>
+<p><img src="https://ajie825.github.io/post-images/1694757124763.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694757140930.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694757158638.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694757170433.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694757182263.webp" alt="" loading="lazy"></p>
+<h3 id="72-连接测试">7.2 连接测试</h3>
+<pre><code class="language-shell">yum install redis -y
+</code></pre>
+<h2 id="第8章-部署dz论坛">第8章 部署DZ论坛</h2>
+<h3 id="81-配置nginx配置文件">8.1 配置nginx配置文件</h3>
+<pre><code class="language-shell">cd /etc/nginx/conf.d/
+cp blog.conf dz.conf
+sed -i &quot;s#wordpress#dz#g&quot; dz.conf 
+sed -i &quot;s#8080#8090#g&quot; dz.conf 
+nginx -t
+systemctl restart nginx
+netstat -lntup|grep 8090
+</code></pre>
+<h3 id="82-配置代码">8.2 配置代码</h3>
+<pre><code class="language-shell">cd /opt/soft/
+mkdir dz
+unzip Discuz_X3.4_SC_UTF8.zip -d dz
+mkdir /code/dz 
+cp -a /opt/soft/dz/upload/* /code/dz/
+chown -R nginx:nginx /code/dz
+curl -I 127.0.0.1:8090
+</code></pre>
+<h3 id="83-配置安全组">8.3 配置安全组</h3>
+<p><img src="https://ajie825.github.io/post-images/1694758027936.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694758047583.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694758062401.webp" alt="" loading="lazy"></p>
+<h3 id="84-配置mysql数据库">8.4 配置mysql数据库</h3>
+<p><img src="https://ajie825.github.io/post-images/1694758431935.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694758442973.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694758458617.webp" alt="" loading="lazy"></p>
+<h3 id="85-slb配置">8.5 SLB配置</h3>
+<p><img src="https://ajie825.github.io/post-images/1694760587459.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694760601146.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694760610983.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694760624121.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694760635260.webp" alt="" loading="lazy"></p>
+<h3 id="86-网页操作">8.6 网页操作</h3>
+<p>安装过程中会提示SQL错误，不用关心，无影响<br>
+<img src="https://ajie825.github.io/post-images/1694760994186.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694761008621.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694761021075.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694761037221.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694761046733.webp" alt="" loading="lazy"></p>
+<h3 id="87-配置redis">8.7 配置redis</h3>
+<p><img src="https://ajie825.github.io/post-images/1694761580952.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694761595791.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694761605904.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694761618331.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694761631084.webp" alt="" loading="lazy"></p>
+<h3 id="88-连接测试">8.8 连接测试</h3>
+<pre><code class="language-shell">yum install redis -y
+redis-cli -h r-wz93ls1600ec8ud41b.redis.rds.aliyuncs.com set k1 v1
+OK
+</code></pre>
+<h3 id="89-修改dz代码">8.9 修改DZ代码</h3>
+<pre><code class="language-shell"> vim /code/dz/config/config_global.php
+ $_config['memory']['redis']['server'] = 'r-wz93ls1600ec8ud41b.redis.rds.aliyuncs.com';
+ systemctl restart php-fpm
+</code></pre>
+<h3 id="810-检查并测试">8.10 检查并测试</h3>
+<figure data-type="image" tabindex="12"><img src="https://ajie825.github.io/post-images/1694761956099.webp" alt="" loading="lazy"></figure>
+<h2 id="第九章-镜像与快照">第九章 镜像与快照</h2>
+<h3 id="91-创建快照">9.1 创建快照</h3>
+<p><img src="https://ajie825.github.io/post-images/1694768107996.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694768121012.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694768132870.webp" alt="" loading="lazy"></p>
+<h3 id="92-创建自定义镜像">9.2 创建自定义镜像</h3>
+<p><img src="https://ajie825.github.io/post-images/1694768968862.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694768991120.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694769002088.webp" alt="" loading="lazy"></p>
+<h3 id="93-基于已经创建的ecs创建相同配置的ecs">9.3 基于已经创建的ECS创建相同配置的ECS</h3>
+<p><img src="https://ajie825.github.io/post-images/1694769408081.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694769421026.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694769443225.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694769453697.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694769484746.webp" alt="" loading="lazy"></p>
+<h3 id="94-配置服务启动">9.4 配置服务启动</h3>
+<pre><code class="language-shell">sudo mount -t nfs -o vers=3,nolock,proto=tcp,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport 25d7a48243-jlx29.cn-shenzhen.nas.aliyuncs.com:/ /code/wordpress/wp-content/uploads 
+systemctl start nginx php-fpm
+</code></pre>
+<h3 id="95-rds配置白名单">9.5 RDS配置白名单</h3>
+<p><img src="https://ajie825.github.io/post-images/1694769902825.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694769916708.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694769929228.webp" alt="" loading="lazy"></p>
+<h3 id="96-测试访问">9.6 测试访问</h3>
+<pre><code class="language-shell"> curl -I 127.0.0.1:8080
+ curl -I 127.0.0.1:8090
+</code></pre>
+<h2 id="第十章-slb添加新实例">第十章 SLB添加新实例</h2>
+<p><img src="https://ajie825.github.io/post-images/1694770352307.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694770365492.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694770376964.webp" alt="" loading="lazy"></p>
+<h2 id="第11章-释放实例">第11章 释放实例</h2>
+<h3 id="111-释放ecs">11.1 释放ECS</h3>
+<p><img src="https://ajie825.github.io/post-images/1694832328145.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694832340536.webp" alt="" loading="lazy"></p>
+<h3 id="112-删除快照和镜像">11.2 删除快照和镜像</h3>
+<p><img src="https://ajie825.github.io/post-images/1694832849279.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694832869409.webp" alt="" loading="lazy"></p>
+<h3 id="113-释放rds">11.3 释放RDS</h3>
+<figure data-type="image" tabindex="13"><img src="https://ajie825.github.io/post-images/1694833190636.webp" alt="" loading="lazy"></figure>
+<h3 id="114-释放redis">11.4 释放redis</h3>
+<figure data-type="image" tabindex="14"><img src="https://ajie825.github.io/post-images/1694833680442.webp" alt="" loading="lazy"></figure>
+<h3 id="115-释放nas">11.5 释放NAS</h3>
+<p><img src="https://ajie825.github.io/post-images/1694834000925.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694834015247.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694834029314.webp" alt="" loading="lazy"></p>
+<h3 id="116-释放slb">11.6 释放SLB</h3>
+<figure data-type="image" tabindex="15"><img src="https://ajie825.github.io/post-images/1694834287496.webp" alt="" loading="lazy"></figure>
+<h3 id="117-删除安全组">11.7 删除安全组</h3>
+<figure data-type="image" tabindex="16"><img src="https://ajie825.github.io/post-images/1694834611746.webp" alt="" loading="lazy"></figure>
+<h3 id="118-删除弹性公网ip">11.8 删除弹性公网IP</h3>
+<p><img src="https://ajie825.github.io/post-images/1694835007346.webp" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1694835020381.webp" alt="" loading="lazy"></p>
+<h3 id="119-删除交换机和vpc">11.9 删除交换机和VPC</h3>
+<figure data-type="image" tabindex="17"><img src="https://ajie825.github.io/post-images/1694835257972.webp" alt="" loading="lazy"></figure>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/shell-jiao-ben-jin-jie-pian-wan-jie/">
+              <h3 class="post-title">
+                下一篇：Shell脚本进阶篇（完结）
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

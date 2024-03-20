@@ -1,0 +1,445 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>namespace名称空间 | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">namespace名称空间</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-07-18</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/vN0im2GW5W/">
+                    k8s
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="名称空间">名称空间</h2>
+<h3 id="什么是名称空间">什么是名称空间</h3>
+<p><code>kubernetes</code>支持多个虚拟集群，它们底层依赖于同一个物理集群，这些虚拟集群被称为名称空间。名称空间<code>namespace</code>是<code>k8s</code>集群级别的资源，可以给不同用户、环境或者项目创建对应名称空间，例如：可以为<code>test</code>、<code>devlopment</code>、<code>production</code>环境分别创建各自的名称空间。</p>
+<h3 id="namespace应用场景">namespace应用场景</h3>
+<p>名称空间适用于存在跨多个团队或项目的用户的场景，对于只有几到几十个用户的集群，根本不需要创建或考虑名称空间。</p>
+<p>1）查看名称空间及资源对象</p>
+<p><code>k8s</code>集群默认提供了几个名称空间用于特定目的，例如，<code>kube-system</code>主要用于运行系统级资源，存放<code>k8s</code>一些组件的，而<code>default</code>则为那些未指定名称空间的资源操作提供一个默认值。</p>
+<p>使用<code>kubectl get namespace</code>可以查看<code>namespace</code>资源，使用<code>kubectl describe namespace $NAME</code>可以查看特定的名称空间的详细信息。</p>
+<p>2）管理<code>namespace</code>资源</p>
+<p><code>namespace</code>资源属性较少，通常只需要指定名称即可创建，如<code>kubectl create namespace qa</code>。</p>
+<p><code>namespace</code>资源的名称仅能由字母、数字、下划线、连接线等字符组成。</p>
+<p>删除<code>namespace</code>资源会级联删除其包含的所有其他资源对象。</p>
+<h3 id="namespace使用案例分享">namespace使用案例分享</h3>
+<pre><code class="language-bash">#查看所有的名称空间
+[root@master1 ~]# kubectl get ns
+
+#创建一个test命名空间
+[root@master1 ~]# kubectl create ns test
+
+#切换名称空间
+[root@master1 ~]# kubectl config set-context --current --namespace=kube-system 
+#切换名称空间后，kubectl get pods 如果不指定-n，查看的就是kube-system名称空间的资源了。
+
+#查看哪些资源属于名称空间级别的
+[root@master1 ~]# kubectl api-resources --namespaced=true
+#常见的资源都属于名称空间级别的
+ConfigMap
+Endpoints
+PersistentVolumeClaim
+Pod
+ResourceQuota
+Secret
+ServiceAccount
+Service
+DaemonSet
+Deployment
+ReplicaSet
+StatefulSet
+CronJob
+Job
+Ingress
+Role
+</code></pre>
+<h3 id="namespace资源限额">namespace资源限额</h3>
+<p><code>namespace</code>是名称空间，里面有很多资源，那么我们可以对名称空间资源做个限制，防止该名称空间部署的资源超过限制，如何对<code>namespace</code>资源做限额呢？</p>
+<pre><code class="language-bash">[root@master1 ~]# vim namespace-quota.yaml
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: mem-cpu-quota
+  namespace: test
+spec:
+  hard:
+    requests.cpu: &quot;2&quot;
+    requests.memory: 2Gi
+    limits.cpu: &quot;4&quot;
+    limits.memory: 4Gi   
+[root@master1 ~]# kubectl apply -f namespace-quota.yaml 
+
+#创建的ResourceQuota对象将在test名称空间中添加如下限制：
+#每个容器必须设置内存请求（memory request），内存限额（memory limit）；
+#cpu请求（cpu request）和cpu限额（cpu limit）。
+
+#所有容器的内存请求总额不得超过2GiB。
+#所有容器的内存限额总额不得超过4GiB。
+#所有容器的CPU请求总额不得超过2CPU。
+#所有容器的CPU限额总额不得超过4CPU。
+
+#创建pod的时候必须设置资源限额，否则创建失败，如下：
+[root@master1 ~]# cat pod-test.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-test
+  namespace: test
+  labels:
+    app: tomcat-pod-test
+spec:
+  containers:
+  - name: tomcat-test
+    ports:
+    - containerPort: 80
+    image: tomcat:8.5-jre8-alpine
+    imagePullPolicy: IfNotPresent
+    
+[root@master1 ~]# kubectl apply -f pod-test.yaml 
+会报以下错误信息：
+error when creating &quot;pod-test.yaml&quot;: pods &quot;pod-test&quot; is forbidden: failed quota: mem-cpu-quota: must specify
+limits.cpu,limits.memory,requests.cpu,requests.memory
+</code></pre>
+<h2 id="标签">标签</h2>
+<h3 id="什么是标签">什么是标签</h3>
+<p>标签(<code>labels</code>)其实就是一对<code>key/value</code>，被关联到资源对象上，比如<code>pod</code>；</p>
+<p>关于标签的使用，我们倾向于能够表示对象的特殊特点，就是一眨眼就看出了这个<code>pod</code>是干什么的；</p>
+<p>标签可以用来划分特定的对象(比如版本、服务类型等)；</p>
+<p>标签可以在创建对象的时候直接定义，也可以在后期随时修改，每个对象可以拥有多个标签，但是<code>key</code>的值必须是唯一的。</p>
+<p>创建标签之后也可以方便我们对资源进行分组管理，如果对<code>pod</code>打标签，之后就可以使用标签来查看、删除指定的<code>pod</code>，在<code>k8s</code>中，大部分资源对象都可以打标签。</p>
+<h3 id="给pod资源打标签">给pod资源打标签</h3>
+<pre><code class="language-bash">#对已经存在的pod打标签
+[root@master1 ~]# kubectl label pods pod-first release=v1
+
+#查看标签是否打成功
+[root@master1 ~]# kubectl get pods pod-first --show-labels 
+#显示如下，说明标签打成功了
+NAME        READY   STATUS    RESTARTS   AGE     LABELS
+pod-first   1/1     Running   2          2d19h   app=tomcat-pod-first,release=v1
+
+#删除标签
+[root@master1 ~]# kubectl label pods pod-first release-
+pod/pod-first labeled
+[root@master1 ~]# kubectl get pods --show-labels       
+NAME        READY   STATUS    RESTARTS   AGE   LABELS
+pod-first   1/1     Running   0          26h   app=tomcat-pod-first
+</code></pre>
+<h3 id="查看资源标签">查看资源标签</h3>
+<pre><code class="language-bash">#查看默认名称空间下所有pod资源的标签
+[root@master1 ~]# kubectl get pods --show-labels
+
+#查看默认名称空间下指定pod具有的所有标签
+[root@master1 ~]# kubectl get pods pod-first --show-labels 
+
+#列出默认名称空间下标签key是release的pod，不显示标签
+[root@master1 ~]# kubectl get pods -l release
+
+#列出默认名称空间下标签key是release、值是v1的pod，不显示标签
+[root@master1 ~]# kubectl get pods -l release=v1
+
+#列出默认名称空间下标签key是release的所有Pod，并打印对应的标签值
+[root@master1 ~]# kubectl get pods -L release
+[root@master1 ~]# kubectl get pods -l release=v1 -L release
+
+#查看所有名称空间下的所有pod的标签
+[root@master1 ~]# kubectl get pods --all-namespaces --show-labels 
+</code></pre>
+<h2 id="pod资源清单详细解读">pod资源清单详细解读</h2>
+<pre><code class="language-bash">apiVersion: v1                 #版本号，例如v1
+kind: Pod                      #资源类型，如Pod
+metadata:                      #元数据
+  name: string                    # Pod名字
+  namespace: string               # Pod所属的命名空间
+  labels:                         #自定义标签
+    - name: string                   #自定义标签名字
+  annotations:                    #自定义注释列表
+    - name: string
+spec:                          #Pod中容器的详细定义
+  containers:                     #Pod中容器列表
+  - name: string                     #容器名称
+    image: string                    #容器的镜像名称
+    imagePullPolicy:                 #获取镜像的策略（后面详细解释）
+    command: [string]                #容器的启动命令列表，如不指定，使用打包时使用的启动命令
+    args: [string]                   #容器的启动命令参数列表
+    workingDir: string               #容器的工作目录
+    volumeMounts:                    #挂载到容器内部的存储卷配置
+    - name: string                      #引用pod定义的共享存储卷的名称，需用volumes[]部分定义的的卷名
+      mountPath: string                 #存储卷在容器内mount的绝对路径，应少于512字符
+      readOnly: boolean                 #是否为只读模式
+    ports:                           #需要暴露的端口号
+    - name: string                      #端口号名称
+      containerPort: int                #容器需要监听的端口号
+      hostPort: int                     #容器所在主机需要监听的端口号，默认与Container相同
+      protocol: string                  #端口协议，支持TCP和UDP，默认TCP
+    env:                             #容器运行前需设置的环境变量列表
+    - name: string                      #环境变量名称
+      value: string                     #环境变量的值
+    resources:                       #资源限制和请求的设置
+      limits:                           #资源限制的设置
+        cpu: string                        #cpu的限制，单位为core数
+        memory: string                     #内存限制，单位可以为Mib/Gib
+      requests:                         #资源请求的设置
+        cpu: string                        #cpu请求，容器启动的初始可用数量
+        memory: string                     #内存请求，容器启动的初始可用内存
+    livenessProbe:                   #对Pod内容器健康检查的设置，当探测无响应几次后将自动重启该容器，检查方法有exec、httpGet和tcpSocket，对一个容器只需设置其中一种方法即可
+      exec:                             #对Pod容器内检查方式设置为exec方式
+        command: [string]                  #exec方式需要制定的命令或脚本
+      httpGet:                          #对Pod内个容器健康检查方法设置为HttpGet，需要制定Path、port
+        path: string
+        port: number
+        host: string
+        scheme: string
+        HttpHeaders:
+        - name: string
+          value: string
+      tcpSocket:                        #对Pod内各容器健康检查方式设置为tcpSocket方式
+        port: number
+      initialDelaySeconds: 0            #容器启动完成后首次探测的时间，单位为秒
+      timeoutSeconds: 0                 #对容器健康检查探测等待响应的超时时间，单位秒，默认1秒
+      periodSeconds: 0                  #对容器监控检查的定期探测时间设置，单位秒，默认10秒一次
+      successThreshold: 0
+      failureThreshold: 0
+    securityContext:
+      privileged:false
+    restartPolicy:                   #Pod的重启策略（后面详细解释）
+    nodeSelector: obeject            #设置NodeSelector表示将该Pod调度到包含这个label的node上，以key：value的格式指定
+    imagePullSecrets:                #Pull镜像时使用的secret名称，以key：secretkey格式指定
+    - name: string
+    hostNetwork:false                #是否使用主机网络模式，默认为false，如果设置为true，表示使用宿主机网络
+    volumes:                         #在该pod上定义共享存储卷列表
+    - name: string                      #共享存储卷名称 （volumes类型有很多种）
+      emptyDir: {}                      #类型为emtyDir的存储卷，与Pod同生命周期的一个临时目录。为空值
+      hostPath: string                  #类型为hostPath的存储卷，表示挂载Pod所在宿主机的目录
+        path: string                       #Pod所在宿主机的目录，将被用于同期中mount的目录
+      secret:                           #类型为secret的存储卷，挂载集群与定义的secre对象到容器内部
+        scretname: string  
+        items:     
+        - key: string
+          path: string
+      configMap:                        #类型为configMap的存储卷，挂载预定义的configMap对象到容器内部
+        name: string
+        items:
+        - key: string
+          path: string
+</code></pre>
+<pre><code class="language-bash">#获取镜像的策略：Alawys表示下载镜像(默认)、IfnotPresent表示优先使用本地镜像，否则下载镜像、Nerver表示仅使用本地镜像。
+imagePullPolicy: [Always | Never | IfNotPresent]
+#Pod的重启策略：Always表示不管pod以何种方式终止运行，kubelet都将重启，OnFailure表示只有Pod以非0退出才重启，Nerver表示不再重启该Pod。
+restartPolicy: [Always | Never | OnFailure]
+</code></pre>
+<h2 id="node节点选择器">node节点选择器</h2>
+<p>我们在创建<code>pod</code>资源的时候，<code>pod</code>会根据<code>scheduler</code>进行调度，默认会调度到随机的一个工作节点，如果我们想要<code>pod</code>调度到指定节点或者调度到一些具有相同特点的<code>node</code>节点，怎么办？</p>
+<p>可以使用<code>pod</code>中的<code>nodeName</code>或者<code>nodeSelector</code>字段指定要调度的<code>node</code>节点。</p>
+<h3 id="nodename">nodeName</h3>
+<p>指定<code>pod</code>运行在哪个具体<code>node</code>节点上</p>
+<pre><code class="language-bash">#把tomcat.tar.gz和busybox-1-28.tar.gz上传到node1和node2，手动解压：
+[root@node1 ~]# docker load -i tomcat.tar.gz
+[root@node1 ~]# docker load -i busybox-1-28.tar.gz
+
+[root@node2 ~]# docker load -i tomcat.tar.gz
+[root@node2 ~]# docker load -i busybox-1-28.tar.gz
+
+[root@master1 ~]# cat pod-node.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: demo-pod-1
+  namespace: default
+  labels:
+    app: myapp
+    env: dev
+spec:
+  nodeName: node1
+  containers:
+  - name: tomcat-pod-java
+    image: tomcat:8.5-jre8-alpine
+    imagePullPolicy: IfNotPresent
+    ports:
+    - containerPort: 8080
+  - name: busybox
+    image: busybox:1.28
+    imagePullPolicy: IfNotPresent
+    command:
+    - &quot;/bin/sh&quot;
+    - &quot;-c&quot;
+    - &quot;sleep 3600&quot;
+[root@master1 ~]# kubectl apply -f pod-node.yaml 
+
+#查看pod调度到哪个节点
+[root@master1 ~]# kubectl get pods -o wide|grep demo-pod-1
+demo-pod-1      2/2     Running   0          3m31s   10.244.166.149   node1
+</code></pre>
+<h3 id="nodeselector">nodeSelector</h3>
+<p>指定<code>pod</code>调度到具有哪些标签的<code>node</code>节点上</p>
+<pre><code class="language-bash">#给node节点打具有disk=ceph的标签
+[root@master1 ~]# kubectl label nodes node2 disk=ceph 
+node/node2 labeled
+[root@master1 ~]# kubectl get nodes -l disk=ceph
+NAME    STATUS   ROLES    AGE     VERSION
+node2   Ready    worker   4d17h   v1.20.6
+
+#定义pod的时候指定要调度到具有disk=ceph标签的node上
+[root@master1 ~]# cat pod-node-2.yaml 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: demo-pod-2
+  namespace: default
+  labels:
+    app: myapp
+    env: dev
+spec:
+  nodeSelector:
+    disk: ceph
+  containers:
+  - name: tomcat-pod-java
+    image: tomcat:8.5-jre8-alpine
+    imagePullPolicy: IfNotPresent
+    ports:
+    - containerPort: 8080
+[root@master1 ~]# kubectl apply -f pod-node-2.yaml 
+#查看pod调度到哪个节点
+[root@master1 ~]# kubectl get pods -o wide |grep demo-pod-2
+demo-pod-2        1/1     Running   0          6m11s   10.244.104.29    node2
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/pod-gai-shu-ru-men-zhi-shi-jiang-jie/">
+              <h3 class="post-title">
+                下一篇：Pod概述-入门知识讲解
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

@@ -1,0 +1,345 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>prometheus简介（一） | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">prometheus简介（一）</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-04-25</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/kCEk_FSFT4/">
+                    prometheus
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="1-prometheus介绍">1、prometheus介绍</h2>
+<p>Prometheus是一个开源的系统监控和报警系统，现在已经加入到CNCF基金会，成为继k8s之后第二个在CNCF托管的项目，在k8s容器管理系统中，通常会搭配Prometheus进行监控，同时也支持多种exporter采集数据，还支持pushgateway进行数据上报，Prometheus性能足够支撑上万台规模的集群。</p>
+<h2 id="2-prometheus特点">2、prometheus特点</h2>
+<p>1）多维度数据模型</p>
+<p>每一个时间序列数据都是由metric度量指标名称和它的标签labels键值对集合唯一确定：</p>
+<p>这个metris度量指标名称指监控目标系统的测量特征（如：http_requests_total - 接收http请求总计数）。labels开启了Prometheus的多维数据模型，对于相同的度量名称，通过不同标签列表的结合，会形成特定的度量维度实例，（例如：所有包含度量名称为/api/tracks的http请求，打上method=POST的标签，则形成了具体的http请求）。这个查询语言在这些度量和标签列表的基础上进行过滤和聚合。改变任何度量上的任何标签值，则会形成新的时间序列图。</p>
+<p>2）灵活的查询语言（PromQL）</p>
+<p>可以对采集的metrics指标进行加法，乘法，连接等操作；</p>
+<p>3）可以直接在本地部署，不依赖其他分布式存储；</p>
+<p>4）通过基于HTTP的pull方式采集时序数据；</p>
+<p>5）可以通过中间网关pushgateway的方式把时间序列数据推送到Prometheus server端；</p>
+<p>6）可以通过服务发现或者静态配置来发现目标服务对象（targets）；</p>
+<p>7）有多种可视化图形界面，如grafana等</p>
+<p>8）高效的存储，每个采集数据占3.5 bytes左右，300万的时间序列，30s间隔，保留60天，消耗磁盘大概200G；</p>
+<p>9）做高可用，可以对数据做异地备份，联邦集群，部署多套Prometheus，gushgateway上报数据</p>
+<p><strong>样本</strong></p>
+<p>在时间序列中的每一个点称为一个样本（sample），样本由以下三部分组成：</p>
+<p>1）指标（metric）：指标名称和描述当前样本特征的labelsets；</p>
+<p>2）时间戳（timestamp）：一个精确到毫秒的时间戳；</p>
+<p>3）样本值（value）：一个folat64的浮点型数据表示当前样本的值。</p>
+<pre><code class="language-shell">表示方式：
+通过如下表达方式表示指定指标名称和指定标签集合的时间序列：
+&lt;metric name&gt;{&lt;label name&gt;=&lt;label value&gt;, ...}
+例如，指标名称为 api_http_requests_total，标签为 method=&quot;POST&quot; 和 handler=&quot;/messages&quot; 的时间序列可以表示为：
+api_http_requests_total{method=&quot;POST&quot;, handler=&quot;/messages&quot;}
+</code></pre>
+<h2 id="3-prometheus组件介绍">3、prometheus组件介绍</h2>
+<p>1）prometheus server：用于收集和存储时间序列数据</p>
+<p>2）client library：客户端库，检测应用程序代码，当prometheus抓取实例的HTTP端点时，客户端库会将所有跟踪的metres指标的当前状态发送到Prometheus server端</p>
+<p>3）exporters：prometheus支持多种exporter，通过exporter可以采集metres数据，然后发送到Prometheus server端，所有向Prometheus server提供监控数据的程序都可以被称为 exporter</p>
+<p>4）alertmanager：从Prometheus server端接收到alerts后，会进行去重，分组，并路由到相应的接收方，发出报警，常见的接收方式有：电子邮件，微信，钉钉，slack等</p>
+<p>5）grafana：监控仪表盘，可视化监控数据</p>
+<p>6)pushgateway：各个目标主机可上报数据到pushgateway。然后prometheus server统一从pushgateway拉取数据<br>
+<img src="https://ajie825.github.io/post-images/1650863112525.png" alt="" loading="lazy"><br>
+从上图可发现，Prometheus整个生态圈组成主要包括Prometheus server，exporter，pushgateway，alertmanager，grafana，web ui界面，Prometheus server由三个部分组成，Retrieval，Storage，PromQL</p>
+<p>1）Retrieval负责在活跃的target主机上抓取监控指标数据</p>
+<p>2）Storage存储主要是把采集到的数据存储到磁盘中</p>
+<p>3）Grafana可接入prometheus数据源，把监控数据以图形化形式展示出</p>
+<h2 id="4-prometheus工作流程">4、prometheus工作流程</h2>
+<p>1）prometheus server可定期从活跃的（up）目标主机上（target）拉取监控指标数据，目标主机的监控数据可通过配置静态job或者服务发现的方式被Prometheus server采集到，这种方式默认的pull方式拉取指标；也可通过pushgateway把采集的数据上报到Prometheus server；还可通过一些组件自带的exporter采集相应组件的数据；</p>
+<p>2）prometheus server把采集到的监控指标数据保存到本地磁盘或者数据库；</p>
+<p>3）prometheus采集的监控指标数据按时间序列存储，通过配置报警规则，把触发的报警发送到alertmanger；</p>
+<p>4）alertmanger通过配置报警接收方，发送报警到邮件，微信或者钉钉等；</p>
+<p>5）prometheus自带的web ui界面提供PromQL查询语言，可查询监控数据；</p>
+<p>6）grafana可接入Prometheus数据源，把监控数据以图形化形式展示出来</p>
+<h2 id="5-prometheus和zabbix对比分析">5、prometheus和zabbix对比分析</h2>
+<table>
+<thead>
+<tr>
+<th>zabbix</th>
+<th>prometheus</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>后端用C开发，界面用PHP开发，定制化难度很高</td>
+<td>后端用golang开发，前端是grafana，JSON编辑即可解决，定制化难度较低</td>
+</tr>
+<tr>
+<td>集群规模上限为10000个节点</td>
+<td>支持更大的集群规模，速度也更快</td>
+</tr>
+<tr>
+<td>更适合监控物理机环境</td>
+<td>更适合云环境的监控，对openstack、kubernetes有更好的集成</td>
+</tr>
+<tr>
+<td>监控数据存储在关系型数据库内，如MySQL，很难从现有数据中扩展维度</td>
+<td>监控数据存储在基于时间序列的数据库内，便于对已有数据进行新的聚合</td>
+</tr>
+<tr>
+<td>安装简单，zabbix-server一个软件包中包括了所有的服务端功能</td>
+<td>安装相对复杂，监控、告警和界面都分属不同的组件</td>
+</tr>
+<tr>
+<td>图形化界面比较成熟，界面基本上能完成全部的配置操作</td>
+<td>界面相对较弱，很多配置需要修改配置文件</td>
+</tr>
+<tr>
+<td>发展时间更长，对于很多监控场景，都有现成的解决方案</td>
+<td>2015年后开始快速发展，但发展时间较短，成熟度不及zabbix</td>
+</tr>
+</tbody>
+</table>
+<h2 id="6-prometheus的四种数据类型">6、prometheus的四种数据类型</h2>
+<h3 id="counter">counter</h3>
+<p>counter是计数器类型：</p>
+<p>1）counter用于累计值，例如记录请求次数、任务完成数、错误发生次数</p>
+<p>2）一直增加，不会减少</p>
+<p>3）重启进程后，会被重置</p>
+<pre><code class="language-shell">例如：
+http_response_total{method=&quot;GET&quot;,endpoint=&quot;/api/tracks&quot;}  100
+http_response_total{method=&quot;GET&quot;,endpoint=&quot;/api/tracks&quot;}  160
+counter类型数据可以让用户方便的了解事件产生的速率变化，在PromQL内置的相关操作函数可以提供相应的分析，比如HTTP应用请求量来进行说明：
+通过rate()函数获取HTTP请求量的增长率
+rate(http_requests_total[5m])
+查询当前系统中，访问量前10的HTTP地址
+topk(10, http_requests_total)
+</code></pre>
+<h3 id="gauge">gauge</h3>
+<p>gauge是测量器类型：</p>
+<p>1）gauge是常规数值，例如温度变化、内存使用变化</p>
+<p>2）可变大，可变小</p>
+<p>3）重启进程后，会被重置</p>
+<pre><code class="language-shell">例如：
+memory_usage_bytes{host=&quot;master-01&quot;}   100
+memory_usage_bytes{host=&quot;master-01&quot;}   30
+memory_usage_bytes{host=&quot;master-01&quot;}   50
+memory_usage_bytes{host=&quot;master-01&quot;}   80 
+</code></pre>
+<p>对于 Gauge 类型的监控指标，通过 PromQL 内置函数 <a href="#delta">delta()</a>  可以获取样本在一段时间内的变化情况，例如，计算 CPU 温度在两小时内的差异：</p>
+<p>dalta(cpu_temp_celsius{host=&quot;zeus&quot;}[2h])</p>
+<p>你还可以通过PromQL 内置函数 <a href="#predictlinear">predict_linear()</a> 基于简单线性回归的方式，对样本数据的变化趋势做出预测。例如，基于 2 小时的样本数据，来预测主机可用磁盘空间在 4 个小时之后的剩余情况：</p>
+<p>predict_linear(node_filesystem_free{job=&quot;node&quot;}[2h], 4 * 3600) &lt; 0</p>
+<h3 id="histogram"><strong>histogram</strong></h3>
+<p>histogram是柱状图，在Prometheus系统的查询语言中，有三种作用：</p>
+<p>1）在一段时间范围内对数据进行采样（通常是请求持续时间或响应大小等），并将其计入可配置的存储桶（bucket）中，后续可通过指定区间筛选样本，也可以统计样本总数，最后一般将数据展示为直方图</p>
+<p>2）对每个采样点值累计和（sum）</p>
+<p>3）对采样点的次数累计和（count）</p>
+<p>度量指标名称: [basename]_上面三类的作用度量指标名称</p>
+<p>1）[basename]_bucket{le=&quot;上边界&quot;}, 这个值为小于等于上边界的所有采样点数量</p>
+<p>2）[basename]_sum</p>
+<p>3）[basename]_count</p>
+<p>小结：如果定义一个度量类型为Histogram，则Prometheus会自动生成三个对应的指标</p>
+<p>在大多数情况下人们都倾向于使用某些量化指标的平均值，例如CPU的平均使用率、页面的平均响应时间。这种方式的问题很明显，以系统API调用的平均响应时间为例：如果大多数API请求都维持在100ms的响应时间范围内，而个别请求的响应时间需要5s，那么就会导致某些WEB页面的响应时间落到中位数的情况，而这种现象被称为长尾问题。</p>
+<p>为了区分是平均的慢还是长尾的慢，最简单的方式就是按照请求延迟的范围进行分组。例如，统计延迟在0<sub>10ms之间的请求数有多少，而10</sub>20ms之间的请求数又有多少。通过这种方式可以快速分析系统慢的原因。Histogram 和 Summary 都是为了能够解决这样问题的存在，通过 Histogram 和 Summary 类型的监控指标，我们可以快速了解监控样本的分布情况。</p>
+<p>Histogram类型的样本会提供三种指标（假设指标名称为<basename>）：</p>
+<p>样本的值分布在 bucket 中的数量，命名为 <basename>_bucket{le=&quot;&lt;上边界&gt;&quot;}。解释的更通俗易懂一点，这个值表示指标值小于等于上边界的所有样本数量。</p>
+<pre><code class="language-shell">1）在总共2次请求当中。http 请求响应时间 &lt;=0.005 秒 的请求次数为0
+io_namespace_http_requests_latency_seconds_histogram_bucket{path=&quot;/&quot;,method=&quot;GET&quot;,code=&quot;200&quot;,le=&quot;0.005&quot;,} 0.0
+2）在总共2次请求当中。http 请求响应时间 &lt;=0.01 秒 的请求次数为0
+io_namespace_http_requests_latency_seconds_histogram_bucket{path=&quot;/&quot;,method=&quot;GET&quot;,code=&quot;200&quot;,le=&quot;0.01&quot;,} 0.0
+3）在总共2次请求当中。http 请求响应时间 &lt;=0.025 秒 的请求次数为0
+io_namespace_http_requests_latency_seconds_histogram_bucket{path=&quot;/&quot;,method=&quot;GET&quot;,code=&quot;200&quot;,le=&quot;0.025&quot;,} 0.0
+io_namespace_http_requests_latency_seconds_histogram_bucket{path=&quot;/&quot;,method=&quot;GET&quot;,code=&quot;200&quot;,le=&quot;0.05&quot;,} 0.0
+io_namespace_http_requests_latency_seconds_histogram_bucket{path=&quot;/&quot;,method=&quot;GET&quot;,code=&quot;200&quot;,le=&quot;0.075&quot;,} 0.0
+io_namespace_http_requests_latency_seconds_histogram_bucket{path=&quot;/&quot;,method=&quot;GET&quot;,code=&quot;200&quot;,le=&quot;0.1&quot;,} 0.0
+io_namespace_http_requests_latency_seconds_histogram_bucket{path=&quot;/&quot;,method=&quot;GET&quot;,code=&quot;200&quot;,le=&quot;0.25&quot;,} 0.0
+io_namespace_http_requests_latency_seconds_histogram_bucket{path=&quot;/&quot;,method=&quot;GET&quot;,code=&quot;200&quot;,le=&quot;0.5&quot;,} 0.0
+io_namespace_http_requests_latency_seconds_histogram_bucket{path=&quot;/&quot;,method=&quot;GET&quot;,code=&quot;200&quot;,le=&quot;0.75&quot;,} 0.0
+io_namespace_http_requests_latency_seconds_histogram_bucket{path=&quot;/&quot;,method=&quot;GET&quot;,code=&quot;200&quot;,le=&quot;1.0&quot;,} 0.0
+io_namespace_http_requests_latency_seconds_histogram_bucket{path=&quot;/&quot;,method=&quot;GET&quot;,code=&quot;200&quot;,le=&quot;2.5&quot;,} 0.0
+io_namespace_http_requests_latency_seconds_histogram_bucket{path=&quot;/&quot;,method=&quot;GET&quot;,code=&quot;200&quot;,le=&quot;5.0&quot;,} 0.0
+io_namespace_http_requests_latency_seconds_histogram_bucket{path=&quot;/&quot;,method=&quot;GET&quot;,code=&quot;200&quot;,le=&quot;7.5&quot;,} 2.0
+4、在总共2次请求当中。http 请求响应时间 &lt;=10 秒 的请求次数为 2
+io_namespace_http_requests_latency_seconds_histogram_bucket{path=&quot;/&quot;,method=&quot;GET&quot;,code=&quot;200&quot;,le=&quot;10.0&quot;,} 2.0
+io_namespace_http_requests_latency_seconds_histogram_bucket{path=&quot;/&quot;,method=&quot;GET&quot;,code=&quot;200&quot;,le=&quot;+Inf&quot;,} 2.0
+
+所有样本值的大小总和，命名为 &lt;basename&gt;_sum。
+5、实际含义： 发生的2次 http 请求总的响应时间为 13.107670803000001 秒
+io_namespace_http_requests_latency_seconds_histogram_sum{path=&quot;/&quot;,method=&quot;GET&quot;,code=&quot;200&quot;,} 13.107670803000001
+
+样本总数，命名为 &lt;basename&gt;_count。值和 &lt;basename&gt;_bucket{le=&quot;+Inf&quot;} 相同。
+6、实际含义： 当前一共发生了 2 次 http 请求
+io_namespace_http_requests_latency_seconds_histogram_count{path=&quot;/&quot;,method=&quot;GET&quot;,code=&quot;200&quot;,} 2.0
+</code></pre>
+<p>注意：</p>
+<p>bucket 可以理解为是对数据指标值域的一个划分，划分的依据应该基于数据值的分布。注意后面的采样点是包含前面的采样点的，假设 xxx_bucket{...,le=&quot;0.01&quot;} 的值为 10，而 xxx_bucket{...,le=&quot;0.05&quot;} 的值为 30，那么意味着这 30 个采样点中，有 10 个是小于 0.01s的，其余 20 个采样点的响应时间是介于0.01s 和 0.05s之间的。</p>
+<p>可以通过 <a href="#histogramquantile">histogram_quantile() 函数</a>来计算 Histogram 类型样本的<a href="https://www.wikiwand.com/zh-hans/%E5%88%86%E4%BD%8D%E6%95%B0">分位数</a>。分位数可能不太好理解，你可以理解为分割数据的点。我举个例子，假设样本的 9 分位数（quantile=0.9）的值为 x，即表示小于 x 的采样值的数量占总体采样值的 90%。Histogram 还可以用来计算应用性能指标值（<a href="https://www.wikiwand.com/en/Apdex">Apdex score</a>)。</p>
+<h3 id="summary">summary</h3>
+<p>与 Histogram 类型类似，用于表示一段时间内的数据采样结果（通常是请求持续时间或响应大小等），但它直接存储了分位数（通过客户端计算，然后展示出来），而不是通过区间来计算。它也有三种作用：</p>
+<p>1）对于每个采样点进行统计，并形成分位图。（如：正态分布一样，统计低于60分不及格的同学比例，统计低于80分的同学比例，统计低于95分的同学比例）</p>
+<p>2）统计班上所有同学的总成绩(sum)</p>
+<p>3）统计班上同学的考试总人数(count)</p>
+<p>带有度量指标的[basename]的summary 在抓取时间序列数据有如命名。</p>
+<p>1）观察时间的φ-quantiles (0 ≤ φ ≤ 1), 显示为[basename]{分位数=&quot;[φ]&quot;}</p>
+<p>2）[basename]_sum， 是指所有观察值的总和</p>
+<p>3）[basename]_count, 是指已观察到的事件计数值</p>
+<pre><code class="language-shell">样本值的分位数分布情况，命名为 &lt;basename&gt;{quantile=&quot;&lt;φ&gt;&quot;}。
+1）含义：这 12 次 http 请求中有 50% 的请求响应时间是 3.052404983s
+  io_namespace_http_requests_latency_seconds_summary{path=&quot;/&quot;,method=&quot;GET&quot;,code=&quot;200&quot;,quantile=&quot;0.5&quot;,} 3.052404983
+2）含义：这 12 次 http 请求中有 90% 的请求响应时间是 8.003261666s
+  io_namespace_http_requests_latency_seconds_summary{path=&quot;/&quot;,method=&quot;GET&quot;,code=&quot;200&quot;,quantile=&quot;0.9&quot;,} 8.003261666
+所有样本值的大小总和，命名为 &lt;basename&gt;_sum。
+1）含义：这12次 http 请求的总响应时间为 51.029495508s
+  io_namespace_http_requests_latency_seconds_summary_sum{path=&quot;/&quot;,method=&quot;GET&quot;,code=&quot;200&quot;,} 51.029495508
+
+样本总数，命名为 &lt;basename&gt;_count。
+1）含义：当前一共发生了 12 次 http 请求
+  io_namespace_http_requests_latency_seconds_summary_count{path=&quot;/&quot;,method=&quot;GET&quot;,code=&quot;200&quot;,} 12.0
+
+现在可以总结一下 Histogram 与 Summary 的异同：
+它们都包含了 &lt;basename&gt;_sum 和 &lt;basename&gt;_count 指标
+Histogram 需要通过 &lt;basename&gt;_bucket 来计算分位数，而 Summary 则直接存储了分位数的值。
+
+prometheus_tsdb_wal_fsync_duration_seconds{quantile=&quot;0.5&quot;} 0.012352463
+prometheus_tsdb_wal_fsync_duration_seconds{quantile=&quot;0.9&quot;} 0.014458005
+prometheus_tsdb_wal_fsync_duration_seconds{quantile=&quot;0.99&quot;} 0.017316173
+prometheus_tsdb_wal_fsync_duration_seconds_sum 2.888716127000002
+prometheus_tsdb_wal_fsync_duration_seconds_count 216
+</code></pre>
+<p>从上面的样本中可以得知当前Promtheus Server进行wal_fsync操作的总次数为216次，耗时2.888716127000002s。其中中位数（quantile=0.5）的耗时为0.012352463，9分位数（quantile=0.9）的耗时为0.014458005s。</p>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/efk-ri-zhi-shou-ji/">
+              <h3 class="post-title">
+                下一篇：EFK日志收集
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

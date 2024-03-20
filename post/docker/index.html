@@ -1,0 +1,1659 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>Docker | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">Docker</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-04-20</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/zGuY5LEhI/">
+                    Docker
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="docker是什么">docker是什么</h2>
+<p><code>docker</code>是一个开源项目，诞生于2013年初，最初是<code>dotCloud</code>公司内部的一个业余项目，基于<code>Google</code>公司推出的<code>Go</code>语言实现，项目后来加入了<code>Linux</code>基金会，遵从了<code>Apache</code>2.0协议，项目代码在<code>GitHub</code>上进行维护。</p>
+<p><code>docker</code>是一种轻量虚拟化的容器技术，基于<code>Linux</code>内核的<code>namespace</code>(对容器进行隔离)、<code>group</code>(对容器使用宿主机资源进行限制)等技术对进程进行封装隔离，属于操作系统层面的虚拟化技术，它可以轻松的为任何应用创建一个轻量级的、可移植的、自给自足的容器。开发者可以打包他们的应用以及依赖包到一个可移植的镜像中，然后发布到任何支持<code>docker</code>的机器上运行。容器是完全使用沙箱机制，相互之间不会有任何接口。</p>
+<p><code>docker</code>采用客户端/服务端架构，<code>docker</code>的三大理念是<code>build</code>(构建)、<code>ship</code>(运输)、<code>run</code>(运行)。</p>
+<ul>
+<li>
+<p>docker 官网：<code>http://www.docker.com</code></p>
+</li>
+<li>
+<p>帮助文档链接：<code>https://docs.docker.com/</code></p>
+</li>
+<li>
+<p>docker 中文网站：<code>http://www.docker.org.cn/</code></p>
+</li>
+</ul>
+<h2 id="docker的应用场景">docker的应用场景</h2>
+<p>场景一：节省项目环境部署时间</p>
+<p>每次项目部署到测试、生产等环境，都要部署一大堆依赖的软件、工具，会花费很长的时间，而且容易出现问题。<code>docker</code>主要理念就是环境打包部署，可在任意<code>docker</code>引擎运行。前期我们只需要将每个项目环境打包到镜像，<code>push</code>到镜像仓库，当有需要部署这个项目时，直接<code>pull</code>镜像启动容器，这个项目就可以访问了！一次构建多次部署，一劳永逸。</p>
+<p>有时，我们想调研一些开源项目，我们可以直接从公共镜像仓库中<code>pull</code>官方做好的镜像，然后启动容器即可。</p>
+<p>场景二：一致的运行环境</p>
+<p>开发过程中一个常见的问题就是环境一致性问题，由于开发环境、测试环境、生产环境不一致，导致有些<code>bug</code>并未在开发过程中被发现。而<code>docker</code>镜像提供了除内核外完整的运行时环境，确保了应用运行环境一致性，从而不会再出现&quot;这段代码在我机器上没问题啊&quot;这类问题。</p>
+<p>场景三：更轻松的迁移</p>
+<p>由于<code>docker</code>确保了执行环境的一致性，使得应用的迁移更加容易。<code>docker</code>可以在很多平台上运行，无论是物理机、虚拟机、公有云、私有云、甚至是笔记本，其运行结果是一致的，因此用户可以很轻易的将在一个平台上运行的应用迁移到另一个平台上，而不用担心运行环境的变化导致应用无法正常运行的情况。</p>
+<p>场景四：持续交付和部署</p>
+<p>一个项目版本快速迭代的测试场景，需要一个合理的<code>CI</code>(持续集成)/<code>CD</code>(持续部署)环境支撑。<code>CI/CD</code>是一个周期性自动化项目测试流程，包括构建、部署、测试、发布等工作，很少需要人工干预。</p>
+<p>项目测试流程大致如下图：</p>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1668494663281.jpg" alt="" loading="lazy"></figure>
+<p><code>docker</code>结合<code>jenkins</code>构建持续集成环境大致如下图：</p>
+<figure data-type="image" tabindex="2"><img src="https://ajie825.github.io/post-images/1668494835113.jpg" alt="" loading="lazy"></figure>
+<p><code>docker</code>在上面这个图的作用是项目镜像构建和快速部署，打通测试环境与生产环境，高度保持多个环境之间一致性。</p>
+<p>场景五：微服务</p>
+<p>微服务是近几年来IT圈内谈论比较多的一个名词，意义也很简单：尽可能细粒度拆分业务程序架构，由多个独立服务组成业务系统。<code>docker</code>容器设计原则：一个容器一个服务，容器之间相互隔离，容器作为这些独立服务的部署单元，恰到好处。</p>
+<p>场景六：弹性伸缩</p>
+<p>说到弹性伸缩，通常是集群模式下，像<code>AWS AutoScaling</code>，可以自定义资源阈值，<code>SLB</code>自动添加<code>EC2</code>云主机，应对业务访问量突发情况。当使用<code>docker</code>技术以后，这种弹性伸缩的单元就是云主机之上的容器了。容器集群化管理已经有成熟的解决方案，比如：官方的<code>Swarm</code>，谷歌的<code>K8S</code>。由于<code>docker</code>容器快速启动特性，可以很快速的启动几十个、上百个容器来提供更多并发和资源利用率（如果宿主机资源不够，还需要加主机到集群中）。</p>
+<h2 id="docker的缺点">docker的缺点</h2>
+<p>所有容器共用<code>linux kernel</code>资源，资源能否实现最大限度利用，所以在安全上也会存在漏洞。</p>
+<p><code>docker</code>内核攻击对于容器化环境来说可能是致命性的，因为容器与主机共享相同的系统内核，因此单独信任容器内置保护机制是不够的。容器的隔离性使得某个应用程序的漏洞不会直接影响到其他容器的应用程序，但是漏洞可能会破坏与其他容器所共享的单一的操作系统，进而影响机器上的其他容器。</p>
+<h2 id="安装docker">安装docker</h2>
+<pre><code class="language-bash">主机ip：192.168.40.180
+Centos7.6-centos7.9
+4Gib/4vCPU
+配置主机名
+[root@master1 ~]# hostnamectl set-hostname master1 &amp;&amp; bash
+关闭防火墙
+[root@master1 ~]# systemctl stop firewalld &amp;&amp; systemctl disable firewalld
+安装iptables防火墙
+[root@master1 ~]# yum install iptables-services -y
+禁用iptables
+[root@master1 ~]# systemctl stop iptables &amp;&amp; systemctl disable iptables
+清空防火墙规则
+[root@master1~]# iptables -F
+关闭selinux
+[root@master1 ~]# setenforce 0
+[root@master1 ~]# sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
+注意：修改selinux配置文件之后，重启机器，selinux才能永久生效
+[root@master1 ~]# getenforce
+显示Disabled表示selinux关闭成功
+配置时间同步
+[root@master1 ~]# yum install -y ntp ntpdate
+[root@master1 ~]# ntpdate cn.pool.ntp.org 
+编写计划任务
+[root@master1 ~]# crontab -e 
+* */1 * * * /usr/sbin/ntpdate   cn.pool.ntp.org
+[root@master1 ~]# crontab -l
+* */1 * * * /usr/sbin/ntpdate   cn.pool.ntp.org
+安装基础软件包
+[root@master1 ~]# yum install -y net-tools nfs-utils lrzsz gcc gcc-c++ make cmake libxml2-devel openssl-devel curl curl-devel unzip sudo ntp libaio-devel wget vim ncurses-devel autoconf automake zlib-devel  python-devel epel-release openssh-server socat  ipvsadm conntrack 
+卸载老版本
+[root@master1 ~]# yum remove docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine
+安装docker依赖包
+[root@master1 ~]# yum install -y yum-utils device-mapper-persistent-data lvm2
+添加官方yum仓库
+[root@master1 ~]# yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+因为国内的网络环境限制，可能拉取有问题或者网速较慢，配置docker-ce国内yum源（阿里云）
+[root@master1 ~]# yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
+安装docker-ce，默认安装的是最新版docker
+[root@master1 ~]# yum install docker-ce -y
+如果需要安装老的版本的Docker，可以用list查询历史版本
+[root@docker ~]# yum list docker-ce --showduplicates | sort -r
+ * updates: mirrors.aliyun.com
+Loading mirror speeds from cached hostfile
+Loaded plugins: fastestmirror
+ * extras: mirrors.aliyun.com
+docker-ce.x86_64            3:20.10.9-3.el7                     docker-ce-stable
+docker-ce.x86_64            3:20.10.8-3.el7                     docker-ce-stable
+docker-ce.x86_64            3:20.10.7-3.el7                     docker-ce-stable
+docker-ce.x86_64            3:20.10.6-3.el7                     docker-ce-stable
+然后指定版本进行安装，比如如下安装3:20.10.9这个版本的Docker
+[root@docker ~]# yum install docker-ce-20.10.9 docker-ce-cli-20.10.9 containerd.io
+启动docker服务
+[root@master1 ~]# systemctl start docker &amp;&amp; systemctl enable docker
+[root@master1 ~]# systemctl status docker
+● docker.service - docker Application Container Engine
+   Loaded: loaded (/usr/lib/systemd/system/docker.service; enabled; vendor preset: disabled)
+   Active: active (running) since Thu 2021-07-01 21:29:18 CST; 30s ago
+     Docs: https://docs.docker.com
+看到running，表示docker正常运行
+使用ps也可以看到docker daemon进程是否存活
+[root@docker ~]# ps aux|grep docker
+root      15083  0.1  2.3 1075972 44568 ?       Ssl  23:30   0:00 /usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock
+root      15239  0.0  0.0 112812   980 pts/0    S+   23:31   0:00 grep --color=auto docker
+查看docker 版本信息
+[root@master1 ~]# docker version
+</code></pre>
+<h2 id="开启包转发功能和修改内核参数">开启包转发功能和修改内核参数</h2>
+<pre><code class="language-bash">安装docker后默认已经开启
+#内核参数修改：br_netfilter模块用于将桥接流量转发至iptables链
+[root@master1 ~]# modprobe br_netfilter
+[root@docker ~]# echo &quot;modprobe br_netfilter&quot; &gt;&gt; /etc/profile
+[root@docker ~]# lsmod |grep br_netfilter
+br_netfilter 22209 0
+bridge 136173 1 br_netfilter
+#开启包转发功能
+[root@master1 ~]# cat &gt; /etc/sysctl.d/docker.conf &lt;&lt;EOF
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+net.ipv4.ip_forward = 1
+EOF
+[root@master1 ~]# sysctl -p /etc/sysctl.d/docker.conf
+[root@docker ~]# cat /proc/sys/net/ipv4/ip_forward
+1
+0表示没有启动，1表示已经启动
+注：
+docker 安装后出现：WARNING: bridge-nf-call-iptables is disabled 的解决办法：
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+net.ipv4.ip_forward = 1：
+将Linux系统作为路由或者VPN服务就必须要开启IP转发功能。当linux主机有多个网卡时一个网卡收到的信息是否
+能够传递给其他的网卡，如果设置成1的话，可以进行数据包转发，可以实现VxLAN 等功能。不开启会导致docker
+部署应用无法访问。
+#重启docker
+[root@master1 ~]# systemctl restart docker
+</code></pre>
+<h2 id="配置docker镜像加速器">配置docker镜像加速器</h2>
+<pre><code class="language-bash">登陆阿里云镜像仓库
+https://cr.console.aliyun.com/cn-hangzhou/instances/mirrors
+如果没有开通，可开通阿里云的镜像服务
+找到镜像加速器，然后按照箭头方向操作
+</code></pre>
+<figure data-type="image" tabindex="3"><img src="https://ajie825.github.io/post-images/1664352240178.jpg" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">修改/etc/docker/daemon.json，变成如下
+cat &gt;/etc/docker/daemon.json&lt;&lt;EOF
+{
+ &quot;registry-mirrors&quot;:[&quot;https://4d22tx2x.mirror.aliyuncs.com&quot;,&quot;https://registry.docker-cn.com&quot;,&quot;https://docker.mirrors.ustc.edu.cn&quot;,&quot;https://dockerhub.azk8s.cn&quot;,&quot;http://hub-mirror.c.163.com&quot;]
+}
+EOF
+让配置文件生效
+sudo systemctl daemon-reload
+sudo systemctl restart docker
+</code></pre>
+<h2 id="docker基本概念">docker基本概念</h2>
+<p>镜像：镜像本质是容器的快照，提供了容器运行时所需要的信息：程序、库、资源、配置等，镜像不包含任何动态数据，其内容在构建之后也不会被改变，因为镜像的存在，<code>docker</code>才可以做到一次构建，到处运行，通过将服务打包到镜像里，其他环境只需要拉取镜像就可以在本地把容器运行起来。</p>
+<p>镜像里面是一层层的文件系统，叫做<code>Union FS</code>(联合文件系统），每一层文件系统都是只读的，构建镜像的时候，从一个最基本的操作系统开始，每个构建提交的操作都相当于做一层的修改，上层的修改会覆盖底层该位置的可见性，当使用镜像的时候，我们只会看到一个完全的整体，不知道里面有几层也不需要知道里面有几层，结构如下：<br>
+<img src="https://ajie825.github.io/post-images/1698643832780.png" alt="" loading="lazy"></p>
+<p>容器：镜像<code>run</code>起来就叫做容器，与进程和程序的概念是一样的，静态的是镜像文件，镜像运行时就是容器。</p>
+<p>容器可以拥有自己的文件系统、自己的网络配置、自己的进程空间，甚至自己的用户<code>ID</code>空间。每一个容器运行时，是以镜像为基础层，在其上创建一个当前容器的存储层，容器存储层的生存周期和容器一样，容器消亡时，容器存储层也随之消亡。因此，任何保存于容器存储层的信息都会随容器删除而丢失。按照<code>docker</code>最佳实践的要求，容器不应向其存储层内写入任何数据，容器存储层要保存无状态化。所有文件写入操作，都应该使用数据卷(<code>volume</code>)、或者绑定宿主机目录，数据卷的生存周期独立于容器，容器消亡，数据卷也不会消亡，数据也不会丢失。</p>
+<p>镜像仓库：类似于<code>git</code>仓库，可以把构建好的镜像上传到镜像仓库，这样部署的时候无需手动传输大的镜像文件，只需要一句命令就可以从镜像仓库拉取并执行。</p>
+<p><code>docker daemon</code>：<code>docker</code>最核心的后台进程，它负责响应来自<code>docker client</code>的请求，通过实现这些请求来完成容器的管理，包括容器的元数据管理，镜像管理等。</p>
+<p><code>docker</code>客户端：官方提供的客户端，提供了一些<code>docker</code>的常用操作，如编译镜像、拉取镜像、运行容器等。</p>
+<p>我们基本上大多数的操作都是通过<code>docker</code>客户端来进行的，通常的使用流程是：</p>
+<ol>
+<li>把我们要跑的程序打包到一个镜像里，我们需要编写一个文本文件<code>Dockerfile</code>，该文件用于描述镜像，然后使用<code>docker build</code>就可以构建出来一个镜像了。</li>
+<li><code>docker build</code>构建出来的镜像是在本地，为了一次构建，任何地方都可以使用，我们需要使用<code>docker push</code>把镜像推送到镜像仓库。</li>
+<li>镜像仓库有镜像了以后，就可以在任何地方使用<code>docker pull</code>来拉取镜像。</li>
+<li>拉取下来镜像后使用<code>docker run</code>将镜像运行起来（前提是要有<code>docker</code>环境）。</li>
+</ol>
+<figure data-type="image" tabindex="4"><img src="https://ajie825.github.io/post-images/1665553598074.png" alt="" loading="lazy"></figure>
+<h2 id="docker的基本用法">docker的基本用法</h2>
+<h3 id="镜像相关操作">镜像相关操作</h3>
+<pre><code class="language-shell">[root@docker ~]# docker search centos --limit 10
+NAME                              DESCRIPTION                                     STARS     OFFICIAL   AUTOMATED
+centos                            The official build of CentOS.                   7102      [OK]       
+centos/systemd                    systemd enabled base container.                 108                  [OK]
+centos/mysql-57-centos7           MySQL 5.7 SQL database server                   93                   
+centos/postgresql-96-centos7      PostgreSQL is an advanced Object-Relational …   45                   
+centos/httpd-24-centos7           Platform for running Apache httpd 2.4 or bui…   44                   
+centos/python-35-centos7          Platform for building and running Python 3.5…   39                   
+centos/php-56-centos7             Platform for building and running PHP 5.6 ap…   34                   
+centos/mysql-56-centos7           MySQL 5.6 SQL database server                   22                   
+centos/postgresql-10-centos7      PostgreSQL is an advanced Object-Relational …   19                   
+kasmweb/centos-7-desktop          CentOS 7 desktop for Kasm Workspaces            18   
+解释说明：
+NAME: 镜像仓库源的名称
+DESCRIPTION: 镜像的描述
+OFFICIAL: 是否docker官方发布
+stars: 类似Github里面的 star，表示点赞、喜欢的意思
+AUTOMATED: 自动构建
+</code></pre>
+<pre><code class="language-shell">#下载镜像
+[root@master1 ~]# docker pull centos:centos7.9.2009
+centos7.9.2009: Pulling from library/centos
+2d473b07cdd5: Pull complete 
+Digest: sha256:be65f488b7764ad3638f236b7b515b3678369a5124c47b8d32916d6487418ea4
+Status: Downloaded newer image for centos:centos7.9.2009
+docker.io/library/centos:centos7.9.2009
+这个拉取的过程中可以看到一个docker镜像是由多个层组成的，这就是docker镜像的分层概念。
+#查看本地镜像
+[root@master1 ~]# docker images
+REPOSITORY   TAG              IMAGE ID       CREATED       SIZE
+centos       centos7.9.2009   eeb6ee3f44bd   2 years ago   204MB
+#查看镜像的详细信息
+[root@docker ~]# docker inspect centos:centos7.9.2009
+#把镜像做成离线压缩包
+[root@master1 ~]# docker save -o centos7.9.tar.gz centos:centos7.9.2009
+#解压离线镜像包
+[root@master1 ~]# docker load -i centos7.9.tar.gz  
+#镜像重新打标签
+[root@master1 ~]# docker tag centos:centos7.9.2009 centos:7.9
+[root@master1 ~]# docker images
+REPOSITORY   TAG              IMAGE ID       CREATED       SIZE
+centos       7.9              eeb6ee3f44bd   2 years ago   204MB
+centos       centos7.9.2009   eeb6ee3f44bd   2 years ago   204MB
+#删除镜像
+[root@master1 ~]# docker rmi -f centos:centos7.9.2009
+[root@master1 ~]# docker images
+REPOSITORY   TAG       IMAGE ID       CREATED       SIZE
+centos       7.9       eeb6ee3f44bd   2 years ago   204MB
+[root@master1 ~]# docker rmi -f `docker images -q`
+</code></pre>
+<h3 id="容器相关操作">容器相关操作</h3>
+<pre><code class="language-shell">以交互式方式启动并进入容器
+[root@master1 ~]# docker run --name hello -it centos:7.9 /bin/bash
+[root@09c4933b5cd7 /]#
+输入exit，退出容器，退出之后容器也会停止，不会在前台运行
+#docker run运行并创建容器
+--name：容器的名字
+-i：交互式
+-t：分配伪终端
+centos:7.9： 启动docker需要的镜像
+/bin/bash：说明你的shell类型为bash，bash shell是最常用的一种shell, 是大多数Linux发行版默认的shell，此外还有C shell等其它shell。
+</code></pre>
+<pre><code class="language-shell">以守护进程方式启动容器
+[root@master1 ~]# docker run --name hello1 -td centos:7.9 
+8aa2c13a8314cd83c51d07ec0f9147d6f5370794ad6cb24aca07856be2c82198
+[root@master1 ~]# docker ps|grep hello1
+8aa2c13a8314   centos:7.9   &quot;/bin/bash&quot;   21 seconds ago   Up 20 seconds  hello1
+-d：在后台运行docker
+[root@master1 ~]# docker exec -it hello1 /bin/bash
+</code></pre>
+<pre><code class="language-shell">查看正在运行的容器
+docker ps
+[root@master1 ~]# docker ps -a  #查看所有容器，包括运行和退出的容器
+</code></pre>
+<pre><code class="language-shell">停止容器
+docker stop hello1
+</code></pre>
+<pre><code class="language-shell">启动已经停止的容器
+docker start hello1
+</code></pre>
+<pre><code class="language-shell">进入容器
+docker exec -it hello1 /bin/bash
+</code></pre>
+<pre><code class="language-shell">删除容器
+[root@master1 ~]# docker rm -f hello1 
+[root@master1 ~]# docker rm -f $(docker ps -a -q)
+514f3b044f36
+2be7d38b8e3b
+11bfd6970aa5
+b181c8a8d559
+[root@master1 ~]# docker --help
+#查看docker帮助命令
+</code></pre>
+<pre><code class="language-shell">将容器提交为镜像
+[root@master1 ~]# docker commit 8aa2c13a8314 centos7:new
+#f91ae1e73243为容器的ID
+</code></pre>
+<p><code>docker commit</code>命令可以将容器的存储层保存下来成为镜像，换句话说就是在原有镜像的基础上，再叠加上容器的存储层，并构成新的镜像。以后我们运行这个新镜像的时候，就会拥有原有容器最后的文件变化，但是实际环境中并不会这样使用。</p>
+<h3 id="通过docker部署nginx服务">通过docker部署nginx服务</h3>
+<pre><code class="language-shell">[root@master1 ~]# docker run --name nginx -p 80 -itd centos:7.9
+-p：把容器端口映射在物理机的一个随机端口
+# 在docker里安装nginx
+[root@master1 ~]# docker exec -it nginx /bin/bash 
+[root@ffd2be7b7ef6 /]# yum install -y vim curl iproute net-tools
+[root@ffd2be7b7ef6 /]# ip addr
+1: lo: &lt;LOOPBACK,UP,LOWER_UP&gt; mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+32: eth0@if33: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc noqueue state UP group default 
+    link/ether 02:42:ac:11:00:03 brd ff:ff:ff:ff:ff:ff link-netnsid 0
+    inet 172.17.0.3/16 brd 172.17.255.255 scope global eth0
+       valid_lft forever preferred_lft forever
+#通过上面可以看到容器的ip是172.17.0.3/16
+#yum安装nginx
+yum install epel-release -y
+yum install nginx -y 
+#创建静态页面
+mkdir /var/www/html -p
+cd /var/www/html/
+cat index.html
+&lt;html&gt;
+    &lt;head&gt;
+        &lt;title&gt;nginx in docker&lt;/title&gt;
+    &lt;/head&gt;
+        &lt;body&gt;
+            &lt;h1&gt;hello,My Name is Ajie&lt;/h1&gt;
+        &lt;/body&gt;
+&lt;/html&gt;
+#修改nginx配置文件中的root路径，如下
+vim /etc/nginx/nginx.conf
+root         /var/www/html/;
+#启动nginx
+nginx
+[root@ffd2be7b7ef6 ~]# netstat -lnpt|grep nginx
+tcp        0      0 0.0.0.0:80      0.0.0.0:*     LISTEN      225/nginx: master p 
+tcp6       0      0 :::80           :::*          LISTEN      225/nginx: master p
+[root@master1 ~]# docker ps|grep nginx
+ffd2be7b7ef6   centos:7.9   &quot;/bin/bash&quot; 12 minutes ago   Up 12 minutes 0.0.0.0:32769-&gt;80/tcp, :::32769-&gt;80/tcp nginx
+</code></pre>
+<pre><code class="language-shell">#查看到nginx容器在物理机映射的端口是32769
+[root@master1 ~]# curl http://192.168.40.180:32769
+&lt;html&gt;
+    &lt;head&gt;
+        &lt;title&gt;nginx in docker&lt;/title&gt;
+    &lt;/head&gt;
+        &lt;body&gt;
+            &lt;h1&gt;hello,My Name is Ajie&lt;/h1&gt;
+        &lt;/body&gt;
+&lt;/html&gt;
+#也可以直接访问容器的ip:port
+[root@master1 ~]# curl 172.17.0.3:80
+&lt;html&gt;
+    &lt;head&gt;
+        &lt;title&gt;nginx in docker&lt;/title&gt;
+    &lt;/head&gt;
+        &lt;body&gt;
+            &lt;h1&gt;hello,My Name is Ajie&lt;/h1&gt;
+        &lt;/body&gt;
+&lt;/html&gt;
+#自动生成Iptables规则
+[root@master1 ~]# iptables -vnL -t nat
+Chain POSTROUTING (policy ACCEPT 8 packets, 480 bytes)
+ pkts bytes target     prot opt in     out          source            destination         
+  336 21135 MASQUERADE  all  --  *      !docker0  172.17.0.0/16        0.0.0.0/0           
+    0     0 MASQUERADE  tcp  --  *      *         172.17.0.3           172.17.0.3    tcp dpt:80
+
+Chain DOCKER (2 references)
+ pkts bytes target     prot opt in     out     source               destination         
+    0     0 RETURN     all  --  docker0 *       0.0.0.0/0            0.0.0.0/0           
+    0     0 DNAT       tcp  --  !docker0 *      0.0.0.0/0            0.0.0.0/0    tcp dpt:32769 to:172.17.0.3:80
+</code></pre>
+<p>流量走向：</p>
+<p>访问物理节点<code>ip:port</code>（容器在物理节点映射的端口）---&gt; 容器<code>ip:port</code>（容器里部署的服务的端口）---&gt;就可以访问到容器里部署的应用了。</p>
+<h2 id="docker容器端口映射">docker容器端口映射</h2>
+<p><code>docker</code>容器在启动的时候，如果不指定端口映射参数，在容器外部是无法通过网络来访问容器内的网络应用和服务的。</p>
+<h3 id="随机端口映射">随机端口映射</h3>
+<p><code>docker run -P</code>可以将容器预定义的端口映射到宿主机的随机端口，默认从<code>32768</code>开始（不推荐使用）。</p>
+<pre><code class="language-shell">[root@master1 ~]# docker pull nginx
+#前台启动的会话窗口无法进行其他操作，除非退出，但是退出后容器也会退出
+[root@master1 ~]# docker run --name nginx -P -it nginx /bin/bash 
+#另开一个窗口执行下面命令
+[root@master1 ~]# netstat -lnpt
+Active Internet connections (only servers)
+Proto Recv-Q Send-Q Local Address   Foreign Address    State       PID/Program name    
+tcp        0      0 0.0.0.0:32780      0.0.0.0:*       LISTEN      33688/docker-proxy  
+tcp        0      0 0.0.0.0:22         0.0.0.0:*       LISTEN      1919/sshd           
+tcp        0      0 127.0.0.1:25       0.0.0.0:*       LISTEN      1116/master         
+tcp6       0      0 :::32780             :::*          LISTEN      33692/docker-proxy  
+tcp6       0      0 :::22                :::*          LISTEN      1919/sshd           
+tcp6       0      0 ::1:25               :::*          LISTEN      1116/master
+[root@master1 ~]# docker ps|grep nginx
+a739ecd2ed45  nginx  &quot;/docker-entrypoint.…&quot;   3 minutes ago   Up 3 minutes   0.0.0.0:32780-&gt;80/tcp, :::32780-&gt;80/tcp   nginx
+[root@master1 ~]# curl 127.0.0.1:32780
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+&lt;title&gt;Welcome to nginx!&lt;/title&gt;
+&lt;style&gt;
+      ......
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;h1&gt;Welcome to nginx!&lt;/h1&gt;
+#容器生成访问日志
+root@a5838157865f:/# 172.17.0.1 - - [31/Oct/2023:05:33:27 +0000] &quot;GET / HTTP/1.1&quot; 200 615 &quot;-&quot; &quot;curl/7.29.0&quot; &quot;-&quot;
+</code></pre>
+<h3 id="指定端口映射">指定端口映射</h3>
+<p><code>docker run -p</code>可以将容器预定义的指定端口映射到宿主机的相应端口，这种方式需要知道容器内网络服务的端口号。</p>
+<p>注意：多个容器映射到宿主机的端口不能冲突，但容器内使用的端口可以相同。</p>
+<pre><code class="language-shell">#将容器内的80端口映射到宿主机的81端口
+[root@master1 ~]# docker run -d -p 81:80 --name nginx-test-port1 nginx
+[root@master1 ~]# netstat -lnpt
+Active Internet connections (only servers)
+Proto Recv-Q Send-Q Local Address   Foreign Address    State       PID/Program name    
+tcp        0      0 0.0.0.0:81     0.0.0.0:*           LISTEN      33688/docker-proxy  
+tcp        0      0 0.0.0.0:22         0.0.0.0:*       LISTEN      1919/sshd           
+tcp        0      0 127.0.0.1:25       0.0.0.0:*       LISTEN      1116/master         
+tcp6       0      0 :::81            :::*              LISTEN      33692/docker-proxy  
+tcp6       0      0 :::22                :::*          LISTEN      1919/sshd           
+tcp6       0      0 ::1:25               :::*          LISTEN      1116/master
+#将容器内的80端口映射到宿主机的随机端口
+[root@master1 ~]# docker run --name nginx -p 80 -itd centos:7.9
+</code></pre>
+<p>最常用的是这两种方式，其他方式大家可上网查询。</p>
+<p><code>docker port</code>可以查看容器的端口映射关系</p>
+<pre><code class="language-shell">[root@master1 ~]# docker port nginx-test-port1 
+80/tcp -&gt; 0.0.0.0:81
+80/tcp -&gt; [::]:81
+</code></pre>
+<h2 id="查看容器的日志">查看容器的日志</h2>
+<p><code>docker logs</code>可以查看容器的日志</p>
+<pre><code class="language-shell">docker logs [OPTIONS] CONTAINER
+选项:
+      --details        Show extra details provided to logs
+  -f, --follow         Follow log output
+      --since string   Show logs since timestamp (e.g. 2013-01-02T13:23:37) or relative (e.g. 42m for   42 minutes)
+      --tail string    Number of lines to show from the end of the logs (default &quot;all&quot;)
+  -t, --timestamps     Show timestamps
+      --until string   Show logs before a timestamp (e.g. 2013-01-02T13:23:37) or relative (e.g. 42m     for 42 minutes)
+</code></pre>
+<pre><code class="language-shell">[root@master1 ~]# docker ps|grep nginx
+6c3c5fbe135f   nginx        &quot;/docker-entrypoint.…&quot;   9 minutes ago   Up 9 minutes   0.0.0.0:81-&gt;80/tcp, :::81-&gt;80/tcp   nginx-test-port1
+[root@master1 ~]# docker logs nginx-test-port1 
+-f：实时查看容器的日志
+[root@master1 ~]# docker logs -f nginx-test-port1
+</code></pre>
+<h2 id="dockerfile语法详解">dockerfile语法详解</h2>
+<p><code>dockerfile</code>是一个用来构建镜像的文本文件，文本内容包含了一条条构建镜像所需的指令和说明，每一条指令构建一层镜像，因此每一条指令的内容，就是描述该层应当如何构建。</p>
+<p>基于<code>dockerfile</code>构建镜像可以使用<code>docker build</code>命令，<code>docker build</code>命令中使用<code>-f</code>可以指定具体的<code>dockerfile</code>文件。</p>
+<pre><code class="language-shell">FROM centos
+MAINTAINER ajie
+RUN yum install wget -y
+RUN yum install nginx -y
+COPY index.html /usr/share/nginx/html/
+EXPOSE 80
+ENTRYPOINT [&quot;/usr/sbin/nginx&quot;,&quot;-g&quot;,&quot;daemon off;&quot;]
+</code></pre>
+<p><code>dockerfile</code>构建过程：</p>
+<ul>
+<li>从基础镜像运行一个容器。</li>
+<li>执行一条指令，对容器做出修改，类似<code>docker commit</code>的操作，提交一个新的镜像层。</li>
+<li>再基于刚提交的镜像运行一个新的容器。</li>
+<li>执行<code>dockerfile</code>中的下一条指令，直至所有指令执行完毕。</li>
+</ul>
+<p><code>dockerfile</code>文件中的常见指令：</p>
+<pre><code class="language-shell">FROM
+MAINTAINER
+RUN
+EXPOSE
+CMD
+ENTRYPOINT
+COPY
+ADD
+VOLUME
+WORKDIR
+ENV
+ARG
+USER
+ONBUILD
+LABEL
+HEALTHCHECK
+</code></pre>
+<p>1）<code>FROM</code>：指定基础镜像</p>
+<p>基础镜像必须是可以下载下来的，定制的镜像都是基于<code>FROM </code>的基础镜像，此指令必需放在有效指令的第一行，这里的<code>centos</code>就是定制需要的基础镜像，后续的操作都是基于<code>centos</code>镜像。</p>
+<p>对于不同的软件官方都提供了相关的<code>docker</code>镜像，比如：<code>nginx</code>、<code>redis</code>、<code>mysql</code>、<code>httpd</code>、<code>tomcat</code>等服务类的镜像，也有操作系统类，如：<code>centos</code>、<code>ubuntu</code>、<code>debian</code>等。建议使用官方镜像，比较安全。</p>
+<p>2）<code>MAINTAINER</code>：指定镜像的作者信息</p>
+<p>3）<code>RUN</code>：指定在当前镜像构建过程中要运行的命令</p>
+<p>包含两种模式：</p>
+<pre><code class="language-shell">1）Shell
+RUN &lt;command&gt; (shell模式，这个是最常用的，需要记住)
+RUN echo hello
+2）exec模式
+RUN [&quot;executable&quot;，&quot;param1&quot;，&quot;param2&quot;](exec模式)
+RUN [&quot;/bin/bash&quot;,&quot;-c&quot;,&quot;echo hello&quot;]
+</code></pre>
+<p>4）<code>EXPOSE</code>指令：仅仅只是声明端口，并不会自动在宿主进行端口映射  ******</p>
+<p>作用：</p>
+<ul>
+<li>帮助镜像使用者理解这个镜像服务的守护端口，以方便配置映射。</li>
+<li>在运行使用随机端口映射时，也就是<code>docker run -P</code>时，会自动随机映射<code>EXPOSE</code>的端口。</li>
+<li>可以是一个或者多个端口，也可以指定多个<code>EXPOSE</code>。</li>
+</ul>
+<p>格式：<code>EXPOSE</code>&lt;端口1&gt; [&lt;端口2&gt;...]</p>
+<p>5）<code>CMD</code>：类似于<code>RUN</code>指令，都是用于运行程序，但二者运行的时间点不同： ******</p>
+<p><code>CMD</code>在<code>docker run</code>时运行的，<code>RUN</code>是在<code>docker build</code>构建镜像时运行的。</p>
+<p>作用：为启动的容器指定默认要运行的程序，程序运行结束，容器也就结束。<code>CMD</code>指令指定的程序可被<code>docker run</code>命令行参数中指定要运行的程序所覆盖。</p>
+<p>每个<code>dockerfile</code>只能有一条<code>CMD</code>命令，如指定了多条，只有最后一条被执行。</p>
+<pre><code class="language-shell">CMD[&quot;executable&quot;,&quot;param1&quot;,&quot;param2&quot;]（exec模式）
+CMD command（shell模式）
+CMD [&quot;param1&quot;,&quot;param2&quot;]（作为ENTRYPOINT指令的默认参数）
+
+例：cd /root/dockerfile/test
+cat dockerfile
+#first dockerfile
+FROM centos:7.9
+MAINTAINER ajie
+RUN yum clean all
+RUN yum install epel-release -y
+RUN yum install nginx -y
+EXPOSE 80
+CMD [&quot;/usr/sbin/nginx&quot;,&quot;-g&quot;,&quot;daemon off;&quot;]
+
+构建镜像：
+docker build -t=&quot;dockerfile/test-cmd:v1&quot; .
+[root@master1 test]# docker images|grep dockerfile
+REPOSITORY           TAG       IMAGE ID       CREATED          SIZE
+dockerfile/test-cmd   v1       179ff944380c   16 seconds ago   728MB
+
+基于上面构建的镜像运行一个容器：
+docker run -p 80 --name cmd_test2 -d dockerfile/test-cmd:v1
+（不需要跟nginx -g &quot;daemon off;&quot;了）
+
+docker ps可以看到下面信息：
+[root@master1 test]# docker ps
+CONTAINER ID   IMAGE                    COMMAND                  CREATED         STATUS         PORTS                                     NAMES
+f4b5dbc0eb94   dockerfile/test-cmd:v1   &quot;/usr/sbin/nginx -g …&quot;   4 seconds ago   Up 4 seconds   0.0.0.0:32791-&gt;80/tcp, :::32791-&gt;80/tcp   cmd_test2
+</code></pre>
+<p>6）<code>ENTRYPOINT</code>：入口点 *****</p>
+<p>功能类似于<code>CMD</code>指令，配置容器启动后执行的命令及参数，但其不会被<code>docker run</code>的命令行参数所覆盖，而且这些命令行参数会被当作参数送给<code>ENTRYPOINT</code>指定的程序。</p>
+<p>但是， 如果运行<code>docker run</code>时使用了<code>--entrypoint</code>选项，将覆盖<code>entrypoint</code>指令指定的程序。</p>
+<p>优点：在执行<code>docker run</code>的时候可以指定<code>ENTRYPOINT</code>运行所需的参数。</p>
+<p>注意：如果<code>dockerfile</code>中如果存在多个<code>ENTRYPOINT</code>指令，仅最后一个生效。</p>
+<pre><code class="language-shell">格式：
+ENTERYPOINT [&quot;executable&quot;,&quot;param1&quot;,&quot;param2&quot;]（exec模式）
+ENTERYPOINT command （shell模式）
+可以搭配CMD命令使用：一般是变参才会使用CMD，这里的CMD等于是在给ENTRYPOINT传参，以下示例会提到。 ******
+
+示例：
+假设已通过dockerfile构建了nginx:test镜像：
+FROM nginx
+ENTRYPOINT [&quot;nginx&quot;, &quot;-c&quot;]    #定参
+CMD [&quot;/etc/nginx/nginx.conf&quot;] #变参 
+
+1）不传参运行
+$ docker run nginx:test
+容器内会默认运行以下命令，启动主进程。
+nginx -c /etc/nginx/nginx.conf
+
+2）传参运行
+$ docker run nginx:test -c /etc/nginx/new.conf
+容器内会默认运行以下命令，启动主进程(假设容器内已有此文件/etc/nginx/new.conf)
+nginx -c /etc/nginx/new.conf
+</code></pre>
+<p>7）<code>COPY</code>：复制文本</p>
+<p>复制宿主机的文件或目录（为<code>dockerfile</code>所在目录的相对路径）到容器中。</p>
+<pre><code class="language-shell">COPY &lt;src&gt;...&lt;dest&gt;
+COPY [&quot;&lt;src&gt;&quot;...&quot;&lt;dest&gt;&quot;]
+
+格式：
+COPY [--chown=&lt;user&gt;:&lt;group&gt;] &lt;源路径1&gt;...&lt;目标路径&gt;
+COPY [--chown=&lt;user&gt;:&lt;group&gt;] [&quot;&lt;源路径1&gt;&quot;,...&quot;&lt;目标路径&gt;&quot;]
+
+[--chown=&lt;user&gt;:&lt;group&gt;]：可选参数，用户改变复制到容器内文件的拥有者和属组。
+
+&lt;源路径&gt;：源文件或者源目录，这里可以是通配符表达式，其通配符规则要满足Go的filepath.Match规则。例如：
+COPY hom* /mydir/
+COPY hom?.txt /mydir/
+
+&lt;目标路径&gt;：容器内的指定路径，该路径不用事先建好，路径不存在的话，会自动创建。 ****
+如果是目录，只复制目录内容，而非目录本身。
+</code></pre>
+<p>8）<code>ADD </code>：复制和解包文件</p>
+<p>该命令可认为是增强版的<code>COPY</code>，不仅支持<code>COPY</code>，还支持解压缩。其中可以是<code>dockerfile</code>所在目录的一个相对路径，也可以是一个<code>URL</code>，还可以是一个<code>tar</code>文件（自动解压）。</p>
+<p>说明：</p>
+<ul>
+<li>如果<code>src</code>是本地打包或压缩文件，如<code>gzip</code>、<code>bzip2</code>、<code>xz</code>，会自动复制并解压到&lt;目标路径&gt;。</li>
+<li>如果<code>src</code>是一个<code>URL</code>，下载后的文件权限自动设置为600。</li>
+<li>如果单纯复制文件，<code>dockerfile</code>推荐使用<code>COPY</code>。</li>
+</ul>
+<pre><code class="language-shell">例：替换/usr/share/nginx下的index.html
+
+cd /root/dockerfile/test1
+cat  dockerfile
+FROM centos:7.9
+MAINTAINER ajie
+RUN yum install wget vim net-tools -y
+RUN yum install epel-release -y
+RUN yum install nginx -y
+COPY index.html /usr/share/nginx/html/
+EXPOSE 80
+ENTRYPOINT [&quot;/usr/sbin/nginx&quot;,&quot;-g&quot;,&quot;daemon off;&quot;]
+
+vim index.html
+&lt;html&gt;
+&lt;head&gt;
+    &lt;title&gt;page added to dockerfile&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;h1&gt;i am in df_test&lt;/h1&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+
+构建镜像：
+docker build -t=&quot;dockerfile/copy:v1&quot; .
+
+基于上面构建的镜像运行一个容器：
+docker run -d -p 80 --name html3 dockerfile/copy:v1
+docker ps|grep html3
+显示如下：
+CONTAINER ID   IMAGE                   COMMAND                CREATED         STATUS         PORTS                  NAMES
+478868402ac4  dockerfile/copy:v1  &quot;/usr/sbin/nginx -g …&quot;  15 seconds ago    Up 12 seconds    0.0.0.0:32771-&gt;80/tcp  html3
+
+curl 192.168.40.180:32771，显示的就是替换后的页面：
+&lt;html&gt;
+&lt;head&gt;
+    &lt;title&gt;page added to dockerfile&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;h1&gt;i am in df_test &lt;/h1&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<p>9）<code>VOLUME</code>：挂载点</p>
+<p>在容器中创建一个可以从宿主机或其他容器挂载的挂载点，一般用来存放数据库和需要保持的数据等，一般会将宿主机的目录<code>/var/lib/containers/storage/volumes/&lt;id&gt;/_data</code>挂载至<code>VOLUME</code>指令指定的容器目录，即使容器后期删除，此宿主机的目录仍会保留，从而实现容器数据的持久保存。</p>
+<pre><code class="language-shell">格式：
+VOLUME [&quot;&lt;路径1&gt;&quot;，&quot;&lt;路径2&gt;&quot;...]
+VOLUME &lt;路径&gt;
+在启动容器docker run的时候，我们可以通过-v参数修改挂载点
+VOLUME [&quot;/data&quot;]
+</code></pre>
+<p>由于匿名挂载的时候只是指定了容器内数据卷的路径，至于该容器内数据卷的路径到底和宿主机中的哪个文件进行数据挂载，可以使用下面命令进行查看：</p>
+<pre><code class="language-shell">docker inspect 38d2810685e1（这是容器id）
+从Mounts中可以看到Destination和Source分别就是容器内的数据卷和宿主机内的容器卷。
+
+cd /root/dockerfile/test2
+[root@master1 test2]# cat dockerfile 
+FROM centos:7.9
+RUN mkdir /myvol
+RUN echo &quot;hello world&quot; &gt;/myvol/index.html
+VOLUME [&quot;/myvol&quot;]
+
+构建镜像：
+[root@master1 test2]# docker build -t=&quot;dockerfile/volume&quot; .
+[root@master1 test2]# docker images
+REPOSITORY            TAG       IMAGE ID       CREATED         SIZE
+dockerfile/volume     latest    8dd376d73c8e   2 minutes ago   204MB
+
+基于上面构建的镜像运行一个容器：
+[root@master1 test2]# docker run --name vol -itd dockerfile/volume
+查看容器详细信息：
+[root@master1 test2]# docker inspect vol 
+&quot;Mounts&quot;: [
+    {
+        &quot;Type&quot;: &quot;volume&quot;,
+        &quot;Name&quot;: &quot;2626b3c54bbbf18b1220967eebf95afaf75865dfb47ee0a95c42dad39344129f&quot;,
+        &quot;Source&quot;: &quot;/var/lib/docker/volumes/2626b3c54bbbf18b1220967eebf95afaf75865dfb47ee0a95c42dad39344129f/_data&quot;,
+        &quot;Destination&quot;: &quot;/myvol&quot;,
+        &quot;Driver&quot;: &quot;local&quot;,
+        &quot;Mode&quot;: &quot;&quot;,
+        &quot;RW&quot;: true,
+        &quot;Propagation&quot;: &quot;&quot;
+    }
+查看宿主机匿名数据卷：
+[root@master1 ~]# cd /var/lib/docker/volumes/2626b3c54bbbf18b1220967eebf95afaf75865dfb47ee0a95c42dad39344129f/_data 
+[root@master1 _data]# ls
+index.html
+[root@master1 _data]# cat index.html 
+hello world
+</code></pre>
+<p>10）<code>WORKDIR</code>：指定工作目录</p>
+<p>使用 <code>WORKDIR</code> 指令可以来指定工作目录（或者称为当前目录），以后各层的当前目录就被改为指定的目录，如该目录不存在，<code>WORKDIR</code> 会帮助建立目录。</p>
+<pre><code class="language-shell">格式：
+WORKDIR &lt;工作目录路径&gt;
+WORKDIR /path/to/workdir（填写绝对路径）
+
+cd /root/dockerfile/test3
+[root@master1 test3]# cat dockerfile 
+FROM centos:7.9
+MAINTAINER ajie
+WORKDIR /app
+RUN echo &quot;hello&quot; &gt; world.txt
+
+构建镜像：
+[root@master1 test]# docker build -t=&quot;dockerfile/hello&quot; .
+[root@master1 test]# docker images
+REPOSITORY            TAG       IMAGE ID       CREATED         SIZE
+dockerfile/hello      latest    2a7ba4f80b44   8 seconds ago   204MB
+
+基于上面构建的镜像运行一个容器：
+[root@master1 test]# docker run --name hello -itd dockerfile/hello
+[root@master1 test]# docker exec -it hello /bin/bash
+[root@100d9722f88b app]# ls
+world.txt
+[root@100d9722f88b app]# cat world.txt 
+hello
+</code></pre>
+<p>11）<code>ENV</code>：设置环境变量</p>
+<p>这个指令很简单，就是设置环境变量而已，无论是后面的其它指令，如 <code>RUN</code>，还是运行时的应用，都可以直接使用这里定义的环境变量。</p>
+<pre><code class="language-shell">格式有两种：
+ENV &lt;key&gt; &lt;value&gt;
+ENV &lt;key1&gt;=&lt;value1&gt; &lt;key2&gt;=&lt;value2&gt; ...
+
+以下示例设置 NODE_VERSION =7.2.0， 在后续的指令中可以通过$NODE_VERSION引用
+ENV NODE_VERSION 7.2.0
+RUN curl -SLO &quot;https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-x64.tar.xz&quot; \
+ &amp;&amp; curl -SLO &quot;https://nodejs.org/dist/v$NODE_VERSION/SHASUMS256.txt.asc&quot;
+这个例子中演示了如何换行，这和Shell下的换行是一致的。
+</code></pre>
+<p>12）<code>ARG</code>：构建参数</p>
+<p>与<code>ENV</code>作用一致，都是设置环境变量，不过作用域不一样。<code>ARG</code>设置的环境变量在将来容器运行时是不会存在这些环境变量的，因此不要使用<code>ARG</code>保存密码之类的信息。</p>
+<p><code>ARG</code>指令是定义参数名称，以及定义其默认值，该默认值可以在构建命令<code>docker build</code>中可以使用<code>--build-arg &lt;参数名&gt;=&lt;值&gt;</code>来覆盖。</p>
+<pre><code class="language-shell">格式：
+ARG &lt;参数名&gt;[=&lt;默认值&gt;]
+</code></pre>
+<p>13）<code>USER</code>：指定当前用户</p>
+<p><code>USER</code>指令和<code>WORKDIR</code>相似，都是改变环境状态并影响以后的层，<code>WORKDIR</code>是改变工作目录，<code>USER</code>则是改变之后层执行<code>RUN</code>，<code>CMD</code>，以及<code>ENTRYPOINT</code>这些后续指令的用户和用户组（用户和用户组必须提前已经存在）。</p>
+<pre><code class="language-shell">格式：
+USER &lt;用户名&gt;[:&lt;用户组&gt;]
+USER daemon
+USER nginx
+USER user    
+USER uid
+USER user:group 
+USER uid:gid
+USER user:gid   
+USER uid:group
+</code></pre>
+<p>14）<code>ONBUILD</code>：为他人做嫁衣</p>
+<p><code>ONBUILD</code>是一个特殊的指令，它后面跟的是其它指令，比如<code>RUN</code>，<code>COPY</code>等，而这些指令，在本次构建镜像的过程中不会执行。只有以当前镜像为基础镜像，去构建下一级镜像的时候才会被执行。</p>
+<p><code>Dockerfile</code> 中的其它指令都是为了定制当前镜像而准备的，唯有 <code>ONBUILD</code> 是为了帮助别人定制自己而准备的。</p>
+<pre><code class="language-shell">格式：
+ONBUILD &lt;其它指令&gt;
+为镜像添加触发器，当一个镜像被作为其它镜像的基础镜像时需要写上ONBUILD，会在构建时插入触发器指令。
+
+例：演示ONBUILD指令
+cat index.html
+&lt;html&gt;
+&lt;head&gt;
+    &lt;title&gt;page added to dockerfile&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;h1&gt;i am in df_test&lt;/h1&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+
+vim dockerfile
+FROM centos
+MAINTAINER ajie
+RUN yum install wget -y
+RUN yum install epel-release -y
+RUN yum install nginx -y
+ONBUILD COPY index.html /usr/share/nginx/html/
+EXPOSE 80
+ENTRYPOINT [&quot;/usr/sbin/nginx&quot;,&quot;-g&quot;,&quot;daemon off;&quot;]
+
+docker build -t=&quot;onbuild-nginx:v1&quot; .
+docker run -d --name html4 -p 80 onbuild-nginx:v1
+docker ps | grep html4
+显示如下：
+65f4a5be9355 onbuild-nginx:v1 &quot;/usr/sbin/nginx -g …&quot;  14 seconds ago    Up 11 seconds  0.0.0.0:32772-&gt;80/tcp  html4
+
+curl 192.168.40.180:32772
+显示还是以前nginx默认的内容，没有被替换，表示ONBUILD这个指令后面的COPY没有生效
+
+还是在刚在路径下构建新的镜像
+vim dockerfile
+FROM onbuild-nginx:v1
+MAINTAINER ajie
+ENTRYPOINT [&quot;/usr/sbin/nginx&quot;,&quot;-g&quot;,&quot;daemon off;&quot;]
+EXPOSE 80
+
+docker build -t=&quot;onbuild-nginx1&quot; .
+docker run -d --name html5 -p 80 onbuild-nginx1
+docker ps | grep html5
+显示如下：
+e56542310692  onbuild-nginx1  &quot;/usr/sbin/nginx -g …&quot;  12 seconds ago    Up 8 seconds  0.0.0.0:32773-&gt;80/tcp  html5
+
+curl 192.168.40.180:32773
+显示如下：
+&lt;html&gt;
+&lt;head&gt;
+    &lt;title&gt;page added to dockerfile&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;h1&gt;i am in df_test &lt;/h1&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+显示的就是已经重新构建的镜像，页面就是替换之后的了，说明我们基于ONBUILD指令的镜像作为基础镜像，在构建镜像时，会触发ONBUILD后面的COPY命令运行。
+</code></pre>
+<p>15）<code>LABEL</code></p>
+<p><code>LABEL</code> 指令用来给镜像以键值对的形式添加一些元数据（<code>metadata</code>）。</p>
+<pre><code class="language-shell">语法格式如下：
+LABEL &lt;key&gt;=&lt;value&gt; &lt;key&gt;=&lt;value&gt; &lt;key&gt;=&lt;value&gt; ...
+比如我们可以添加镜像的作者：
+LABEL org.opencontainers.image.authors=&quot;ajie&quot;
+</code></pre>
+<p>16）<code>HEALTHCHECK</code></p>
+<p>通过该指令指定一行命令，用来判断容器主进程的服务状态是否正常，从而比较真实的反应容器实际状态。</p>
+<p>当在一个镜像指定了<code>HEALTHCHECK</code>指令后，用其启动容器，初始状态会为<code>starting</code>，在<code>HEALTHCHECK</code>指令检查成功后变为<code>healthy</code>，如果连续一定次数失败，则会变为<code>unhealthy</code>。</p>
+<p><code>HEALTHCHECK</code> 支持下列选项：</p>
+<ul>
+<li><code>--interval=&lt;间隔&gt;</code>：两次健康检查的间隔，默认为30秒；</li>
+<li><code>--timeout=&lt;时长&gt;</code>：健康检查命令运行超时时间，如果超过这个时间，本次健康检查就被视为失败，默认30秒；</li>
+<li><code>--retries=&lt;次数&gt;</code>：当连续失败指定次数后，则将容器状态视为<code>unhealthy</code>，默认3次。</li>
+</ul>
+<pre><code class="language-shell">格式：
+HEALTHCHECK [选项] CMD &lt;命令&gt;：设置检查容器健康状况的命令。
+HEALTHCHECK NONE：如果基础镜像有健康检查指令，使用这行可以屏蔽掉其健康检查指令。
+</code></pre>
+<p>假设有个镜像是个最简单的<code>Web</code>服务，我们希望增加健康检查来判断其<code>Web</code>服务是否在正常工作，我们可以用<code>curl</code>来帮助判断，其<code>Dockerfile</code>的<code>HEALTHCHECK</code>可以这么写：</p>
+<pre><code class="language-shell">FROM nginx:1.24
+HEALTHCHECK --interval=5s --timeout=3s  --retries=3 \
+    CMD curl -fs http://localhost/ || exit 1
+</code></pre>
+<h3 id="dockerfile构建nginx镜像">dockerfile构建nginx镜像</h3>
+<pre><code class="language-shell">mkdir dockerfile
+cd dockerfile/
+
+vim dockerfile
+FROM centos:7.9
+MAINTAINER ajie
+RUN yum install wget -y
+RUN yum install epel-release -y
+RUN yum install nginx -y
+COPY index.html /usr/share/nginx/html/
+EXPOSE 80
+ENTRYPOINT [&quot;/usr/sbin/nginx&quot;,&quot;-g&quot;,&quot;daemon off;&quot;]
+
+vim index.html
+&lt;html&gt;
+&lt;head&gt;    
+    &lt;title&gt;page added to dockerfile&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;    
+    &lt;h1&gt;Hello，My Name is ajie, My wechat is luckylucky421306&lt;/h1&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+
+构建镜像：
+docker build -t=&quot;ajie/nginx:v1&quot; .
+查看镜像是否构建成功：
+docker images | grep nginx
+显示如下说明镜像部署成功：
+[root@master1 nginx]# docker images|grep ajie/nginx
+ajie/nginx            v1        2fbc9dbd6efe   32 seconds ago   901MB
+
+基于刚才的镜像启动容器：
+docker run -d  -p 80 --name html2 ajie/nginx:v1
+查看容器具体信息可按如下命令:
+[root@master1 dockerfile]# docker ps|grep html
+bdbe140d5dc9  ajie/nginx:v1  &quot;/usr/sbin/nginx -g …&quot;  17 seconds ago  Up 15 seconds  0.0.0.0:49154-&gt;80/tcp, :::49154-&gt;80/tcp  html2
+
+查看容器里部署的nginx网站的内容：
+curl http://192.168.40.180:49154
+显示如下：
+[root@master1 nginx]# curl 192.168.40.180:49154
+&lt;html&gt;
+&lt;head&gt;    
+    &lt;title&gt;page added to dockerfile&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;    
+    &lt;h1&gt;Hello，My Name is ajie, My wechat is luckylucky421306&lt;/h1&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+
+注意：ENTRYPOINT [&quot;/usr/sbin/nginx&quot;,&quot;-g&quot;,&quot;daemon off;&quot;]表示容器运行时，自动启动容器里的nginx服务。
+</code></pre>
+<h3 id="dockerfile构建tomcat镜像">dockerfile构建tomcat镜像</h3>
+<pre><code class="language-shell">mkdir tomcat8
+cd tomcat8
+把apache-tomcat-8.0.26.tar.gz和jdk-8u181-linux-x64.rpm传到目录下
+
+cat  dockerfile
+FROM centos:7.9
+MAINTAINER ajie
+RUN yum install wget -y
+ADD jdk-8u181-linux-x64.rpm /usr/local/
+ADD apache-tomcat-8.0.26.tar.gz /usr/local/
+RUN cd /usr/local &amp;&amp; rpm -ivh jdk-8u181-linux-x64.rpm
+RUN mv /usr/local/apache-tomcat-8.0.26 /usr/local/tomcat8
+EXPOSE 8080
+
+开始构建镜像
+docker build -t=&quot;tomcat8:v1&quot; .
+
+运行一个容器
+docker run --name tomcat8  -itd -p 8080 tomcat8:v1 
+进入到容器
+docker exec -it tomcat8  /bin/bash
+启动tomcat
+/usr/local/tomcat8/bin/startup.sh
+查看进程，看看是否启动成功
+ps -ef|grep tomcat
+打开新的终端窗口，查看刚才创建的tomcat8这个容器的详细信息：
+docker ps|grep tomcat
+显示如下信息
+4d4c91cff4b5 tomcat8:v1  &quot;/bin/bash&quot;  About a minute ago  Up About a minute  0.0.0.0:32776-&gt;8080/tcp  tomcat8
+
+通过上面可以看到，tomcat在宿主机上映射的端口是32776
+这样我们请求docker节点的ip:32776，就可以访问到tomcat的内容了
+通过这些步骤可以实现通过dockerfile构建tomcat镜像了
+
+刚才我们在构建tomcat镜像时候，基于镜像运行容器，但是需要进入到容器，手动启动tomcat服务，那如果想要启动容器，tomcat也自动起来，需要按照如下方法构建镜像：
+FROM centos:7.9
+MAINTAINER ajie
+RUN yum install wget -y
+ADD jdk-8u181-linux-x64.rpm /usr/local/
+ADD apache-tomcat-8.0.26.tar.gz /usr/local/
+RUN cd /usr/local &amp;&amp; rpm -ivh jdk-8u181-linux-x64.rpm
+RUN mv /usr/local/apache-tomcat-8.0.26 /usr/local/tomcat8
+ENTRYPOINT /usr/local/tomcat8/bin/startup.sh &amp;&amp; tail -F /usr/local/tomcat8/logs/catalina.out
+EXPOSE 8080
+</code></pre>
+<h2 id="docker容器的数据管理">docker容器的数据管理</h2>
+<h3 id="容器数据持久保存的方式">容器数据持久保存的方式</h3>
+<p>如果要将写入到容器的数据永久保存，则需要将容器中的数据保存到宿主机的指定目录，否则容器删除，保存在容器存储层的数据也会消亡。</p>
+<p><code>docker</code>的数据类型分为两种：</p>
+<ul>
+<li>数据卷(<code>data volume</code>)：直接将宿主机目录挂载至容器的指定目录，数据卷类似于挂载的一块磁盘，推荐使用此种方式。</li>
+<li>数据卷容器(<code>data volume container</code>)：间接使用宿主机空间，数据卷容器是将宿主机目录挂载至一个专门的数据卷容器，然后让其它容器通过数据卷容器读写宿主机的数据，此方式不常用。</li>
+</ul>
+<h3 id="docker容器的数据卷">docker容器的数据卷</h3>
+<p>数据卷的使用场景：</p>
+<ul>
+<li>数据库</li>
+<li>日志输出</li>
+<li>静态<code>web</code>页面</li>
+<li>应用配置文件</li>
+<li>多容器间目录或文件共享</li>
+</ul>
+<p>数据卷的特点：</p>
+<ul>
+<li>数据卷在容器启动时初始化，如果容器使用的镜像在挂载点包含了数据，会被拷贝到新初始化的数据卷中。</li>
+<li>数据卷是目录或者文件，并且可以在多个容器之间共同使用，实现容器之间共享和重用。</li>
+<li>对数据卷更改数据容器里面会立即更新。</li>
+<li>在容器里面写入的数据不会影响镜像本身，即数据卷的变化不会影像镜像的更新。</li>
+<li>数据卷的数据可以持久保存，即使挂载数据卷的容器已经被删除也不影响。</li>
+<li>宿主机目录和容器挂载目录不需要提前创建。</li>
+</ul>
+<p>数据卷的使用：</p>
+<pre><code class="language-shell">1）为容器添加数据卷
+如：
+docker run --name volume -v ~/datavolume:/data -itd centos:7.9 /bin/bash
+注：~/datavolume为宿主机目录，/data为启动的volume容器的里的目录
+这样在宿主机的/datavolume目录下创建的数据就会同步到容器的/data目录下
+为数据卷添加访问权限
+docker run --name volume1 -v ~/datavolume1:/data:ro -itd centos:7.9 /bin/bash
+添加只读权限之后在容器的/data目录下就不能在创建文件了，为只读权限；在宿主机下的/datavolume1下可以创建
+</code></pre>
+<pre><code class="language-shell">2）使用dockerfile构建包含数据卷的镜像
+dockerfile指令：
+volume[&quot;/data&quot;]
+
+cat  dockerfile
+FROM centos:7.9
+VOLUME [&quot;/datavolume3&quot;,&quot;/datavolume6&quot;]
+CMD /bin/bash
+
+使用如下构建镜像
+docker build -t=&quot;volume&quot; .
+启动容器
+docker run --name volume-dubble -it volume
+会看到这个容器下有两个目录，/datavolume3和/datavolume6
+</code></pre>
+<h3 id="docker的数据卷容器">docker的数据卷容器</h3>
+<pre><code class="language-shell">挂载数据卷容器的方法
+docker run --volumes-from [container name]
+例：
+docker run --name data-volume -itd volume（volume这个镜像是上面创建的带两个数据卷/datavolume3和/ddatavolume6的镜像）
+docker exec -it data-volume /bin/bash（进入到容器中）
+touch /datavolume6/lucky.txt
+退出容器exit
+
+创建一个新容器挂载刚才data-volume这个容器创建的数据卷
+docker run --name data-volume2 --volumes-from data-volume -itd centos /bin/bash
+进入到新创建的容器
+docker exec -it data-volume2 /bin/bash
+查看容器的/datavolume6目录下是否新创建了lucky.txt文件
+cd /datavolume6
+可以看见有刚才在上一个容器创建的文件lucky.txt
+</code></pre>
+<h3 id="docker数据卷的备份和还原">docker数据卷的备份和还原</h3>
+<pre><code class="language-shell">数据备份方法：
+docker run --volumes-from [container name] -v $(pwd):/backup centos tar czvf /backup/backup.tar [container data volume]
+例子：
+docker run --volumes-from data-volume2 -v /root/backup:/backup --name datavolume-copy centos tar zcvf /backup/data-volume2.tar.gz /datavolume6
+
+数据还原方法：
+docker run --volumes-from [container name] -v $(pwd):/backup centos tar xzvf /backup/backup.tar.gz [container data volume]
+例子：
+docker exec -it data-volume2 /bin/bash
+cd /datavolume6
+rm -rf lucky.txt
+
+docker run --volumes-from data-volume2 -v /root/backup/:/backup centos tar zxvf /backup/data-volume2.tar.gz -C /datavolume6
+docker exec -it data-volum2 /bin/bash
+cd /datavolum6
+可以看到还原后的数据
+</code></pre>
+<h2 id="docker容器互联">docker容器互联</h2>
+<h3 id="docker容器的网络基础">docker容器的网络基础</h3>
+<p>1）<code>docker0</code>：每个宿主机安装完成<code>docker</code>之后，默认都会生成一个<code>docker0</code>的虚拟网卡，其<code>IP</code>地址是<code>172.17.0.1/16</code>，每运行一个<code>docker</code>容器都会生成一个<code>veth</code>设备对，这个<code>veth</code>一个接口在容器里，一个接口在物理机上。<br>
+<img src="https://ajie825.github.io/post-images/1699692855875.png" alt="" loading="lazy"></p>
+<pre><code class="language-shell">docker0: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc noqueue state UP group default 
+  link/ether 02:42:28:ae:c0:42 brd ff:ff:ff:ff:ff:ff
+  inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0
+  valid_lft forever preferred_lft forever
+  inet6 fe80::42:28ff:feae:c042/64 scope link
+veth78188f2@if4: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc noqueue master docker0 state UP group default 
+  link/ether 26:7e:86:dd:c6:64 brd ff:ff:ff:ff:ff:ff link-netnsid 0
+  inet6 fe80::247e:86ff:fedd:c664/64 scope link 
+  valid_lft forever preferred_lft forever
+vethf00b6f2@if24: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc noqueue master docker0 state UP group default 
+  link/ether ae:6d:e3:57:bc:36 brd ff:ff:ff:ff:ff:ff link-netnsid 1
+  inet6 fe80::ac6d:e3ff:fe57:bc36/64 scope link 
+</code></pre>
+<p>2）安装网卡管理工具：</p>
+<pre><code class="language-shell">[root@master1 ~]# yum install bridge-utils -y
+</code></pre>
+<p><code>brctl show</code>可以查看到有一个<code>docker0</code>的网卡设备，下面有很多的接口，每个接口都表示一个启动的<code>docker</code>容器，如下所示：</p>
+<pre><code class="language-shell">[root@master1 ~]# brctl show
+bridge name    bridge id          STP enabled                interfaces
+docker0      8000.0242c7a000d9      no                       veth09c15b2
+                                                             veth37d7623
+                                                             veth652a91a
+                                                             veth7bd7755
+                                                             veth8c2c293
+</code></pre>
+<h3 id="docker容器的互联">docker容器的互联</h3>
+<p>也就是允许所有容器之间可以互相访问，默认情况下，同一个宿主机的不同容器之间可以互相通信。</p>
+<p>下面用到的镜像<code>dockerfile</code>文件如下：</p>
+<pre><code class="language-shell">[root@master1 nginx]# cat dockerfile 
+FROM centos:7.9
+MAINTAINER ajie
+RUN yum install wget iproute net-tools -y
+RUN yum install epel-release -y
+RUN yum install nginx -y
+COPY index.html /usr/share/nginx/html/
+EXPOSE 80
+ENTRYPOINT [&quot;/usr/sbin/nginx&quot;,&quot;-g&quot;,&quot;daemon off;&quot;]
+[root@master1 nginx]# docker build -t=&quot;ajie/nginx:v1&quot; .  
+</code></pre>
+<pre><code class="language-shell">1）基于上面的ajie/nginx:v1镜像启动第一个容器test1
+docker run --name test1 -itd ajie/nginx:v1
+
+2）基于上面的ajie/nginx:v1镜像启动第二个容器test2
+docker run --name test2 -itd ajie/nginx:v1
+
+3）进入到test1容器和test2容器，可以看两个容器的ip，分别是
+172.17.0.20和172.17.0.21
+
+docker exec -it test2 /bin/bash
+ping 172.17.0.20可以看见能ping同test1容器的ip
+curl http://172.17.0.20   
+可以访问到test1容器的内容
+</code></pre>
+<p>上述方法假如<code>test1</code>容器重启，那么容器就会重新分配<code>ip</code>地址，为了使<code>ip</code>地址变了也可以正常访问，可以采用设置网络别名的方法。</p>
+<pre><code class="language-shell">docker link设置网络别名(不常用)
+可以给容器起一个代号，这样可以直接以代号访问，避免了容器重启ip变化带来的问题
+docker run --link=[CONTAINER_NAME]:[ALIAS] [IMAGE][COMMAND]
+
+例子：
+1）启动一个test3容器
+docker run --name test3 -itd ajie/nginx:v1 /bin/bash
+
+2）启动一个test5容器，--link做链接，那么当我们重新启动test3容器时，就算ip变了，也没关系，我们可以在test5上ping别名webtest
+docker run --name test5 -itd --link=test3:webtest ajie/nginx:v1 
+
+3）test3和test5的ip分别是172.17.0.22和172.17.0.24
+
+4）重启test3容器
+docker restart test3
+发现ip变成了172.17.0.25
+
+5）进入到test5容器 
+docker exec -it test5 /bin/bash
+ping test3容器的ip别名webtest可以ping通，尽管test3容器的ip变了也可以通
+</code></pre>
+<h2 id="docker容器的网络模式">docker容器的网络模式</h2>
+<p>安装<code>docker</code>以后，默认会创建三种网络，可以通过 <code>docker network ls</code> 查看，创建容器时，可以使用<code>--net</code>选项指定容器的网络模式。</p>
+<pre><code class="language-shell">[root@master1 ~]# docker network ls
+NETWORK ID     NAME      DRIVER    SCOPE
+b3688e21317e   bridge    bridge    local
+786c804fd24f   host      host      local
+e3942cdc3dd2   none      null      local
+</code></pre>
+<p>使用<code>inspect</code>命令可以查看容器的详细信息，其中网络部分的信息如下：</p>
+<pre><code class="language-shell">&quot;Networks&quot;: {
+    &quot;bridge&quot;: {
+        &quot;IPAMConfig&quot;: null,
+        &quot;Links&quot;: null,
+        &quot;Aliases&quot;: null,
+        &quot;NetworkID&quot;: &quot;b3688e21317ea03ae691cecfdbdb3a753a5f7a79caea3b4862fc239fdbd5fd87&quot;,
+        &quot;EndpointID&quot;: &quot;af3bf7f4200086279e12af080089389f502788a66e49bd68803a01558b25b0eb&quot;,
+        &quot;Gateway&quot;: &quot;172.17.0.1&quot;,
+        &quot;IPAddress&quot;: &quot;172.17.0.6&quot;,
+        &quot;IPPrefixLen&quot;: 16,
+        &quot;IPv6Gateway&quot;: &quot;&quot;,
+        &quot;GlobalIPv6Address&quot;: &quot;&quot;,
+        &quot;GlobalIPv6PrefixLen&quot;: 0,
+        &quot;MacAddress&quot;: &quot;02:42:ac:11:00:06&quot;,
+        &quot;DriverOpts&quot;: null
+    }
+</code></pre>
+<h3 id="none模式">none模式</h3>
+<p><code>none</code>模式是指创建的容器没有网络地址，只有<code>lo</code>本地回环地址，在创建容器时通过参数 <code>--net none</code> 或者 <code>--network none</code> 指定。</p>
+<p>用途： 这种方式将网络创建的责任完全交给用户，可以实现更加灵活复杂的网络。</p>
+<pre><code class="language-shell">[root@master1 ~]# docker run -itd --name none --net=none --privileged=true centos:7.9  
+[root@master1 ~]# docker exec -it none /bin/bash
+[root@05dbf3f2daaf /]# ip addr
+1: lo: &lt;LOOPBACK,UP,LOWER_UP&gt; mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+  link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+  inet 127.0.0.1/8 scope host lo
+    valid_lft forever preferred_lft forever
+</code></pre>
+<h3 id="container模式">container模式</h3>
+<p><code>container</code>模式在创建新容器的时候，通过<code>--net container</code>参数，指定其和已经存在的某个容器共享<code>Network Namespace</code>。因此就不会拥有自己独立的<code>IP</code>，而是共享容器的<code>IP</code>、端口范围等网络资源，两个容器的进程通过<code>lo</code>网卡设备通信。</p>
+<p>用途：如果部署一个应用，可以将应用的不同组件部署在不同的容器中，对外可以看上出是一个整体。<br>
+<img src="https://ajie825.github.io/post-images/1699692589161.png" alt="" loading="lazy"></p>
+<pre><code class="language-shell">#和已经存在的none容器共享网络
+[root@master1 ~]# docker run --name container2 --net=container:none -it --privileged=true centos:7.9
+[root@05dbf3f2daaf /]# ip addr
+1: lo: &lt;LOOPBACK,UP,LOWER_UP&gt; mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+  link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+  inet 127.0.0.1/8 scope host lo
+  valid_lft forever preferred_lft forever
+</code></pre>
+<h3 id="bridge模式">bridge模式</h3>
+<p><code>net</code>桥接网络，默认的网络模式，如果在创建容器时不通过<code>--network</code>指定网络类型，则为<code>bridge</code>模式，会为每个容器分配一个<code>Network Namespace</code>、<code>IP</code>等，并将容器的网络连接到<code>docker0</code>虚拟网卡上。</p>
+<p>特点：同一个宿主机的容器间可以相互通信，不同宿主机的容器网络会被隔离。</p>
+<pre><code class="language-shell">#创建桥接网络
+[root@master1~]# docker run --name bridge -it --privileged=true centos:7.9 /bin/bash
+[root@a131580fb605 /]# ip addr
+1: lo: &lt;LOOPBACK,UP,LOWER_UP&gt; mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+  link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+  inet 127.0.0.1/8 scope host lo
+  valid_lft forever preferred_lft forever
+64: eth0@if65: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc noqueue state UP group default 
+  link/ether 02:42:ac:11:00:0d brd ff:ff:ff:ff:ff:ff link-netnsid 0
+  inet 172.17.0.13/16 brd 172.17.255.255 scope global eth0
+  valid_lft forever preferred_lft forever
+</code></pre>
+<h3 id="host模式">host模式</h3>
+<p><code>host</code>模式是指共享宿主机的网络接口（端口、<code>IP</code>等），该模式下的容器不会虚拟出容器自身的虚拟网卡，也不会配置自己的虚拟<code>IP</code>，其它的资源，如文件系统、进程列表等，容器之间依然是相互隔离的。</p>
+<pre><code class="language-shell">[root@master1~]# docker run --name host -it --net=host --privileged=true centos:7.9 /bin/bash
+[root@master1 /]# ip addr
+1: lo: &lt;LOOPBACK,UP,LOWER_UP&gt; mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host 
+       valid_lft forever preferred_lft forever
+2: ens33: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc pfifo_fast state UP group default qlen 1000
+    link/ether 00:0c:29:a8:3d:bc brd ff:ff:ff:ff:ff:ff
+    inet 192.168.40.180/24 brd 192.168.40.255 scope global noprefixroute ens33
+       valid_lft forever preferred_lft forever
+3: docker0: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc noqueue state UP group default 
+    link/ether 02:42:31:c3:ad:0a brd ff:ff:ff:ff:ff:ff
+    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::42:31ff:fec3:ad0a/64 scope link
+</code></pre>
+<h3 id="docker跨主机容器间网络通信">docker跨主机容器间网络通信</h3>
+<p>就目前<code>docker</code>自身默认的网络来说，单台主机上的不同容器可以借助<code>docker0</code>虚拟网卡直接通信，但是实际生产中很多时候都是多台主机部署<code>docker</code>环境，且每台主机上都运行数量不等的容器，如果需要这些容器共同提供服务，就需要解决跨主机容器间的网络通信问题。</p>
+<p><code>docker</code>跨主机容器间通信解决方案：</p>
+<ul>
+<li>桥接宿主机网络</li>
+<li>端口映射</li>
+<li><code>docker</code>网络驱动</li>
+</ul>
+<pre><code class="language-shell">Overlay：基于VXLAN封装实现docker原生Overlay网络
+Macvlan：宿主机网卡接口逻辑分为多个子接口，每个子接口标识一个VLAN，容器接口直接连接宿主机网卡接口，通过路由策略转发到另一台宿主机
+</code></pre>
+<ul>
+<li>第三方网络项目</li>
+</ul>
+<pre><code class="language-shell">隧道方案
+Flannel：支持UDP和VXLAN封装传输方式
+Weave：支持UDP(sleeve模式)和VXLAN(优先fastdp模式)
+OpenvSwitch：支持VXLAN和GRE协议
+路由方案
+Calico：支持BGP协议和IPIP隧道，每台宿主机作为虚拟路由，通过BGP协议实现不同主机容器间通信
+</code></pre>
+<h2 id="docker私有镜像仓库harbor">docker私有镜像仓库harbor</h2>
+<h3 id="harbor介绍">harbor介绍</h3>
+<p><code>docker</code>容器应用的开发和运行离不开可靠的镜像管理，虽然<code>docker</code>官方也提供了公共的镜像仓库，但是从安全和效率等方面考虑，部署我们私有环境内的<code>registry</code>也是非常必要的。<code>harbor</code>是由<code>VMware</code>公司开源的企业级的<code>docker rigistry</code>管理项目，它包括权限管理(<code>RBAC</code>)、<code>LDAP</code>、日志审核、管理界面、自我注册、镜像复制和中文支持等功能。</p>
+<p>官网地址：<code>https://github.com/goharbor/harbor</code><br>
+<img src="https://ajie825.github.io/post-images/1699942970019.png" alt="" loading="lazy"></p>
+<p>实验环境：</p>
+<ul>
+<li>主机名设置成<code>harbor</code></li>
+<li>机器需要的内存至少<code>2G</code>，最好分配<code>4G</code></li>
+<li>机器<code>ip</code>：<code>192.168.40.181</code>，<code>4vCPU/4G内存/100G硬盘</code></li>
+</ul>
+<h3 id="为harbor自签发证书">为harbor自签发证书</h3>
+<pre><code class="language-shell">[root@harbor ~]# mkdir /data/ssl -p
+[root@harbor ~]# cd /data/ssl/
+</code></pre>
+<pre><code class="language-shell">生成ca证书：
+#生成一个3072位的key，也就是私钥
+[root@harbor ssl]# openssl genrsa -out ca.key 3072
+#生成一个数字证书ca.pem，3650表示证书的有效时间是3年
+[root@harbor ssl]# openssl req -new -x509 -days 3650 -key ca.key -out ca.pem
+You are about to be asked to enter information that will be incorporated
+into your certificate request.
+What you are about to enter is what is called a Distinguished Name or a DN.
+There are quite a few fields but you can leave some blank
+For some fields there will be a default value,
+If you enter '.', the field will be left blank.
+-----
+Country Name (2 letter code) [XX]:CH
+State or Province Name (full name) []:BJ
+Locality Name (eg, city) [Default City]:BJ
+Organization Name (eg, company) [Default Company Ltd]:
+Organizational Unit Name (eg, section) []:
+Common Name (eg, your name or your server's hostname) []:
+</code></pre>
+<pre><code class="language-shell">生成域名的证书
+#生成一个3072位的key，也就是私钥
+[root@harbor ssl]# openssl genrsa -out harbor.key 3072 
+#生成一个证书请求
+[root@harbor ssl]# openssl req -new -key harbor.key -out harbor.csr
+You are about to be asked to enter information that will be incorporated
+into your certificate request.
+What you are about to enter is what is called a Distinguished Name or a DN.
+There are quite a few fields but you can leave some blank
+For some fields there will be a default value,
+If you enter '.', the field will be left blank.
+-----
+Country Name (2 letter code) [XX]:CH
+State or Province Name (full name) []:BJ
+Locality Name (eg, city) [Default City]:BJ
+Organization Name (eg, company) [Default Company Ltd]:
+Organizational Unit Name (eg, section) []:
+Common Name (eg, your name or your server's hostname) []:harbor
+Email Address []:
+
+Please enter the following 'extra' attributes
+to be sent with your certificate request
+A challenge password []:
+An optional company name []:
+[root@harbor ssl]# ls
+ca.key  ca.pem  harbor.csr  harbor.key
+</code></pre>
+<pre><code class="language-shell">签发证书
+[root@harbor ssl]# openssl x509 -req -in harbor.csr -CA ca.pem -CAkey ca.key -CAcreateserial -out harbor.pem -days 3650
+#显示如下，说明证书签发好了
+Signature ok
+subject=/C=CH/ST=BJ/L=BJ/O=Default Company Ltd/CN=harbor
+Getting CA Private Key
+[root@harbor ssl]# ls
+ca.key  ca.pem  ca.srl  harbor.csr  harbor.key  harbor.pem
+</code></pre>
+<h3 id="安装harbor">安装harbor</h3>
+<pre><code class="language-shell">1）创建安装目录
+[root@harbor ssl]# mkdir /data/install -p
+[root@harbor ssl]# cd /data/install/
+#把harbor的离线包harbor-offline-installer-v2.3.0-rc3.tgz上传到这个目录
+#下载harbor离线包地址：https://github.com/goharbor/harbor/releases/tag/
+2）解压
+[root@harbor install]# tar xf harbor-offline-installer-v2.3.0-rc3.tgz
+[root@harbor install]# cd harbor/
+[root@harbor harbor]# cp harbor.yml.tmpl harbor.yml
+3）修改配置文件
+#修改hostname，跟上面签发的证书域名保持一致
+hostname: harbor
+#协议用https
+certificate: /data/ssl/harbor.pem
+private_key: /data/ssl/harbor.key
+其它配置采用默认即可，修改之后保存退出，注：harbor默认的账号密码：admin/Harbor12345
+4）安装docker-compose
+#上传docker-compose-Linux-x86_64文件到harbor机器
+[root@harbor harbor]# mv docker-compose-Linux-x86_64.64 /usr/bin/docker-compose
+[root@harbor harbor]# chmod +x /usr/bin/docker-compose
+注：docker-compose项目是docker官方的开源项目，负责实现对docker容器集群的快速编排
+    docker-compose的工程配置文件默认为docker-compose.yml，docker-compose运行目录下的必要有一个docker-compose.yml
+    docker-compose可以管理多个docker实例
+5）将harbor的离线镜像包docker-harbor-2-3-0.tar.gz上传到harbor机器，通过docker load -i解压
+[root@harbor install]# docker load -i docker-harbor-2-3-0.tar.gz
+[root@harbor install]# docker images
+REPOSITORY                      TAG       IMAGE ID       CREATED       SIZE
+goharbor/harbor-exporter        v2.3.0    fa4ecf260b3a   2 years ago   80.7MB
+goharbor/chartmuseum-photon     v2.3.0    199be7eb1b5b   2 years ago   178MB
+goharbor/redis-photon           v2.3.0    3cc2c3e315a2   2 years ago   191MB
+goharbor/trivy-adapter-photon   v2.3.0    3c3dc5fc0529   2 years ago   164MB
+goharbor/notary-server-photon   v2.3.0    a8e3a26ef25a   2 years ago   105MB
+goharbor/notary-signer-photon   v2.3.0    e8776cc92436   2 years ago   102MB
+goharbor/harbor-registryctl     v2.3.0    4cf0d9bc3086   2 years ago   132MB
+goharbor/registry-photon        v2.3.0    222f05a9ab07   2 years ago   81MB
+goharbor/nginx-photon           v2.3.0    78f6ae7adc04   2 years ago   44MB
+goharbor/harbor-log             v2.3.0    9446a5b39706   2 years ago   194MB
+goharbor/harbor-jobservice      v2.3.0    bac328ac1a47   2 years ago   170MB
+goharbor/harbor-core            v2.3.0    7bbebce7798c   2 years ago   157MB
+goharbor/harbor-portal          v2.3.0    c4f22964cbf3   2 years ago   57.3MB
+goharbor/harbor-db              v2.3.0    fc74663d9e30   2 years ago   262MB
+goharbor/prepare                v2.3.0    a830321ca695   2 years ago   291MB
+[root@harbor install]# cd /data/install/harbor/
+[root@harbor harbor]# ./install.sh
+#看到下面内容，说明安装成功：
+[Step 5]: starting Harbor ...
+Creating network &quot;harbor_harbor&quot; with the default driver
+Creating harbor-log ... done
+Creating registry      ... done
+Creating redis         ... done
+Creating harbor-db     ... done
+Creating harbor-portal ... done
+Creating registryctl   ... done
+Creating harbor-core   ... done
+Creating nginx             ... done
+Creating harbor-jobservice ... done
+✔ ----Harbor has been installed and started successfully.----
+扩展：
+如何停掉harbor:
+[root@harbor harbor]# pwd
+/data/install/harbor
+[root@harbor harbor]# docker-compose stop
+Stopping nginx             ... done
+Stopping harbor-jobservice ... done
+Stopping harbor-core       ... done
+Stopping redis             ... done
+Stopping registryctl       ... done
+Stopping harbor-db         ... done
+Stopping harbor-portal     ... done
+Stopping registry          ... done
+Stopping harbor-log        ... done
+如何启动harbor:
+[root@harbor harbor]# docker-compose start
+Starting log         ... done
+Starting registry    ... done
+Starting registryctl ... done
+Starting postgresql  ... done
+Starting portal      ... done
+Starting redis       ... done
+Starting core        ... done
+Starting jobservice  ... done
+Starting proxy       ... done
+</code></pre>
+<h3 id="harbor图形化界面使用说明">harbor图形化界面使用说明</h3>
+<p>在浏览器输入：<code>https://harbor</code>，接受风险并继续，出现如下界面，说明访问正常。<br>
+<img src="https://ajie825.github.io/post-images/1700030594517.png" alt="" loading="lazy"></p>
+<p>输入账号<code>admin</code>、密码<code>Harbor12345</code>出现如下：<br>
+<img src="https://ajie825.github.io/post-images/1700031348393.png" alt="" loading="lazy"></p>
+<p>所有基础镜像都会放在<code>library</code>里面，这是一个公开的镜像仓库。</p>
+<p>新建项目---&gt;项目名称<code>ops</code>（把访问级别公开选中，项目才可以被公开使用）<br>
+<img src="https://ajie825.github.io/post-images/1700111408716.png" alt="" loading="lazy"></p>
+<h3 id="测试使用harbor私有镜像仓库">测试使用harbor私有镜像仓库</h3>
+<pre><code class="language-shell">1）修改docker配置
+[root@master1 ~]# cat /etc/docker/daemon.json                        
+{
+   &quot;insecure-registries&quot;: [&quot;192.168.40.181&quot;,&quot;harbor&quot;]
+}
+#表示我们内网访问harbor时走的时http，192.168.40.181是安装harbor机器的ip地址
+2）修改配置之后使配置生效
+[root@master1 ~]# systemctl daemon-reload &amp;&amp; systemctl restart docker
+[root@master1 ~]# systemctl status docker
+● docker.service - Docker Application Container Engine
+   Loaded: loaded (/usr/lib/systemd/system/docker.service; enabled; vendor preset: disabled)
+   Active: active (running) since Wed 2023-11-15 08:19:43 EST; 57s ago
+3）修改本地hosts文件
+[root@master1 ~]# cat /etc/hosts             
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+192.168.40.181 harbor
+4）登录harbor
+[root@master1 ~]# docker login 192.168.40.181
+Username: admin
+Password: Harbor12345
+Login Succeeded
+5）把ajie/nginx:v1镜像打标签
+[root@master1 ~]# docker tag ajie/nginx:v1 192.168.40.181/ops/nginx:v1
+6）把192.168.40.181/ops/nginx:v1上传到harbor里的ops项目下
+[root@master1 ~]# docker push 192.168.40.181/ops/nginx:v1
+</code></pre>
+<figure data-type="image" tabindex="5"><img src="https://ajie825.github.io/post-images/1700106782612.png" alt="" loading="lazy"></figure>
+<pre><code class="language-shell">7）在master1删除镜像
+[root@master1 ~]# docker rmi -f 192.168.40.181/ops/nginx:v1
+从harbor镜像仓库拉取镜像
+[root@master1 ~]# docker pull 192.168.40.181/ops/nginx:v1
+</code></pre>
+<h2 id="docker资源配额">docker资源配额</h2>
+<p>当多个容器运行时，为了防止某容器把所有的硬件都占用，<code>docker</code>通过<code>cgroup</code>来控制容器使用的资源限制，可以对容器限制的资源包括<code>CPU</code>、内存、磁盘。</p>
+<h3 id="cpu资源配额控制">CPU资源配额控制</h3>
+<p>1）<code>CPU</code>份额控制</p>
+<pre><code class="language-shell">[root@master1 ~]# docker run --help|grep cpu-shares
+-c, --cpu-shares int                 CPU shares (relative weight)
+</code></pre>
+<p><code>docker</code>提供了<code>cpu-shares</code>参数，在创建容器时指定容器使用的<code>cpu</code>份额值，使用示例：</p>
+<pre><code class="language-shell">[root@master1 ~]# docker run -it --cpu-shares 512 centos:7.9 /bin/bash 
+[root@95e65eb05936 /]# cat /sys/fs/cgroup/cpu/cpu.shares
+512
+</code></pre>
+<p><code>cpu-shares</code>的值不能保证可以获得1个<code>vcpu</code>或者多少<code>GHz</code>的<code>cpu</code>资源，仅仅只是一个弹性的加权值。</p>
+<p>默认情况下，每个<code>docker</code>容器的<code>cpu</code>份额都是1024。单独一个容器的份额是没有意义的，只有在同时运行多个容器时，容器的<code>cpu</code>加权效果才能体现出来。例如，两个容器<code>A</code>、<code>B</code>的<code>cpu</code>份额分别为1000和500，在<code>cpu</code>进行时间片分配的时候，容器<code>A</code>比容器<code>B</code>多一倍的机会获得<code>cpu</code>的时间片，但分配的结果取决于当时主机和其它容器的运行状态，实际上也无法保证容器<code>A</code>一定能获得<code>cpu</code>时间片。比如容器<code>A</code>的进程一直是空闲的，那么容器<code>B</code>是可以获取比容器<code>A</code>更多的<code>cpu</code>时间片的。极端情况下，比如说主机上只运行了一个容器，即使它的cpu份额只有50，它也可以独占整个主机的<code>cpu</code>资源。</p>
+<p><code>cgroups</code>只在容器分配的资源紧缺时，也就是说在需要对容器使用的资源进行限制时，才会生效。因此，无法单纯根据某个容器的<code>cpu</code>份额来确定有多少<code>cpu</code>资源分配给它，资源分配结果取决于同时运行的其它容器的<code>cpu</code>分配和容器中进程运行情况。</p>
+<p>2）<code>CPU core</code>控制</p>
+<p>对多核<code>cpu</code>的服务器，<code>docker</code>还可以控制容器运行使用哪些<code>cpu</code>内核和内存节点，使用<code>--cpuset-cpus</code>和<code>--cpuset-mems</code>参数。对具有多<code>cpu</code>、多内存节点的服务器尤其有用，可以对需要高性能计算的容器进行性能最优的配置。如果服务器只有一个内存节点，则<code>--cpuset-mems</code>的配置基本上不喊有明显效果。</p>
+<pre><code class="language-shell">[root@master1 ~]# docker run --help|grep cpuset  
+--cpuset-cpus string             CPUs in which to allow execution (0-3, 0,1)
+--cpuset-mems string             MEMs in which to allow execution (0-3, 0,1)
+</code></pre>
+<p>使用示例：</p>
+<pre><code class="language-shell">[root@master1 ~]# docker run -it --cpuset-cpus 0-1 centos:7.9 /bin/bash 
+[root@a2d9394711a9 /]# cat /sys/fs/cgroup/cpuset/cpuset.cpus 
+0-1
+</code></pre>
+<p>3）<code>CPU</code>周期控制 ***</p>
+<pre><code class="language-shell">[root@master1 ~]# docker run --help|grep cpu
+--cpu-period int                 Limit CPU CFS (Completely Fair Scheduler) period
+--cpu-quota int                  Limit CPU CFS (Completely Fair Scheduler) quota
+</code></pre>
+<p><code>docker</code>提供了<code>--cpu-period</code>、<code>--cpu-quota</code>两个参数控制容器可以分配到的<code>cpu</code>时钟周期。</p>
+<p><code>--cpu-period</code>用来指定周期，而<code>--cpu-quota</code>是用来指定在周期内，使用多少时间片用来跑这个容器。跟<code>--cpu-shares</code>不同的是这种配置是指定一个绝对值，而且没有弹性在里面，容器对<code>cpu</code>资源的使用绝对不会超过配置的值。</p>
+<p><code>cpu-period</code>和<code>cpu-quota</code>的单位为微秒(μs)，<code>cpu-period</code>的最小值为1000微秒，最大值为1秒(10^6 μs)，默认值为0.1秒(100000 μs)。<code>cpu-quota</code>的值默认为-1，表示不做控制。</p>
+<p>举个例子，如果容器进程需要每1秒使用单个<code>CPU</code>的0.2秒时间，可以将<code>cpu-period</code>设置为1000000(即1秒)，<code>cpu-quota</code>设置为200000(0.2秒)。当然，在多核的情况下，如果允许容器进程需要完全占用两个<code>CPU</code>，则可以将<code>cpu-period</code>设置为100000(即0.1秒)，<code>cpu-quota</code>设置为200000(0.2秒)。</p>
+<p>使用示例：</p>
+<pre><code class="language-shell">[root@master1 ~]# docker run -it --cpu-period 1000000 --cpu-quota 200000 centos:7.9        
+[root@c9ff3ad22ddc /]# cat /sys/fs/cgroup/cpu/cpu.cfs_period_us 
+1000000
+[root@c9ff3ad22ddc /]# cat /sys/fs/cgroup/cpu/cpu.cfs_quota_us  
+200000
+</code></pre>
+<p>4）<code>CPU</code>配额控制参数的混合使用</p>
+<p>在上面这些参数中，<code>cpu-shares</code>控制只发生在容器竞争同一个内核的时间片时，如果通过<code>cpuset-cpus</code>指定容器<code>A</code>使用内核0，容器<code>B</code>只使用内核1，在主机上只有这两个容器使用对应内核的情况，它们各自占用全部的内核资源，<code>cpu-shares</code>没有明显效果。</p>
+<p><code>cpu-period</code>、<code>cpu-quota</code>这两个参数一般联合使用，在单核或者通过<code>cpuset-cpus</code>强制容器使用一个<code>cpu</code>的情况下，即使<code>cpu-quota</code>超过<code>cpu-period</code>，容器也不会使用更多的<code>CPU</code>资源。</p>
+<p><code>cpuset-cpus</code>、<code>cpuset-mems</code>只在多核、多内存节点的服务器上有效，并且必须与实际的物理配置匹配，否则也无法达到资源控制的目的。</p>
+<p>测试<code>cpuset-cpus</code>和<code>cpu-shares</code>混合使用运行效果，就需要一个压力测试工具<code>stress</code>来让容器把<code>cpu</code>跑满，当跑满后，会不会在其它<code>cpu</code>上运行，如果没有在其它<code>cpu</code>上运行，说明<code>cgroup</code>资源限制成功。</p>
+<pre><code class="language-shell">[root@master1 ~]# yum install epel-release -y
+[root@master1 ~]# yum install stress -y
+stress参数解释：
+ -?, 显示帮助信息
+ -v, 显示版本号
+ -q, 不显示运行信息
+ -n, 显示已完成的指令情况
+ -t, --timeout N    指定运行N秒后停止
+     --backoff N    等待N微秒后开始运行
+ -c, 产生n个进程，每个进程都反复不停的计算随机数的平方根，测试cpu
+ -i, 产生n个进程，每个进程反复调用sync()，sync()用于将内存上的内容写到硬盘上，测试磁盘io
+ -m, --vm N   产生n个进程，每个进程不断调用内存分配malloc()和内存释放free()函数，测试内存
+     --vm-bytes B   指定malloc时内存的字节数(默认256MB)
+     --vm-hang N    指定在free栈的秒数
+ -d, --hdd N        产生n个执行write和unlink函数的进程
+     --hdd-bytes B  指定写的字节数
+Example: stress --cpu 8 --io 4 --vm 2 --vm-bytes 128M --timeout 10s
+注：时间单位可以为秒s，分m，小时h，天d，年y，文件大小单位可以为K，M，G
+
+例：产生2个cpu进程，2个io进程，20秒后停止运行
+[root@master1 ~]# stress -c 2 -i 2 --verbose --timeout 20s
+#新开一个终端，用top命令进行查看
+top - 05:23:58 up 16:10,  2 users,  load average: 2.33, 0.94, 0.39
+Tasks: 107 total,   5 running, 102 sleeping,   0 stopped,   0 zombie
+PID USER      PR  NI    VIRT    RES    SHR S %CPU %MEM     TIME+ COMMAND                                                               
+3970 root      20   0    7312     96      0 R 49.5  0.0   0:05.16 stress                                                                 
+3972 root      20   0    7312     96      0 R 49.5  0.0   0:05.16 stress 
+</code></pre>
+<p>示例：创建两个容器<code>cpu2</code>和<code>cpu3</code>，让<code>cpu2</code>和<code>cpu3</code>只运行在<code>cpu0</code>和<code>cpu1</code>上，最终测试一下<code>cpu2</code>和<code>cpu3</code>使用<code>cpu</code>的百分比。</p>
+<pre><code class="language-shell">[root@master1 ~]# docker run -itd --name cpu2 --cpuset-cpus 0,1 --cpu-shares 512 centos:7.9 /bin/bash
+#指定cpu2只能在cpu0和cpu1上运行，而且cpu2的使用cpu的份额512
+[root@master1 ~]# docker run -itd --name cpu3 --cpuset-cpus 0,1 --cpu-shares 1024 centos:7.9 /bin/bash
+#指定cpu3只能在cpu0和cpu1上运行，而且cpu3的使用cpu的份额1024，比cpu2多一倍
+
+测试1：进入cpu2，使用stress测试进程是不是在cpu0,1上运行：
+[root@master1 ~]# docker exec -it cpu2 /bin/bash      
+[root@a781ee98ec84 /]# yum install epel-release -y
+[root@a781ee98ec84 /]#  yum install stress -y
+[root@a781ee98ec84 /]# stress -c 2 -v -t 10m    #运行2个进程，把两个cpu占满
+#在物理机另外一个虚拟终端上运行top命令，按1快捷键，查看每个cpu使用情况：
+top - 10:26:07 up 5 min,  2 users,  load average: 0.47, 0.16, 0.08
+Tasks: 118 total,   4 running, 114 sleeping,   0 stopped,   0 zombie
+%Cpu0  :100.0 us,  0.0 sy,  0.0 ni,  0.0 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st
+%Cpu1  :100.0 us,  0.0 sy,  0.0 ni,  0.0 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st
+可看到正常，只在cpu0,1上运行
+
+测试2：然后进入cpu3，使用stress测试进程是不是只在cpu0,1上运行，且cpu3上运行的stress使用cpu百分比是cpu2的2倍 
+[root@master1 ~]# docker exec -it cpu3 /bin/bash            
+[root@cb2f9393225a /]# yum install -y epel-release
+[root@cb2f9393225a /]# yum install stress -y
+[root@a781ee98ec84 /]# stress -c 2 -v -t 10m
+</code></pre>
+<figure data-type="image" tabindex="6"><img src="https://ajie825.github.io/post-images/1700460029915.png" alt="" loading="lazy"></figure>
+<h3 id="内存资源配额控制">内存资源配额控制</h3>
+<p><code>docker</code>提供了参数<code>-m</code>，<code>--memory=</code>限制容器的内存使用量，默认单位为<code>byte</code>，可以使用<code>K</code>，<code>G</code>、<code>M</code>等带单位的字符串。</p>
+<p>例1：允许容器使用的内存上限为128<code>M</code></p>
+<pre><code class="language-shell">[root@master1 ~]# docker run -itd --name mem1 -m 128M centos:7.9 /bin/bash
+12e15a2d180c1e28bd8cd8499c02372cb6bf713107e6f6eb98232379d8a76df0
+#查看：
+[root@master1 ~]# docker exec -it mem1 /bin/bash
+[root@12e15a2d180c /]# cat /sys/fs/cgroup/memory/memory.limit_in_bytes
+134217728
+</code></pre>
+<p>例2：创建一个<code>docker</code>容器，允许使用2个<code>CPU</code>核心，只能使用128<code>M</code>内存</p>
+<pre><code class="language-shell">[root@master1 ~]# docker run -itd --name mem2 --cpuset-cpus 0,1 -m 128M centos:7.9
+[root@master1 ~]# docker exec -it mem2 /bin/bash
+[root@500b93a194c8 /]#  cat /sys/fs/cgroup/memory/memory.limit_in_bytes
+134217728
+[root@500b93a194c8 /]# cat /sys/fs/cgroup/cpuset/cpuset.cpus 
+0-1
+</code></pre>
+<h3 id="磁盘io配额控制">磁盘IO配额控制</h3>
+<p>相对于<code>CPU</code>和内存的配额控制，<code>docker</code>对磁盘<code>IO</code>的控制相对不成熟，大多数都必须在有宿主机设备的情况下使用，主要包括以下参数：</p>
+<pre><code class="language-shell">[root@master1 ~]# docker run --help|grep device
+--device-write-bps value  #限制此设备上的写速度（bytes per second），单位可以是kb、mb或者gb
+--device-read-bps value   #限制此设备上的读速度（bytes per second），单位可以是kb、mb或者gb
+</code></pre>
+<p>例：限制容器对硬盘的最高写入速度设定为2<code>MB/s</code></p>
+<pre><code class="language-shell">--device参数：将主机设备添加到容器
+[root@master1 ~]# mkdir -p /var/www/html/
+[root@master1 ~]# docker run -it -v /var/www/html/:/var/www/html --device /dev/sda:/dev/sda --device-write-bps /dev/sda:2mb centos:7.9 /bin/bash
+[root@c9ce27fd5ae1 /]# time dd if=/dev/sda of=/var/www/html/test.out bs=2M count=50 oflag=direct,nonblock
+
+注：dd参数：
+direct：读写数据采用直接IO方式，不走缓存，直接从内存写硬盘上
+nonblock：读写数据采用非阻塞IO方式，优先写dd命令的数据
+
+50+0 records in
+50+0 records out
+104857600 bytes (105 MB) copied, 50.0048 s, 2.1 MB/s
+
+real    0m50.008s
+user    0m0.002s
+sys     0m0.209s
+发现1秒写2M，限制成功
+</code></pre>
+<h3 id="docker容器运行结束自动释放资源">docker容器运行结束自动释放资源</h3>
+<pre><code class="language-shell">[root@master1 ~]# docker run --help | grep rm
+--rm   #当容器命令运行结束后，自动删除容器，自动释放资源
+例：
+[root@master1 ~]# docker run -it --rm --name rm centos:7.9 sleep 15
+物理机上查看：
+[root@master1 ~]# docker ps -a | grep rm
+1f992ede5440   centos:7.9   &quot;sleep 15&quot;   3 seconds ago   Up 3 seconds   rm
+等15s后再查看：
+[root@master1 ~]# docker ps -a | grep rm   #自动删除了
+</code></pre>
+<p>容器编排调度<code>docker-compose</code>、<code>docker-swarm</code>可以阅读<a href="https://mp.weixin.qq.com/s/XnzPAJ2hBc2lFoYhtgxdlg">这篇文章</a>。</p>
+
+          </div>
+        </div>
+
+        
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

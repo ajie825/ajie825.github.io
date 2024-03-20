@@ -1,0 +1,339 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>MySQL简介及安装（一） | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">MySQL简介及安装（一）</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-05-30</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/eb_lZhnX62/">
+                    mysql
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="二进制版本安装">二进制版本安装</h2>
+<h3 id="下载并上传软件">下载并上传软件</h3>
+<pre><code class="language-shell">[root@mysql ~]# yum install gcc make autoconf vim sysstat net-tools iostat iftop iotp wget lrzsz
+[root@mysql ~]# mkdir /server/tools -p
+[root@mysql ~]# cd /server/tools/
+[root@mysql tools]# ls
+mysql-5.7.26-linux-glibc2.12-x86_64.tar.gz
+</code></pre>
+<h3 id="解压软件">解压软件</h3>
+<pre><code class="language-shell">[root@mysql tools]# tar xf mysql-5.7.26-linux-glibc2.12-x86_64.tar.gz 
+[root@mysql tools]# ls
+mysql-5.7.26-linux-glibc2.12-x86_64  mysql-5.7.26-linux-glibc2.12-x86_64.tar.gz
+[root@mysql tools]# mkdir /application
+[root@mysql tools]# mv mysql-5.7.26-linux-glibc2.12-x86_64 /application/mysql
+[root@mysql tools]# cd /application/mysql/
+[root@mysql mysql]# ls
+bin  COPYING  docs  include  lib  man  README  share  support-files
+</code></pre>
+<h3 id="创建用户并清理原始环境">创建用户并清理原始环境</h3>
+<pre><code class="language-shell">[root@mysql ~]# rpm -qa |grep mariadb
+mariadb-libs-5.5.68-1.el7.x86_64
+[root@mysql ~]# yum remove mariadb-libs-5.5.68-1.el7.x86_64 -y 
+[root@mysql ~]# useradd -s /sbin/nologin mysql
+</code></pre>
+<h3 id="设置环境变量">设置环境变量</h3>
+<pre><code class="language-shell">vim /etc/profile
+export PATH=/application/mysql/bin:$PATH
+[root@mysql ~]# source /etc/profile
+[root@mysql ~]# mysql -V
+mysql  Ver 14.14 Distrib 5.7.26, for linux-glibc2.12 (x86_64) using  EditLine wrapper
+</code></pre>
+<h3 id="创建数据路径并授权">创建数据路径并授权</h3>
+<p>1、添加一块新磁盘模拟数据盘</p>
+<pre><code class="language-shell">[root@mysql ~]# fdisk -l
+
+Disk /dev/sda: 21.5 GB, 21474836480 bytes, 41943040 sectors
+Units = sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disk label type: dos
+Disk identifier: 0x000a29cc
+
+ Device   Boot      Start         End      Blocks   Id  System
+/dev/sda1   *        2048     2099199     1048576   83  Linux
+/dev/sda2         2099200    41943039    19921920   8e  Linux LVM
+
+Disk /dev/sdb: 21.5 GB, 21474836480 bytes, 41943040 sectors
+</code></pre>
+<p>2、格式化并挂载磁盘</p>
+<pre><code class="language-shell">[root@mysql ~]# mkfs.xfs /dev/sdb
+[root@mysql ~]# mkdir /data
+[root@mysql ~]# blkid
+/dev/sda1: UUID=&quot;a03f646c-eedf-4196-a664-e97374951482&quot; TYPE=&quot;xfs&quot; 
+/dev/sda2: UUID=&quot;ERxQCv-qRUp-M3Nl-Guv3-MJeR-MW5k-8jxPlD&quot; TYPE=&quot;LVM2_member&quot; 
+/dev/sdb: UUID=&quot;e0069e42-440f-434d-9ab2-e0200d448602&quot; TYPE=&quot;xfs&quot; 
+[root@mysql ~]# vim /etc/fstab
+UUID=&quot;e0069e42-440f-434d-9ab2-e0200d448602&quot;  /data      xfs      defaults        0 0
+[root@mysql ~]# mount -a
+[root@mysql ~]# df -h
+Filesystem               Size  Used Avail Use% Mounted on
+devtmpfs                 898M     0  898M   0% /dev
+tmpfs                    910M     0  910M   0% /dev/shm
+tmpfs                    910M  9.5M  901M   2% /run
+tmpfs                    910M     0  910M   0% /sys/fs/cgroup
+/dev/mapper/centos-root   17G  4.6G   13G  27% /
+/dev/sda1               1014M  151M  864M  15% /boot
+tmpfs                    182M     0  182M   0% /run/user/0
+/dev/sdb                  20G   33M   20G   1% /data
+</code></pre>
+<p>3、授权</p>
+<pre><code class="language-shell">[root@mysql ~]# chown -R mysql.mysql /application/*
+[root@mysql ~]# chown -R mysql.mysql /data
+</code></pre>
+<h3 id="初始化数据创建系统数据">初始化数据（创建系统数据）</h3>
+<pre><code class="language-shell"># 5.6 版本 初始化命令  /application/mysql/scripts/mysql_install_db 
+# 5.7 版本
+[root@mysql ~]# mkdir /data/mysql/data -p
+[root@mysql ~]# chown -R mysql.mysql /data 
+[root@mysql ~]# mysqld --initialize --user=mysql --basedir=/application/mysql --datadir=/data/mysql/data 
+2022-05-31T01:38:20.728555Z 0 [Warning] TIMESTAMP with implicit DEFAULT value is deprecated. Please use --explicit_defaults_for_timestamp server option (see documentation for more details).
+2022-05-31T01:38:21.570480Z 0 [Warning] InnoDB: New log files created, LSN=45790
+2022-05-31T01:38:21.696192Z 0 [Warning] InnoDB: Creating foreign key constraint system tables.
+2022-05-31T01:38:21.767068Z 0 [Warning] No existing UUID has been found, so we assume that this is the first time that this server has been started. Generating a new UUID: 5aefaea0-e082-11ec-85eb-000c299152c6.
+2022-05-31T01:38:21.769786Z 0 [Warning] Gtid table is not ready to be used. Table 'mysql.gtid_executed' cannot be opened.
+2022-05-31T01:38:21.775864Z 1 [Note] A temporary password is generated for root@localhost: 8.qrRTy/+Ugw
+</code></pre>
+<p>说明：</p>
+<p>--initialize 参数：</p>
+<p>1）对于密码复杂度进行定制：12位，4种</p>
+<p>2）密码过期时间：180</p>
+<p>3）给root@localhost用户设置临时密码</p>
+<p>报错:</p>
+<p>mysqld: error while loading shared libraries: libaio.so.1: cannot open shared object file: No such file or directory</p>
+<p>解决：</p>
+<pre><code class="language-shell">[root@db01 ~]# yum install -y libaio-devel
+[root@db01 ~]# mysqld --initialize --user=mysql --basedir=/application/mysql --datadir=/data/mysql/data
+2019-06-13T04:21:27.706564Z 1 [Note] A temporary password is generated for root@localhost: =mrV)_16is4U
+</code></pre>
+<p>无限制，无临时密码（生产使用）</p>
+<p>--initialize-insecure 参数：</p>
+<pre><code class="language-shell">[root@mysql ~]# rm -rf /data/mysql/data/*
+[root@mysql ~]# mysqld --initialize-insecure --user=mysql --basedir=/application/mysql --datadir=/data/mysql/data
+</code></pre>
+<h3 id="配置文件的准备">配置文件的准备</h3>
+<pre><code class="language-shell">cat &gt;/etc/my.cnf &lt;&lt;EOF
+[mysqld]
+user=mysql
+basedir=/application/mysql
+datadir=/data/mysql/data
+socket=/tmp/mysql.sock
+server_id=6
+port=3306
+[mysql]
+socket=/tmp/mysql.sock
+EOF
+</code></pre>
+<h3 id="启动数据库">启动数据库</h3>
+<p>1、sysvice 方式</p>
+<pre><code class="language-shell">[root@mysql ~]# cp /application/mysql/support-files/mysql.server  /etc/init.d/mysqld
+[root@mysql ~]# service mysqld start
+Starting MySQL.Logging to '/data/mysql/data/mysql.err'.
+. SUCCESS!
+</code></pre>
+<p>2、systemctl 方式</p>
+<p>注意： sysv方式启动过的话，需要先提前关闭，才能使用以下方式开启</p>
+<pre><code class="language-shell">cat &gt;/etc/systemd/system/mysqld.service &lt;&lt;EOF
+[Unit]
+Description=MySQL Server
+Documentation=man:mysqld(8)
+Documentation=http://dev.mysql.com/doc/refman/en/using-systemd.html
+After=network.target
+After=syslog.target
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+User=mysql
+Group=mysql
+ExecStart=/application/mysql/bin/mysqld --defaults-file=/etc/my.cnf
+LimitNOFILE = 5000
+EOF
+</code></pre>
+<h2 id="处理mysql数据库无法启动">处理MySQL数据库无法启动</h2>
+<p>without  updating  PID 类似错误</p>
+<p>查看日志：</p>
+<p>/data/mysql/data/主机名.err</p>
+<p>[ERROR] 上下文</p>
+<p>可能情况：</p>
+<p>​	/etc/my.cnf 路径不对等</p>
+<p>​	/tmp/mysql.sock文件修改过或删除过</p>
+<p>​	数据目录权限不是mysql</p>
+<p>​	参数改错了</p>
+<h2 id="设置管理员密码">设置管理员密码</h2>
+<pre><code class="language-shell">[root@mysql ~]# mysqladmin -uroot -p password oldboy123
+Enter password: 
+mysqladmin: [Warning] Using a password on the command line interface can be insecure.
+Warning: Since password will be sent to server in plain text, use ssl connection to ensure password safety.
+</code></pre>
+<p>管理员用户密码忘记了，怎么办？</p>
+<p>--skip-grant-tables    #跳过授权表</p>
+<p>--skip-networking     #跳过远程登录</p>
+<p>1、关闭数据库</p>
+<pre><code class="language-shell">[root@mysql ~]# systemctl stop mysqld
+</code></pre>
+<p>2、启动数据库到维护模式</p>
+<pre><code class="language-shell">[root@mysql ~]# mysqld_safe --skip-grant-tables --skip-networking &amp;
+</code></pre>
+<p>3、登录并修改管理员密码</p>
+<pre><code class="language-shell">mysql&gt; alter user root@'localhost' identified by '123456';
+ERROR 1290 (HY000): The MySQL server is running with the --skip-grant-tables option so it cannot execute this statement
+mysql&gt; flush privileges;   #将授权表加载到内存中
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&gt; alter user root@'localhost' identified by '123456';
+Query OK, 0 rows affected (0.00 sec)
+或者
+mysql&gt; grant all on *.* to root@'localhost' identified by '123456';
+</code></pre>
+<p>4、关闭数据库，正常启动验证</p>
+<pre><code class="language-shell">[root@mysql ~]# mysqladmin -uroot -p123456 shutdown
+mysqladmin: [Warning] Using a password on the command line interface can be insecure.
+2022-05-31T02:04:56.846593Z mysqld_safe mysqld from pid file /data/mysql/data/mysql.pid ended
+[1]+  Done                    mysqld_safe --skip-grant-tables --skip-networking
+[root@mysql ~]# systemctl start mysqld
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/ansiblesan/">
+              <h3 class="post-title">
+                下一篇：ansible（三）
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

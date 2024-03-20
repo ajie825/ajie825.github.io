@@ -1,0 +1,1357 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>Shell脚本进阶篇（完结） | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">Shell脚本进阶篇（完结）</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2023-09-05</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/uw58vclBw/">
+                    Shell
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="11-for循环语句">1.1 <code>for</code>循环语句</h2>
+<p>在计算机科学中，<code>for</code>循环（英文：<code>for loop</code>）是一种编程语言的迭代陈述，能够让程序反复的执行。</p>
+<p>它跟其他的循环，如<code>while</code>循环，最大的不同，是它拥有一个循环计数器，或是循环变数。这使得<code>for</code>循环能够知道在迭代过程中的执行顺序。</p>
+<p>shell中的<code>for</code>循环包含三种形式：第一种结构是列表<code>for</code>循环；第二种结构是不带列表的<code>for</code>循环；第三种就类似于<code>C</code>语言。</p>
+<p><strong>1）列表<code>for</code>循环（常用）</strong></p>
+<pre><code class="language-shell">#!/bin/bash
+for i in 取值列表
+do
+  循环主体/命令
+done
+</code></pre>
+<p><strong>2）不带列表<code>for</code>循环（示例）</strong></p>
+<pre><code class="language-bash">[root@ops scripts]# cat for2.sh 
+#!/bin/bash
+echo -n &quot;ops的博客是：&quot;
+for i
+do
+  echo &quot;$i&quot;
+done
+</code></pre>
+<p>脚本执行结果：</p>
+<pre><code class="language-shell">[root@ops scripts]# sh for2.sh http://blog.znix.top
+ops的博客是：http://blog.znix.top
+</code></pre>
+<p>3）<strong>类似<code>C</code>语言的风格</strong>（这种用法常在<code>C</code>语言中使用）</p>
+<pre><code class="language-shell">for((exp1;exp2;exp3))
+do
+  指令...
+done
+</code></pre>
+<p>编写类似<code>C</code>语言风格脚本</p>
+<pre><code class="language-bash">[root@ops scripts]# cat for_c.sh 
+#!/bin/bash
+for ((i=0;i&lt;=5;i++))
+do
+   echo -e -n &quot;\033[44;37m$i\033[0m&quot;|pv -qL 20
+done
+</code></pre>
+<h2 id="12-for循环相关练习题">1.2 <code>for</code>循环相关练习题</h2>
+<h3 id="121-批量生成随机字符文件名案例">1.2.1 批量生成随机字符文件名案例</h3>
+<p>使用<code>for</code>循环在<code>ops</code>目录下批量创建10个<code>html</code>文件，其中每个文件需要包含10个随机小写字母加固定字符串<code>ops</code>，名称示例如下：</p>
+<pre><code class="language-shell">apquvdpqbk_ops.html  mpyogpsmwj_ops.html  txynzwofgg_ops.html   
+bmqiwhfpgv_ops.html  udrzobsprf_ops.html  vjxmlflawa_ops.html  
+jhjdcjnjxc_ops.html  qeztkkmewn_ops.html  jpvirsnjld_ops.html  
+ruscyxwxai_ops.html
+</code></pre>
+<p>脚本内容：</p>
+<pre><code class="language-bash">[root@ops scripts]# cat make_file.sh 
+#!/bin/bash
+##############################################################
+# File Name: make_file.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-09-04 13:36:06
+# Description:
+##############################################################
+[ -d /ops ] || mkdir -p /ops
+rpm -qa | grep pwgen &amp;&gt;/dev/null
+
+if [ $? -eq 1 ];then
+  yum install pwgen -y &amp;&gt;/dev/null
+fi
+
+cd /ops &amp;&amp; \
+for i in {1..10};do
+   #File_Name=`uuidgen |tr &quot;0-9-&quot; &quot;a-z&quot;|cut -c 1-10`
+    File_Name2=`pwgen -1A0 10`
+    touch ${File_Name2}_ops.html
+done
+</code></pre>
+<p>脚本执行结果：</p>
+<pre><code class="language-shell">[root@ops scripts]# ls -l /ops
+总用量 0
+-rw-r--r-- 1 root root 0 9月   4 14:04 ahphaethio_ops.html
+-rw-r--r-- 1 root root 0 9月   4 14:04 egheajohze_ops.html
+-rw-r--r-- 1 root root 0 9月   4 14:04 exeyohxadu_ops.html
+-rw-r--r-- 1 root root 0 9月   4 14:04 fookooheed_ops.html
+-rw-r--r-- 1 root root 0 9月   4 14:04 ichohhuvoo_ops.html
+-rw-r--r-- 1 root root 0 9月   4 14:04 iexaeyievo_ops.html
+-rw-r--r-- 1 root root 0 9月   4 14:04 oomeinaese_ops.html
+-rw-r--r-- 1 root root 0 9月   4 14:04 saephailow_ops.html
+-rw-r--r-- 1 root root 0 9月   4 14:04 viheebooni_ops.html
+-rw-r--r-- 1 root root 0 9月   4 14:04 xiebaeriuk_ops.html
+</code></pre>
+<h3 id="122-批量改名特殊案例">1.2.2 批量改名特殊案例</h3>
+<p>上面结果文件名中的<code>ops</code>字符串全部改成<code>znix</code>（最好用<code>for</code>循环实现），并且将扩展名<code>html</code>全部改成大写。</p>
+<pre><code class="language-shell">ahphaethio_ops.html ===&gt;  ahphaethio_znix.HTML
+</code></pre>
+<p>脚本内容：</p>
+<pre><code class="language-shell">[root@ops scripts]# cat rename_file.sh 
+#!/bin/bash
+##############################################################
+# File Name: rename_file.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-09-05 09:25:08
+# Description:
+##############################################################
+cd /ops &amp;&amp; \
+#sed -r:sed命令支持扩展的正则表达式
+File_Name=`ls|sed -r 's#(.*)_ops.html#\1#g'`
+for i in $File_Name;do
+  if [ -f ${i}_ops.html ];then
+    mv ${i}_ops.html ${i}_znix.HTML
+  else
+    echo &quot;文件已修改完成.&quot;
+    exit
+  fi
+done
+</code></pre>
+<p>查看结果：</p>
+<pre><code class="language-shell">[root@ops scripts]# ls /ops
+ahphaethio_znix.HTML  exeyohxadu_znix.HTML  ichohhuvoo_znix.HTML  oomeinaese_znix.HTML  viheebooni_znix.HTML
+egheajohze_znix.HTML  fookooheed_znix.HTML  iexaeyievo_znix.HTML  saephailow_znix.HTML  xiebaeriuk_znix.HTML
+</code></pre>
+<p><strong>批量改名其他方式</strong></p>
+<p><code>rename</code> 方式（最方便，专业改名）</p>
+<pre><code class="language-shell">rename txt jpg *
+</code></pre>
+<p>非<code>for</code>循环方式批量改名（使用<code>sed</code>命令进行拼接，然后交给<code>bash</code>执行）</p>
+<pre><code class="language-shell">ls *jpg|sed -r 's#(.*).jpg#mv &amp;  \1.mp4#'|bash
+</code></pre>
+<h3 id="123-批量创建特殊要求用户案例">1.2.3 批量创建特殊要求用户案例</h3>
+<p>批量创建10个系统账号<code>ops01-ops10</code>并设置密码（密码为随机数，要求字符和数字等混合）。</p>
+<p>脚本内容：</p>
+<pre><code class="language-bash">[root@ops scripts]# cat add_user.sh 
+#!/bin/bash
+##############################################################
+# File Name: add_user.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-09-05 10:58:46
+# Description:
+##############################################################
+Passwd_File=/tmp/`uuidgen|tr &quot;0-9-&quot; &quot;a-z&quot;|cut -c 1-6`.txt
+&gt;$Passwd_File
+chmod 400 $Passwd_File
+
+for i in ops{01..10};do
+  userdel -r &quot;$i&quot; &amp;&gt;/dev/null
+  id $i &amp;&gt;/dev/null
+  if [ $? -ne 0 ];then
+    useradd $i
+    Passwd=`uuidgen|tr &quot;0-9-&quot; &quot;a-z&quot;|cut -c 1-10`
+    echo $Passwd|passwd --stdin $i &amp;&gt;/dev/null
+    echo &quot;用户名：$i 密码：$Passwd&quot; &gt;&gt;$Passwd_File
+    echo -e &quot;\033[32m $i 用户创建成功！\033[0m&quot;
+  else
+    echo &quot;$i 用户已存在.&quot;
+  fi
+done
+echo &quot;用户密码请查看文件 $Passwd_File&quot;
+</code></pre>
+<p>查看生成的密码文件：</p>
+<pre><code class="language-shell">[root@ops scripts]# cat /tmp/ddhfic.txt 
+用户名：ops01 密码：cbcicebckd
+用户名：ops02 密码：daceccjbkc
+用户名：ops03 密码：ghafiaagkb
+用户名：ops04 密码：cefegadgkc
+用户名：ops05 密码：eehdedgdkd
+用户名：ops06 密码：bceeefhckg
+用户名：ops07 密码：ecaahfdekj
+用户名：ops08 密码：iajfffbgkg
+用户名：ops09 密码：djhiecbakc
+用户名：ops10 密码：hcddgddhkc
+</code></pre>
+<p><strong>批量创建用户并设置随机密码（不使用shell****循环）</strong></p>
+<p>方法一</p>
+<pre><code class="language-shell">echo user{1..20}|xargs -n1|sed -r 's#(.*)#useradd \1 \&amp;\&amp; echo \1 &gt;&gt;/tmp/passwd.txt \&amp;\&amp; echo $RANDOM |md5sum |cut -c 1-5&gt;&gt;/tmp/passwd.txt \&amp;\&amp; echo `tail -1 /tmp/passwd.txt`|passwd --stdin \1#g'|bash
+</code></pre>
+<p>方法二</p>
+<pre><code class="language-shell">echo user{1..20}|xargs -n1|sed -r 's#(.*)#useradd \1 \&amp;\&amp; pass=`echo $RANDOM |md5sum |cut -c 1-5` \&amp;\&amp; echo $pass |passwd --stdin \1 \&amp;\&amp; echo \1 $pass&gt;&gt;/tmp/user_passwd.txt#g'|bash
+</code></pre>
+<p>方法三</p>
+<pre><code class="language-shell">echo user{1..20}|xargs -n1|sed -r 's#(.*)#useradd \1 \&amp;\&amp; pass=`echo $RANDOM |md5sum |cut -c 1-5` \&amp;\&amp; echo \1:$pass&gt;&gt;/tmp/user_passwd.txt \&amp;\&amp; chpasswd&lt;/tmp/user_passwd.txt#g'|bash
+</code></pre>
+<h3 id="124-扫描网络内存活主机案例">1.2.4 扫描网络内存活主机案例</h3>
+<p>写一个shell脚本，判断<code>192.168.40.0/24</code>网络里，当前在线的<code>IP</code>有哪些？</p>
+<p>脚本内容：</p>
+<pre><code class="language-bash">[root@ops scripts]# cat scan_ip.sh 
+#!/bin/bash
+##############################################################
+# File Name: scan_ip.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-09-05 13:34:05
+# Description:
+##############################################################
+Ip_File=/tmp/scan_ip.txt
+&gt;$Ip_File
+
+for i in 192.168.40.{1..254};do
+  ping -c 1 -W 1 $i &amp;&gt;/dev/null &amp;&amp; \
+  if [ $? -eq 0 ] ;then 
+    echo &quot;存活主机: $i&quot; &amp;&gt;&gt;$Ip_File
+  fi &amp;   
+done
+echo &quot;使用 cat $Ip_File 查看扫描结果&quot;
+</code></pre>
+<h3 id="125-筛选符合长度的单词案例">1.2.5 筛选符合长度的单词案例</h3>
+<p>使用<code>for</code>循环打印下面这句话中字母不大于6的单词（某企业面试真题）。</p>
+<pre><code class="language-shell">I am ops Welcome to my blog http://blog.znix.top
+</code></pre>
+<p>脚本内容：</p>
+<pre><code class="language-bash">[root@ops scripts]# cat changdu.sh 
+#!/bin/bash
+##############################################################
+# File Name: changdu.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-09-05 13:48:50
+# Description:
+##############################################################
+Word='I am ops Welcome to my blog http://blog.znix.top'
+
+for i in $Word;do 
+  #[ ${#i} -le 6 ]  &amp;&amp; echo $i  #子串方法
+  a=`echo $i |wc -L`
+  if [ $a -le 6 ];then 
+      echo $i
+   fi
+done
+</code></pre>
+<p>脚本执行结果：</p>
+<pre><code class="language-shell">[root@ops scripts]# sh changdu.sh 
+I
+am
+ops
+to
+my
+blog
+</code></pre>
+<p>方法二：</p>
+<pre><code class="language-bash">[root@ops scripts]# cat changdu2.sh     
+#!/bin/bash
+##############################################################
+# File Name: changdu2.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-09-05 13:53:17
+# Description:
+##############################################################
+read -p &quot;请输入要判断的语句：&quot; a
+set -- $a
+for i in &quot;$@&quot;;do
+    if [ ${#i} -le 6 ];then
+       echo &quot;$i&quot; 
+    fi
+done
+</code></pre>
+<p>使用<code>expr</code>计算字符串长度</p>
+<pre><code class="language-shell">[root@ops scripts]# expr length 'hello world!' 
+12
+</code></pre>
+<h3 id="126-破解random随机数案例">1.2.6 破解<code>RANDOM</code>随机数案例</h3>
+<p>已知下面的字符串是通过<code>RANDOM</code>随机数变量<code>md5sum</code>后，再截取一部分连续字符串的结果，请破解这些字符串对应的使用<code>md5sum</code>处理前的<code>RANDOM</code>对应的数字？</p>
+<pre><code class="language-shell">21029299
+00205d1c
+a3da1677
+1f6d12dd
+890684ba
+</code></pre>
+<p>脚本内容：</p>
+<pre><code class="language-bash">[root@ops scripts]# cat pojie.sh 
+#!/bin/bash
+##############################################################
+# File Name: pojie.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-09-06 14:43:07
+# Description:
+##############################################################
+Md5_File=/tmp/Random_Md5.txt
+Md5_Word=&quot;21029299 00205d1c a3da1677 1f6d12dd 890684ba&quot;
+
+if [ ! -f $Md5_File ];then
+  &gt;$Md5_File
+  for i in {0..32767};do
+    echo `echo $i|md5sum` $i &gt;&gt; $Md5_File
+  done
+else
+  for num in $Md5_Word;do
+    grep $num $Md5_File
+  done
+fi
+</code></pre>
+<p>脚本执行结果：</p>
+<pre><code class="language-bash">[root@ops scripts]# sh pojie.sh 
+2102929901ee1aa769d0f479d7d78b05 - 25667
+00205d1cbbeb97738ad5bbdde2a6793d - 1346
+a3da1677501d9e4700ed867c5f33538a - 25345
+1f6d12dd61b5c7523f038a7b966413d9 - 7041
+890684ba3685395c782547daf296935f - 10082
+</code></pre>
+<h2 id="13-shell中while语法">1.3 shell中<code>while</code>语法</h2>
+<p>在编程语言中，<code>while</code>循环（英语：<code>while loop</code>）是一种控制流程的陈述。利用一个返回结果为布尔值（<code>Boolean</code>）的表达式作为循环条件，当这个表达式的返回值为&quot;真&quot;（<code>true</code>）时，则反复执行循环体内的代码；若表达式的返回值为&quot;假&quot;（<code>false</code>）时，则不再执行循环体内的代码，继续执行循环体下面的代码。</p>
+<p>因为<code>while</code>循环在区块内代码被执行之前，先检查陈述是否成立，因此这种控制流程通常被称为是一种前测试循环（<code>pre-test-loop</code>）。相对而言<code>do while</code>循环，是在循环区块执行结束之后，再去检查陈述是否成立，被称为是后测试循环。</p>
+<h3 id="131-shell中的while语法">1.3.1 shell中的<code>while</code>语法</h3>
+<pre><code class="language-shell">while 条件;do
+  命令
+done
+</code></pre>
+<h3 id="132-while使用场景">1.3.2 <code>while</code>使用场景</h3>
+<p>多用于创建守护进程</p>
+<p><strong>示例1：<code>while</code>实现<code>web</code>服务器搭建</strong></p>
+<p>脚本代码：</p>
+<pre><code class="language-bash">[root@ops scripts]# cat web_view.sh    
+#!/bin/bash
+##############################################################
+# File Name: web_view.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-09-06 15:35:39
+# Description:
+##############################################################
+while true;do
+  #'-l'用于指定nc将处于侦听模式。指定该参数，则意味着nc被当作server，侦听并接受连接
+  echo &quot;ok&quot; | nc -l 8181
+done
+</code></pre>
+<p>客户端进行访问测试：</p>
+<pre><code class="language-shell">[root@ops ~]# telnet 192.168.40.185 8181
+Trying 192.168.40.185...
+Connected to 192.168.40.185.
+Escape character is '^]'.
+ok
+</code></pre>
+<p>服务端显示结果：</p>
+<pre><code class="language-shell">[root@ops scripts]# sh web_view.sh 
+GET / HTTP/1.1
+User-Agent: curl/7.29.0
+Host: 192.168.40.185:8181
+Accept: */*
+</code></pre>
+<p><strong>示例2：<code>while</code>创建定时任务</strong></p>
+<p>脚本内容：</p>
+<pre><code class="language-bash">[root@ops scripts]# cat while1.sh 
+#!/bin/bash
+##############################################################
+# File Name: while1.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-09-07 14:32:16
+# Description:
+##############################################################
+while true;do
+  uptime
+    sleep 0.6
+done
+</code></pre>
+<p>脚本执行结果：</p>
+<pre><code class="language-shell">[root@ops scripts]# sh while1.sh 
+ 14:33:04 up 9 days, 12:13,  1 user,  load average: 0.00, 0.01, 0.05
+ 14:33:04 up 9 days, 12:13,  1 user,  load average: 0.00, 0.01, 0.05
+ 14:33:05 up 9 days, 12:13,  1 user,  load average: 0.00, 0.01, 0.05
+ 14:33:05 up 9 days, 12:13,  1 user,  load average: 0.00, 0.01, 0.05
+ 14:33:06 up 9 days, 12:13,  1 user,  load average: 0.00, 0.01, 0.05
+</code></pre>
+<p>说明：<code>sleep</code> 与 <code>usleep</code></p>
+<pre><code class="language-shell">sleep 单位 秒  sleep 1 休息1秒
+usleep 单位 微秒 usleep 1000000 休息1s
+1微秒等于百万分之一秒（10的负6次方秒）
+</code></pre>
+<p><strong>示例3：实现类似手机通讯计费功能</strong></p>
+<p>脚本内容：</p>
+<pre><code class="language-bash">[root@ops scripts]# cat shouji.sh 
+#!/bin/bash
+##############################################################
+# File Name: shouji.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-09-07 15:11:09
+# Description:
+##############################################################
+sum=1000
+i=500
+
+while [ $sum -ge 15 ];do
+cat &lt;&lt;EOF
+==================
+1.发短信
+2.查余额
+3.账户充值
+4.退出
+==================  
+EOF
+  read -p &quot;你要做什么操作？&quot; Some
+  case &quot;$Some&quot; in
+    1)
+      sum=$((sum-i))
+      read -p &quot;请输入发送短信的内容：&quot;
+      read -p &quot;请输入收信人：&quot;
+      sleep 0.6
+      echo &quot;发送成功.&quot;
+      echo &quot;您当前余额为$sum&quot;
+      ;;
+    2)
+       echo &quot;您当前余额为$sum&quot;
+       ;;
+    3)
+      read -p &quot;请输入你要充值的金额：&quot; ChongZhi
+      sum=$((sum+Chongzhi))
+      echo &quot;充值成功，当前余额为$sum&quot;
+      ;;
+    4)
+     exit
+     ;;
+    *)
+     echo &quot;输入错误！&quot;
+     exit 2
+  esac
+done
+
+echo &quot;余额不足，请及时充值！&quot;
+</code></pre>
+<h2 id="14-获取文件中的行-单词和字符">1.4 获取文件中的行、单词和字符</h2>
+<h3 id="141-迭代获取文件中的每一行">1.4.1 迭代获取文件中的每一行</h3>
+<p>方法一：</p>
+<pre><code class="language-shell">while read line;do
+  echo $line;
+done &lt; file.txt
+</code></pre>
+<p>方法二：</p>
+<pre><code class="language-shell">cat file.txt|while read line;do
+  echo $line;
+done
+</code></pre>
+<p>方法三：</p>
+<pre><code class="language-shell">exec &lt; file.txt
+while read line;do
+    echo line;
+done
+</code></pre>
+<h3 id="142-迭代获取每一个单词">1.4.2 迭代获取每一个单词</h3>
+<pre><code class="language-shell">for word in $line;do
+    echo $word;
+done 
+</code></pre>
+<h3 id="143-迭代获取每一个字符">1.4.3 迭代获取每一个字符</h3>
+<pre><code class="language-shell">word=participate
+for ((i=0;i&lt;${#word};i++));do
+    echo  ${word:1:1};
+done
+</code></pre>
+<h3 id="144-同时获取取文件中的行单词和字符脚本">1.4.4 同时获取取文件中的行，单词和字符脚本</h3>
+<pre><code class="language-bash">[root@ops scripts]# cat lunxun.sh 
+#!/bin/bash
+##############################################################
+# File Name: lunxun.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-09-07 17:02:56
+# Description:
+##############################################################
+n=1
+while read i;do
+  echo &quot;第${n}行$i&quot;
+  m=1
+  for x in $i;do
+      echo &quot;第${m}个单词$x&quot;
+      echo $x|grep -o .
+      ((m++))
+  done
+  ((n++))
+done &lt; $1
+</code></pre>
+<h3 id="145-eval命令用法">1.4.5 <code>eval</code>命令用法</h3>
+<pre><code class="language-shell">[root@ops scripts]# help eval
+eval: eval [参数 ...]
+    将参数作为 shell 命令执行。
+    
+    将 ARGs 合成一个字符串，用结果作为 shell 的输入，
+    并且执行得到的命令。
+    
+    退出状态：
+    以命令的状态退出，或者在命令为空的情况下返回成功。
+</code></pre>
+<pre><code class="language-shell">[root@ops scripts]# echo {1..6}
+1 2 3 4 5 6
+[root@ops scripts]# ops=6         
+[root@ops scripts]# echo {1..$ops}
+{1..6}
+[root@ops scripts]# eval echo {1..$ops}
+1 2 3 4 5 6
+</code></pre>
+<h2 id="15-break-continue-exit-return">1.5 <code>break continue exit return</code></h2>
+<p>条件与循环控制及程序返回值命令表</p>
+<table>
+<thead>
+<tr>
+<th>命令</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>break</td>
+<td>跳出整个循环，还会继续执行循环后面的内容</td>
+</tr>
+<tr>
+<td>continue</td>
+<td>跳过本次循环，进入下一次循环语句</td>
+</tr>
+<tr>
+<td>exit</td>
+<td>退出shell脚本程序，并返回状态值</td>
+</tr>
+<tr>
+<td>return</td>
+<td>在函数内部返回函数执行的状态值，retun命令不能直接用在脚本的主程序里，只能在shell函数中使用</td>
+</tr>
+</tbody>
+</table>
+<h3 id="151-break命令说明">1.5.1 <code>break</code>命令说明</h3>
+<pre><code class="language-shell">[root@ops scripts]# help break
+break: break [n]
+  退出for、while、或 until循环
+    
+  退出一个FOR、WHILE 或 UNTIL循环。如果指定了N，则打破N重循环
+    
+  退出状态：退出状态为0除非N不大于或等于 1。
+</code></pre>
+<p>测试脚本内容：</p>
+<pre><code class="language-bash">[root@ops scripts]# cat break.sh
+#!/bin/bash
+##############################################################
+# File Name: break.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-09-07 18:45:44
+# Description:
+##############################################################
+for i in {1..5};do
+  if [ $i -eq 3 ];then
+     break
+  fi
+  echo $i
+done
+echo &quot;ok&quot;
+</code></pre>
+<p>脚本执行结果：</p>
+<pre><code class="language-shell">[root@ops scripts]# sh break.sh 
+1
+2
+ok
+</code></pre>
+<h3 id="152-continue命令说明">1.5.2 <code>continue</code>命令说明</h3>
+<pre><code class="language-shell">[root@ops scripts]# help continue
+continue: continue [n]
+  继续for、while、或 until循环。
+    
+  继续当前FOR、WHILE 或 UNTIL循环的下一步。如果指定了N， 则继续当前的第N重循环。
+    
+  退出状态：退出状态为0除非N不大于或等于1。
+</code></pre>
+<p>测试脚本内容：</p>
+<pre><code class="language-bash">[root@ops scripts]# cat continue.sh 
+#!/bin/bash
+##############################################################
+# File Name: break.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-09-07 18:45:44
+# Description:
+##############################################################
+for i in {1..5};do
+  if [ $i -eq 3 ];then
+     continue
+  fi
+  echo $i
+done
+echo &quot;ok&quot;
+</code></pre>
+<p>脚本执行结果：</p>
+<pre><code class="language-shell">[root@ops scripts]# sh continue.sh 
+1
+2
+4
+5
+ok
+</code></pre>
+<h3 id="153-exit命令说明">1.5.3 <code>exit</code>命令说明</h3>
+<pre><code class="language-shell">[root@ops scripts]# help exit
+exit: exit [n]
+  退出shell。
+    
+  以状态N退出shell。如N被省略，则退出状态为最后一个执行的命令的退出状态。
+</code></pre>
+<p>测试脚本内容：</p>
+<pre><code class="language-bash">[root@ops scripts]# cat exit.sh 
+#!/bin/bash
+##############################################################
+# File Name: break.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-09-07 18:45:44
+# Description:
+##############################################################
+for i in {1..5};do
+  if [ $i -eq 3 ];then
+     exit
+  fi
+  echo $i
+done
+echo &quot;ok&quot;
+</code></pre>
+<p>脚本执行结果：</p>
+<pre><code class="language-shell">[root@ops scripts]# sh exit.sh 
+1
+2
+</code></pre>
+<h3 id="154-return命令说明">1.5.4 <code>return</code>命令说明</h3>
+<pre><code class="language-shell">[root@ops scripts]# help return
+return: return [n]
+  从一个shell函数返回。
+    
+  使一个函数或者被引用的脚本以指定的返回值N退出。
+  如果N被省略，则返回状态就是函数或脚本中的最后一个执行的命令的状态。
+    
+  退出状态：返回N，或者如果shell不在执行一个函数或引用脚本时，失败。
+</code></pre>
+<h2 id="16-shell中的数组">1.6 shell中的数组</h2>
+<h3 id="161-为什么会产生shell数组">1.6.1 为什么会产生shell数组</h3>
+<p>通常在开发shell脚本时，定义变量采用的形式为&quot;a=1；b=2；c=3&quot;，可如果有多个变量呢？这时再逐个地定义就会很费劲，并且要有多个不确定的变量内容，也会难以进行变量定义，此外，快速读取不同变量的值也是一件很痛苦的事情，于是数组就诞生了，它就是为了解决上述问题而出现的。</p>
+<h3 id="162-什么是shell数组">1.6.2 什么是shell数组</h3>
+<p>shell的数组就是一个元素集合，它把有限个元素（变量或字符内容）用一个名字来命名，然后用编号对它们进行区分。这个名字就称为数组名，用于区分不同内容的编号就称为数组下标。组成数组的各个元素（变量）称为数组的元素，有时也称为下标变量。</p>
+<h3 id="163-数组中的增删改查">1.6.3 数组中的增删改查</h3>
+<p>数组的定义</p>
+<pre><code class="language-shell">#定义数组
+[root@ops scripts]# stu=(001 002 003)
+#打印数组
+[root@ops scripts]# echo ${stu[@]}
+001 002 003
+#显示数组长度
+[root@ops scripts]# echo ${#stu}   
+3
+</code></pre>
+<p><strong>查：</strong> 遍历数组的内容</p>
+<pre><code class="language-shell">#打印数组内容（通过数组下标或索引）
+[root@ops scripts]# echo ${stu[0]}
+001
+[root@ops scripts]# echo ${stu[1]}
+002
+[root@ops scripts]# echo ${stu[2]}
+003
+
+#遍历数组
+[root@ops scripts]# for i in ${stu[@]};do echo $i;done
+001
+002
+003
+</code></pre>
+<p><strong>增：</strong> 数组添加</p>
+<pre><code class="language-shell">[root@ops scripts]# stu[3]=004
+[root@ops scripts]# echo ${stu[@]}                    
+001 002 003 004
+</code></pre>
+<p><strong>改：</strong> 数组修改</p>
+<pre><code class="language-shell">[root@ops scripts]# stu[2]=&quot;hello,world&quot;
+[root@ops scripts]# echo ${stu[@]}      
+001 002 hello,world 004
+</code></pre>
+<p><strong>删：</strong> 数组删除</p>
+<pre><code class="language-shell">[root@ops scripts]# unset stu[2]
+[root@ops scripts]# echo ${stu[@]}
+001 002 004
+[root@ops scripts]# echo ${#stu[@]}
+3
+</code></pre>
+<h3 id="164-将命令的结果赋值给数组">1.6.4 将命令的结果赋值给数组</h3>
+<pre><code class="language-shell">[root@ops scripts]# ops=(`ls`)
+[root@ops scripts]# echo ${ops[@]}
+add_user.sh break.sh canshu.sh ceshi.sh changdu2.sh changdu.sh continue.sh exit.sh for2.sh for_c.sh fruits.sh if_panduan_1.sh if_panduan_2.sh if_panduan_3.sh jisuanqi2.sh jisuanqi.sh lamp.sh lnmp.sh lunxun.sh mail_file make_file.sh memcache_check.sh mem_info.sh menu.sh nginx_install.sh nginx.sh panduan1.sh panduan_chuancan.sh panduan_read.sh pojie.sh quanju.sh rename_file.sh rsyncd.sh scan_ip.sh shouji.sh test.sh web_check.sh web_view.sh while1.sh windows.sh xiugaizhuji.sh yhk.sh yunsuan.sh
+[root@ops scripts]# echo ${#ops[@]}
+43
+</code></pre>
+<h3 id="165-数组定义格式">1.6.5 数组定义格式</h3>
+<pre><code class="language-shell">[root@ops scripts]# a=(1 2 3)
+[root@ops scripts]# b=(1
+&gt; 2
+&gt; 3
+&gt; 4
+&gt; )
+[root@ops scripts]# echo ${a[@]}
+1 2 3
+[root@ops scripts]# echo ${b[@]}
+1 2 3 4
+</code></pre>
+<h3 id="166-批量检查多个网站地址是否正常">1.6.6 批量检查多个网站地址是否正常</h3>
+<p>要求：</p>
+<ol>
+<li>使用shell数组方法实现，检测策略尽量模拟用户访问。</li>
+<li>每10秒钟做一次所有的检测，无法访问的输出报警。</li>
+<li>待检测的地址如下：</li>
+</ol>
+<pre><code class="language-shell">http://www.cnblogs.com/clsn/
+http://blog.znix.top
+http://blog.nmtui.com
+http://192.168.40.185
+</code></pre>
+<p>脚本内容：</p>
+<pre><code class="language-bash">[root@ops scripts]# cat check_url.sh     
+#!/bin/bash
+##############################################################
+# File Name: check_url.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-09-10 22:48:43
+# Description:
+##############################################################
+url=(
+http://www.cnblogs.com/clsn/
+http://blog.znix.top
+http://blog.nmtui.com
+http://192.168.40.185
+)
+
+while true;do
+  for i in ${url[@]};do
+    #curl -I $i
+    a=$(curl -I -w &quot;%{http_code}\n&quot; -o /dev/null -s $i)
+    if [ $a -ne 200 ];then
+      echo &quot;$i 异常&quot;
+    fi
+  done
+  sleep 10
+done
+</code></pre>
+<h2 id="17-shell函数">1.7 shell函数</h2>
+<p>shell一个非常重要的特性是它可作为一种编程语言来使用。因为shell是一个解释器，所以不能对编写的程序进行编译，而是在每次从磁盘加载这些程序时对它们进行解释。而程序的加载和解释都是非常耗时的。</p>
+<p>针对此问题，许多shell（如BourneAgainShell）都包含shell函数，shell把这些函数放在内存中，这样每次需要调用执行它们时就不必再从磁盘读入。shell还以一种内部格式来存放这些函数，这样就不必耗费大量的时间来解释它们。</p>
+<p>函数的作用就是把程序里多次调用相同代码的部分定义成一份，然后起个名字，所有的调用都只用这名字就可以了，修改代码时，只需要改变函数体内的代码即可。</p>
+<h3 id="171-使用函数的优势">1.7.1 使用函数的优势</h3>
+<ol>
+<li>把相同的程序段定义成函数，可以减少代码量。</li>
+<li>增加程序的可读、易读性</li>
+<li>实现程序功能的模块化</li>
+</ol>
+<h3 id="172-定义函数">1.7.2 定义函数</h3>
+<pre><code class="language-bash">[root@ops scripts]# cat fun1.sh 
+function clsn(){
+    echo &quot;http://blog.znix.top&quot;
+}
+znix(){
+    echo &quot;http://www.znix.top &quot; 
+}
+</code></pre>
+<p>说明：</p>
+<ol>
+<li>可以带<code>function clsn()</code>定义，也可以直接<code>clsn()</code>定义，不带任何参数。</li>
+<li>参数返回，可以显示如：<code>return</code>返回，如果不加，将以最后一条命令运行结果，作为返回值。<code>return</code>后跟数值n(0-255)。</li>
+<li>执行函数就是将函数名放到定义的函数之后即可。</li>
+</ol>
+<h3 id="173-引用函数">1.7.3 引用函数</h3>
+<p>脚本内容：</p>
+<pre><code class="language-bash">[root@ops scripts]# cat fun2.sh 
+#!/bin/bash
+##############################################################
+# File Name: fun2.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-09-11 02:34:30
+# Description:
+##############################################################
+Fun_File=/data/scripts/fun1.sh
+[ -f $Fun_File ] &amp;&amp; . $Fun_File
+clsn
+</code></pre>
+<p>脚本执行结果：</p>
+<pre><code class="language-shell">[root@ops scripts]# sh fun2.sh 
+http://blog.znix.top
+</code></pre>
+<h3 id="174-函数传参">1.7.4 函数传参</h3>
+<p>脚本内容：</p>
+<pre><code class="language-shell">[root@ops scripts]# cat fun3.sh 
+#!/bin/bash
+##############################################################
+# File Name: fun3.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-09-11 02:47:50
+# Description:
+##############################################################
+function ops(){
+  echo &quot;hello world!&quot;
+}
+dev(){
+  echo &quot;goodbye world!&quot;
+  echo $0
+  echo $1
+  echo $2
+}
+
+ops
+dev shell python
+</code></pre>
+<p>脚本执行结果：</p>
+<pre><code class="language-shell">[root@ops scripts]# sh fun3.sh 
+hello world!
+goodbye world!
+fun3.sh
+shell
+python
+</code></pre>
+<h3 id="175-函数中return的用法">1.7.5 函数中<code>return</code>的用法</h3>
+<p>脚本内容：</p>
+<pre><code class="language-bash">[root@ops scripts]# cat fun3.sh 
+#!/bin/bash
+##############################################################
+# File Name: fun3.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-09-11 02:47:50
+# Description:
+##############################################################
+function ops(){
+  echo &quot;hello world!&quot;
+}
+dev(){
+  echo &quot;goodbye world!&quot;
+  echo $0
+  echo $1
+  echo $2
+  return 5
+  echo &quot;i like to study&quot;
+}
+
+ops
+dev shell python
+echo $?
+</code></pre>
+<p>脚本执行结果：</p>
+<pre><code class="language-shell">[root@ops scripts]# sh fun3.sh 
+hello world!
+goodbye world!
+fun3.sh
+shell
+python
+5
+</code></pre>
+<p><code>return</code>命令说明：</p>
+<pre><code class="language-shell">[root@ops scripts]# help return
+return: return [n]
+    从一个 shell 函数返回。
+    
+    使一个函数或者被引用的脚本以指定的返回值N退出。
+    如果N被省略，则返回状态就是函数或脚本中的最后一个执行的命令的状态。
+    
+    退出状态：
+    返回N，或者如果shell不在执行一个函数或引用脚本时，失败。
+</code></pre>
+<h3 id="176-自定义常用函数库">1.7.6 自定义常用函数库</h3>
+<pre><code class="language-bash">[root@ops scripts]# cat userfun.sh 
+#!/bin/bash
+##############################################################
+# File Name: userfun.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-09-11 05:56:47
+# Description:
+##############################################################
+#脚本初始化
+function scripts_init(){
+  prog=`basename $0 .sh`
+  LockFile=/var/lock/subsys/${prog}.lock #使用锁文件
+  LogFile=/var/log/${prog}.log #脚本记录日志
+  PidFile=/var/run/${prog}.pid #记录进程号，可以管理脚本
+
+  [ -f $LockFile ] &amp;&amp; echo &quot;There $LockFile is exist!&quot; &amp;&amp; exit 1 || touch $LockFile
+  [ ! -f $LogFile ] &amp;&amp; touch $LogFile
+  [ -f $PidFile ] &amp;&amp; echo &quot;There $PidFile is exist!&quot; &amp;&amp; exit 2 || echo $$ &gt; $PidFile
+}
+
+#记录日志
+function writelog(){
+  Date=$(date &quot;+%F_%T&quot;)
+  ShellName=`basename $0`
+  Info=$1
+  echo &quot;$Date : ${ShellName} : ${Info}&quot; &gt;&gt; ${LogFile}
+}
+
+#脚本退出扫尾
+function closeout(){
+  [ -f $LockFile ] &amp;&amp; rm -f $LockFile
+  [ -f $PidFile ] &amp;&amp; rm -f $PidFile 
+}
+
+#判断输入是整数
+function int_judge(){
+  fun_a=$1
+  expr ${fun_a} + 1 &amp;&gt;/dev/null
+  RETVAL=$?
+  return $RETVAL
+}
+
+#判断输入非空
+function input_judge(){
+  RETVAL=0
+  fun_a=$1
+  [ ${#fun_a} -eq 0 ]&amp;&amp; RETVAL=1
+  return $RETVAL
+}
+</code></pre>
+<p>引用自定义函数库示例：</p>
+<pre><code class="language-bash">[root@ops scripts]# cat fun3.sh 
+#!/bin/bash
+##############################################################
+# File Name: fun3.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-09-11 02:47:50
+# Description:
+##############################################################
+. /data/scripts/userfun.sh
+
+scripts_init 
+i=1
+while ((i&lt;=10))
+  do 
+   uptime
+   ((i++))
+   sleep 1
+done
+closeout
+</code></pre>
+<h2 id="18-shell脚本的调试">1.8 shell脚本的调试</h2>
+<ol>
+<li>要记得首先用<code>dos2unix</code>命令对脚本进行格式化。</li>
+<li>直接执行脚本根据报错来调试，有时报错不准确。</li>
+<li><code>sh -x</code>调试整个脚本，显示执行过程。</li>
+<li><code>set -x</code>和<code>set +x</code>调试部分脚本（在脚本中设置）</li>
+<li><code>echo</code>输出变量及相关内容，然后紧跟着<code>exit</code>退出，不执行后面程序的方式，一步步跟踪脚本，对于逻辑错误比较好用。写法：<code>echo $var;exit</code></li>
+<li>最关键的是语法熟练、编码习惯、编程思想、将错误扼杀在萌芽之中，减轻调试负担，提高效率。</li>
+</ol>
+<h2 id="19-shell编程练习题">1.9 shell编程练习题</h2>
+<h3 id="191-shell实现抓阄程序">1.9.1 shell实现抓阄程序</h3>
+<p>要求：</p>
+<ol>
+<li>执行脚本后，输入英文名字全拼，产生随机数01-99之间的数字，数字越大评分就越高，前面已经抓到的数字，下次不能在出现相同数字。</li>
+<li>第一个输入名字后，屏幕输出信息，并将名字和数字记录到文件里，程序不能退出继续等待别人输入。</li>
+</ol>
+<p>脚本内容：</p>
+<pre><code class="language-bash">[root@ops scripts]# cat zhuajiu.sh 
+#!/bin/bash
+##############################################################
+# File Name: zhuajiu.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-09-11 11:15:52
+# Description:
+##############################################################
+Randow_Temp=/tmp/randow.test
+name_Out_File1=/tmp/name_Out_File1.test
+name_Out_File2=/tmp/name_Out_File2.test
+
+&gt;$name_Out_File1
+&gt;$name_Out_File2
+&gt;$Randow_Temp
+
+trap 'echo &quot;请勿使用 Ctrl+c&quot;' 2
+
+Randow() {
+    sum=`echo $RANDOM |cut -c-2`
+    grep $sum  $Randow_Temp
+    if [ $? -eq 0 ];then
+      Randow
+    else
+      echo $sum &gt;&gt;$Randow_Temp
+      daxiao=$sum
+    fi
+}
+
+Print() {
+    read -p &quot;请输入名字的拼音：&quot; Name 
+    Randow
+    echo $Name $daxiao &gt;&gt;$name_Out_File
+}
+
+while true;do
+   clear
+   echo &quot;&quot;
+   echo -e  &quot;\033[32m 这个程序会将随机数字排名前三的同学显示出来！\033[0m&quot;
+   echo -e  &quot;\033[31m 退出脚本请使用 'exit' \033[0m&quot; 
+   echo &quot;&quot;
+   head -4 $name_Out_File2
+   read -p &quot;请输入名字的拼音：&quot; &quot;Name&quot;
+      if [ &quot;$Name&quot; == exit ];then 
+          exit
+      fi
+   Randow
+   echo  $daxiao $Name &gt;&gt;$name_Out_File1
+   echo &quot;随机数最大的三位同学是：&quot;  &gt;$name_Out_File2
+   sort -k1 -r $name_Out_File1 |column  -t &gt;&gt;$name_Out_File2
+   clear
+done
+</code></pre>
+<h3 id="192-输出9x9乘法表">1.9.2 输出<code>9x9</code>乘法表</h3>
+<p>脚本内容：</p>
+<pre><code class="language-bash">[root@ops scripts]# cat cfb.sh 
+#!/bin/bash
+##############################################################
+# File Name: cfb.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-09-11 11:39:48
+# Description:
+##############################################################
+for a in `seq 1 9`;do
+  for b in `seq 1 9`;do
+    if [ $a -ge $b ];then
+      echo -en &quot;$a x $b = $(expr $a \* $b)  &quot;
+    fi
+  done
+echo &quot; &quot;
+done
+</code></pre>
+<p>脚本执行结果：</p>
+<pre><code class="language-shell">[root@ops scripts]# sh cfb.sh 
+1 x 1 = 1   
+2 x 1 = 2  2 x 2 = 4   
+3 x 1 = 3  3 x 2 = 6  3 x 3 = 9   
+4 x 1 = 4  4 x 2 = 8  4 x 3 = 12  4 x 4 = 16   
+5 x 1 = 5  5 x 2 = 10  5 x 3 = 15  5 x 4 = 20  5 x 5 = 25   
+6 x 1 = 6  6 x 2 = 12  6 x 3 = 18  6 x 4 = 24  6 x 5 = 30  6 x 6 = 36   
+7 x 1 = 7  7 x 2 = 14  7 x 3 = 21  7 x 4 = 28  7 x 5 = 35  7 x 6 = 42  7 x 7 = 49   
+8 x 1 = 8  8 x 2 = 16  8 x 3 = 24  8 x 4 = 32  8 x 5 = 40  8 x 6 = 48  8 x 7 = 56  8 x 8 = 64   
+9 x 1 = 9  9 x 2 = 18  9 x 3 = 27  9 x 4 = 36  9 x 5 = 45  9 x 6 = 54  9 x 7 = 63  9 x 8 = 72  9 x 9 = 81
+</code></pre>
+<h3 id="193-解决ddos攻击生产案例">1.9.3 解决<code>DDOS</code>攻击生产案例</h3>
+<p>请根据<code>web</code>日志或者网络连接数，监控当某个<code>IP</code>并发连接数或者短时间内<code>PV</code>达到100（读者根据实际情况设定），即调用防火墙命令封掉对应的<code>IP</code>。防火墙命令为：<code>iptables -I INPUT -s IP地址 -j DROP</code></p>
+<p>练习使用日志下载地址：<code>https://files.cnblogs.com/files/clsn/access-web-log.zip</code></p>
+<p>脚本内容：</p>
+<pre><code class="language-bash">[root@ops scripts]# cat ddos_check.sh 
+#!/bin/bash
+##############################################################
+# File Name: ddos_check.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-09-12 07:51:50
+# Description:
+##############################################################
+Info_File=/tmp/ddos_check.log
+
+#从连接数获取
+#netstat -lant|awk -F &quot;[ :]+&quot; '/180:80/{clsn[$6]++}END{for(pol in clsn)print pol,clsn[pol]}' &gt;$Info_File
+
+# 从日志获取
+awk '{hotel[$1]++}END{for(pol in hotel)print pol,hotel[pol]}' access.log|sort -nk2  -r  &gt;$Info_File
+
+while read line 
+do 
+    Ip_Add=`echo $line |awk '{print $1}'`
+    Access=`echo $line |awk '{print $2}'`
+    if [ $Access -ge 10000 ]
+    then
+        #echo $Ip_Add
+        iptables -I INPUT -s $Ip_Add -j DROP
+    fi
+done &lt;$Info_File
+</code></pre>
+<p>脚本执行结果：</p>
+<pre><code class="language-shell">[root@ops scripts]# iptables -L         
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination         
+DROP       all  --  112.64.171.98        anywhere            
+DROP       all  --  58.220.223.62        anywhere            
+
+Chain FORWARD (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination
+</code></pre>
+<h3 id="194-开发脚本入侵检测与报警案例入侵检测系统">1.9.4 开发脚本入侵检测与报警案例（入侵检测系统）</h3>
+<p>监控<code>web</code>站点目录（<code>/var/www/html</code>）下所有文件是否被恶意篡改（文件内容被改了），如果有就打印改动的文件名（发邮件），定时任务每3分钟执行一次。</p>
+<p><code>IDS</code>是英文<code>Intrusion Detection Systems</code>的缩写，中文意思是“入侵检测系统”。</p>
+<p>第一个里程碑：生成<code>md5</code>验证文件</p>
+<p>文件的校验文件：</p>
+<pre><code class="language-shell">find /var/www/html/* -type f |xargs md5sum &gt;/tmp/check/web_file_check.md5sum
+</code></pre>
+<p>目录的校验文件：</p>
+<pre><code class="language-shell">tree /var/html/www/ -d  &gt;/tmp/check/web_dir_check.txt
+md5sum /tmp/check/web_dir_check.txt
+md5sum /tmp/check/web_dir_check.txt &gt;/tmp/check/web_dir_check.md5sum
+</code></pre>
+<p>脚本内容：</p>
+<pre><code class="language-bash">[root@ops scripts]# cat web_file_check.sh 
+#!/bin/bash
+##############################################################
+# File Name: web_file_check.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-09-12 08:58:43
+# Description:
+##############################################################
+Url1=http://192.168.40.185/web_file_check.md5sum
+Url2=http://192.168.40.185/web_dir_check.md5sum
+Dir=/tmp/check/
+Web_Dir=/var/html/www/
+Check_File1=/tmp/check/web_file_check.md5sum
+Check_File2=/tmp/check/web_dir_check.md5sum
+Check_Dir=/tmp/check/web_dir_check.txt
+Check_Out=/tmp/check/check_out.md5sum
+Mail_info=/tmp/check/mail.txt
+Date=`date +%F_%T`
+Host_Name=`hostname`
+Host_IP=`hostname -I`
+Email_Addr=995701749@qq.com
+
+[ -d $Dir ] || mkdir -p $Dir
+if [ ! -f $Check_File1 ];then 
+  cd $Dir &amp;&amp;\
+  wget $Url1
+elif [ ! -f $Check_File2 ];then 
+  cd $Dir &amp;&amp;\
+  wget $Url2
+fi
+
+md5sum -c $Check_File1 &gt;$Check_Out  2&gt;/dev/null
+Back_num1=$?
+tree -d $Web_Dir &gt;$Check_Dir
+md5sum -c $Check_File2 &amp;&gt;/dev/null
+Back_num2=$?
+if [ $Back_num1 -ne 0 ];then
+  echo &quot;发生主机：$Host_Name  主机IP地址：$Host_IP&quot;  &gt; $Mail_info
+  echo &quot;在 $Date 的检测中发现以下文件被篡改&quot; &gt;&gt;$Mail_info
+  echo &quot;==================================================&quot; &gt;&gt;$Mail_info  
+  egrep  -i  &quot;失败|failed&quot;  $Check_Out &gt;&gt;$Mail_info
+  echo &quot;==================================================&quot; &gt;&gt;$Mail_info  
+  echo &quot;请尽快登陆服务器进行处理！！！&quot;  &gt;&gt;$Mail_info
+  mail -s &quot;【警告】web站点文件被篡改&quot; -a $Check_File1 $Email_Addr &lt;$Mail_info
+fi
+
+if [ $Back_num2 -ne 0 ];then
+  echo &quot;目录检测信息&quot; &gt;$Mail_info
+  echo &quot;在 $Date 的检测中发现目录被篡改&quot; &gt;&gt;$Mail_info
+  mail -s &quot;【警告】web站点目录被篡改&quot; -a $Check_Dir $Email_Addr&lt;$Check_Dir
+fi
+</code></pre>
+<h3 id="195-编写正或长方形图形案例">1.9.5 编写正（或长）方形图形案例</h3>
+<p>脚本内容：</p>
+<pre><code class="language-bash">[root@ops scripts]# cat zhengfangxing.sh 
+#!/bin/bash
+##############################################################
+# File Name: zhengfangxing.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-09-12 09:24:02
+# Description:
+##############################################################
+trap &quot;echo 输入exit退出&quot; 2
+while true;do
+  read -p &quot;你想看多大的正方形:&quot; a
+  [ &quot;$a&quot; == &quot;exit&quot; ] &amp;&amp; exit 
+  expr 1 + $a &amp;&gt;/dev/null  
+  [ $? -ne 0 ] &amp;&amp; echo &quot;请输入一个数字！&quot; &amp;&amp; exit 2
+  b=&quot;■ &quot;
+  d=$(for i in `eval echo {1..$a}`;do echo -n $b; echo -n &quot; &quot;;done)
+    
+  for i in `eval echo {1..$a}`;do
+    echo &quot;$d&quot;
+  done
+done
+</code></pre>
+<p>脚本执行结果：</p>
+<pre><code>[root@ops scripts]# sh zhengfangxing.sh 
+你想看多大的正方形:5
+■ ■ ■ ■ ■ 
+■ ■ ■ ■ ■ 
+■ ■ ■ ■ ■ 
+■ ■ ■ ■ ■ 
+■ ■ ■ ■ ■
+</code></pre>
+<h2 id="110-各种语句小结">1.10 各种语句小结</h2>
+<ol>
+<li><code>while</code>循环的特长是执行守护进程以及我们希望循环不退出持续执行，用于频率小于1分钟的定时任务处理(<code>crond</code>)，其它的<code>while</code>循环几乎都可以被<code>for</code>循环替代。</li>
+<li><code>case</code>语句可以被<code>if</code>语句替换，一般在系统启动脚本传入少量固定规则字符串时<code>case</code>语句，其它普通判断多用<code>if</code>。</li>
+<li>一句话，<code>if</code>，<code>for</code>语句最常用，其次<code>while</code>(守护进程)，<code>case</code>(服务启动脚本)。</li>
+</ol>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/shell-bian-cheng-ji-chu-pian-xia/">
+              <h3 class="post-title">
+                下一篇：Shell编程基础篇-下
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

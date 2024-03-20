@@ -1,0 +1,776 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>持续集成教程 (二) | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">持续集成教程 (二)</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2023-09-25</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/orkaNU-rT/">
+                    devops
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="git安装"><code>git</code>安装</h2>
+<h3 id="系统环境准备">系统环境准备</h3>
+<pre><code class="language-shell">[root@git ~]# cat /etc/redhat-release      #查看系统版本
+CentOS Linux release 7.9.2009 (Core)
+[root@git ~]# uname -r                     #查看内核版本
+3.10.0-1160.el7.x86_64
+[root@git ~]# getenforce                   #确认selinux关闭状态
+Disabled
+[root@git ~]# systemctl status firewalld   #确认关闭防火墙
+● firewalld.service - firewalld - dynamic firewall daemon
+   Loaded: loaded (/usr/lib/systemd/system/firewalld.service; disabled; vendor preset: enabled)
+   Active: inactive (dead)
+     Docs: man:firewalld(1)
+</code></pre>
+<h3 id="git安装配置"><code>git</code>安装配置</h3>
+<pre><code class="language-shell">[root@git ~]# yum install git
+[root@git ~]# git --version
+git version 1.8.3.1
+</code></pre>
+<pre><code class="language-shell">#升级git版本，centos7自带的git最高版本1.8.3.1，且不能通过yum更新
+1）配置存储库，添加源内容，然后保存
+vim /etc/yum.repos.d/wandisco-git.repo
+[wandisco-git]
+name=Wandisco GIT Repository
+baseurl=http://opensource.wandisco.com/centos/7/git/$basearch/
+enabled=1
+gpgcheck=1
+gpgkey=http://opensource.wandisco.com/RPM-GPG-KEY-WANdisco
+2）导入存储库GPG密钥
+rpm --import http://opensource.wandisco.com/RPM-GPG-KEY-WANdisco
+3）安装git
+[root@git ~]# yum install git
+[root@git ~]# git --version
+git version 2.39.1
+</code></pre>
+<pre><code class="language-shell">#git配置
+[root@git ~]# git config
+‐‐global       使用全局配置文件
+‐‐system       使用系统级配置文件
+‐‐local        使用版本库级配置文件
+#配置git使用用户
+[root@git ~]# git config --global user.name &quot;ops&quot;
+#配置git使用邮箱
+[root@git ~]# git config --global user.email &quot;ops@gmail.com&quot;
+#语法高亮
+[root@git ~]# git config --global color.ui true
+[root@git ~]# git config --list
+user.name=ops
+user.email=ops@gmail.com
+color.ui=true
+[root@git ~]# cat .gitconfig 
+[user]
+        name = ops
+        email = ops@gmail.com
+[color]
+        ui = true
+</code></pre>
+<h3 id="git初始化"><code>git</code>初始化</h3>
+<pre><code class="language-shell">#初始化工作目录，对已存在的目录进行初始化
+[root@git ~]# mkdir /data/git_data -p
+[root@git ~]# cd /data/git_data/
+[root@git git_data]# git init
+#查看工作区状态
+[root@git git_data]# git status             
+#隐藏文件介绍
+[root@git git_data]# ll -a .git/
+branches         #分支目录
+config           #定义项目特有的配置选项
+description      #仅供git web程序使用
+HEAD             #指示当前的分支
+hooks            #包含git钩子文件
+info             #包含一个全局排除文件（exclude文件）
+objects          #存放所有数据内容，有info和pack两个子文件夹
+refs             #存放指向数据（分支）的提交对象的指针
+index            #保存暂存区信息，在执行git init的时候，这个文件还没有
+</code></pre>
+<h2 id="git常规使用"><code>git</code>常规使用</h2>
+<h3 id="创建数据提交数据">创建数据—提交数据</h3>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1695699544105.webp" alt="" loading="lazy"></figure>
+<h3 id="git四种状态"><code>git</code>四种状态</h3>
+<figure data-type="image" tabindex="2"><img src="https://ajie825.github.io/post-images/1695705564214.png" alt="" loading="lazy"></figure>
+<h3 id="git基础命令"><code>git</code>基础命令</h3>
+<pre><code class="language-shell">[root@git git_data]# git status
+位于分支 master
+尚无提交
+无文件要提交（创建/拷贝文件并使用 &quot;git add&quot; 建立跟踪）
+[root@git git_data]# touch a b c
+[root@git git_data]# git status
+位于分支 master
+尚无提交
+未跟踪的文件:
+  （使用 &quot;git add &lt;文件&gt;...&quot; 以包含要提交的内容）
+        a
+        b
+        c
+提交为空，但是存在尚未跟踪的文件（使用 &quot;git add&quot; 建立跟踪）
+</code></pre>
+<pre><code class="language-shell">[root@git git_data]# git add a
+[root@git git_data]# git status
+位于分支 master
+尚无提交
+要提交的变更：
+  （使用 &quot;git rm --cached &lt;文件&gt;...&quot; 以取消暂存）
+        新文件：   a
+未跟踪的文件:
+  （使用 &quot;git add &lt;文件&gt;...&quot; 以包含要提交的内容）
+        b
+        c
+[root@git git_data]# ll .git/
+总用量 20
+drwxr-xr-x 2 root root    6 9月  25 23:10 branches
+-rw-r--r-- 1 root root   92 9月  25 23:10 config
+-rw-r--r-- 1 root root   73 9月  25 23:10 description
+-rw-r--r-- 1 root root   23 9月  25 23:10 HEAD
+drwxr-xr-x 2 root root 4096 9月  25 23:10 hooks
+-rw-r--r-- 1 root root   96 9月  26 01:29 index      #git add a把文件提交到了暂存区
+drwxr-xr-x 2 root root   21 9月  25 23:25 info
+drwxr-xr-x 5 root root   40 9月  26 01:29 objects
+drwxr-xr-x 4 root root   31 9月  25 23:10 refs
+[root@git git_data]# git add .     #使用git add .或者git add *添加目录中所有改动过的文件
+[root@git git_data]# git status
+位于分支 master
+尚无提交
+要提交的变更：
+  （使用 &quot;git rm --cached &lt;文件&gt;...&quot; 以取消暂存）
+        新文件：   a
+        新文件：   b
+        新文件：   c
+</code></pre>
+<pre><code class="language-shell">[root@git git_data]# git rm --cached c
+rm 'c'
+[root@git git_data]# ll
+总用量 0
+-rw-r--r-- 1 root root 0 9月  26 01:28 a
+-rw-r--r-- 1 root root 0 9月  26 01:28 b
+-rw-r--r-- 1 root root 0 9月  26 01:28 c
+[root@git git_data]# git status
+位于分支 master
+尚无提交
+要提交的变更：
+  （使用 &quot;git rm --cached &lt;文件&gt;...&quot; 以取消暂存）
+        新文件：   a
+        新文件：   b
+未跟踪的文件:
+  （使用 &quot;git add &lt;文件&gt;...&quot; 以包含要提交的内容）
+        c
+删除文件
+1）先从暂存区撤回到工作区、然后直接删除文件
+git rm --cached c
+rm -f c
+2）直接从暂存区同工作区一同删除文件命令
+[root@git git_data]# git rm -f b
+rm 'b'
+</code></pre>
+<pre><code class="language-shell">[root@git git_data]# git commit -m &quot;commit a&quot;  #提交到本地仓库
+[master（根提交） 7b7886b] commit a
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+ create mode 100644 a
+[root@git git_data]# git status
+位于分支 master
+无文件要提交，干净的工作区
+</code></pre>
+<pre><code class="language-shell">#修改文件名称两种方法
+方法一：
+[root@git git_data]# mv a a.txt
+[root@git git_data]# git status
+位于分支 master
+尚未暂存以备提交的变更：
+  （使用 &quot;git add/rm &lt;文件&gt;...&quot; 更新要提交的内容）
+  （使用 &quot;git restore &lt;文件&gt;...&quot; 丢弃工作区的改动）
+        删除：     a
+未跟踪的文件:
+  （使用 &quot;git add &lt;文件&gt;...&quot; 以包含要提交的内容）
+        a.txt
+修改尚未加入提交（使用 &quot;git add&quot; 和/或 &quot;git commit -a&quot;）
+[root@git git_data]# git rm --cached a                 #从暂存区删除a文件
+rm 'a'
+[root@git git_data]# git status
+位于分支 master
+要提交的变更：
+  （使用 &quot;git restore --staged &lt;文件&gt;...&quot; 以取消暂存）
+        删除：     a
+未跟踪的文件:
+  （使用 &quot;git add &lt;文件&gt;...&quot; 以包含要提交的内容）
+        a.txt
+[root@git git_data]# git add a.txt
+[root@git git_data]# git status
+位于分支 master
+要提交的变更：
+  （使用 &quot;git restore --staged &lt;文件&gt;...&quot; 以取消暂存）
+        重命名：   a -&gt; a.txt                         #识别到a和a.txt相同为重命名
+[root@git git_data]# git commit -m &quot;commit a.txt&quot;
+[master 37c2e25] commit a.txt
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+ rename a =&gt; a.txt (100%)
+[root@git git_data]# git status
+位于分支 master
+无文件要提交，干净的工作区
+
+方法二：直接用git命令重命名
+[root@git git_data]# git mv a.txt a                 #把工作区和暂存区的文件同时修改文件名称
+[root@git git_data]# git status
+位于分支 master
+要提交的变更：
+  （使用 &quot;git restore --staged &lt;文件&gt;...&quot; 以取消暂存）
+        重命名：   a.txt -&gt; a
+[root@git git_data]# git commit -m &quot;rename a.txt a&quot;
+[master 0701126] rename a.txt a
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+ rename a.txt =&gt; a (100%)
+[root@git git_data]# git status
+位于分支 master
+无文件要提交，干净的工作区
+</code></pre>
+<pre><code class="language-shell">git status只能查看区域状态的不同，不能查看文件内容的变化。
+git diff 查看内容的不同
+[root@git git_data]# echo aaa &gt; a
+[root@git git_data]# git status
+位于分支 master
+尚未暂存以备提交的变更：
+  （使用 &quot;git add &lt;文件&gt;...&quot; 更新要提交的内容）
+  （使用 &quot;git restore &lt;文件&gt;...&quot; 丢弃工作区的改动）
+        修改：     a
+修改尚未加入提交（使用 &quot;git add&quot; 和/或 &quot;git commit -a&quot;）
+[root@git git_data]# git diff a                      #对比本地工作目录和暂存区文件的不同
+diff --git a/a b/a
+index e69de29..72943a1 100644
+--- a/a
++++ b/a
+@@ -0,0 +1 @@
++aaa
+[root@git git_data]# git add a
+[root@git git_data]# git diff a                      #提交a文件到暂存区域，再用git diff比较是相同的
+[root@git git_data]# git diff --cached a             #对比的是暂存区和本地仓库文件的不同
+diff --git a/a b/a
+index e69de29..72943a1 100644
+--- a/a
++++ b/a
+@@ -0,0 +1 @@
++aaa
+[root@git git_data]# git commit -m &quot;modified a&quot;      #提交后再对比暂存区和本地仓库内容相同
+[master 2442252] modified a
+ 1 file changed, 1 insertion(+)
+[root@git git_data]# git diff --cached a
+[root@git git_data]# 
+</code></pre>
+<pre><code class="language-shell">git commit #相当于虚拟机的镜像、任何操作都被做了一次快照，可恢复到任意一个位置
+[root@git git_data]# git log                          #查看历史的git commit快照操作
+commit 2442252c59312af58f74ddcb0abbd1778b702ae3 (HEAD -&gt; master)  #哈希唯一标识的字符串
+Author: ops &lt;ops@gmail.com&gt;                                       #作者个人信息
+Date:   Tue Sep 26 02:35:59 2023 -0400                            #时间
+
+    modified a                                                    #-m 个人写的提交描述信息
+
+commit 0701126c89f38de61acbcc7d7345737af2a56037
+Author: ops &lt;ops@gmail.com&gt;
+Date:   Tue Sep 26 02:09:25 2023 -0400
+
+    rename a.txt a
+
+commit 37c2e2581501c150fbcd06896f956257bf8e2256
+Author: ops &lt;ops@gmail.com&gt;
+Date:   Tue Sep 26 02:07:59 2023 -0400
+
+    commit a.txt
+
+commit 7b7886bb1304591038db463e605a618817c8f3c0
+Author: ops &lt;ops@gmail.com&gt;
+Date:   Tue Sep 26 01:56:16 2023 -0400
+[root@git git_data]# git log --oneline                           #一行简单的显示commit信息
+2442252 (HEAD -&gt; master) modified a
+0701126 rename a.txt a
+37c2e25 commit a.txt
+7b7886b commit a
+[root@git git_data]# git log -p                                  #显示具体内容的变化
+[root@git git_data]# git log -1                                  #只显示1条内容
+</code></pre>
+<pre><code class="language-shell">#恢复历史数据
+1）只更改了当前目录
+[root@git git_data]# echo &quot;333&quot; &gt;&gt; a
+[root@git git_data]# git status
+位于分支 master
+尚未暂存以备提交的变更：
+  （使用 &quot;git add &lt;文件&gt;...&quot; 更新要提交的内容）
+  （使用 &quot;git restore &lt;文件&gt;...&quot; 丢弃工作区的改动）             #看提示使用此命令覆盖工作区的改动
+        修改：     a
+修改尚未加入提交（使用 &quot;git add&quot; 和/或 &quot;git commit -a&quot;）
+[root@git git_data]# git restore a                           #从暂存区覆盖本地工作目录
+[root@git git_data]# git status
+位于分支 master
+无文件要提交，干净的工作区
+[root@git git_data]# cat a
+aaa
+
+2）修改了本地目录且同时提交到了暂存区
+[root@git git_data]# echo &quot;ccc&quot; &gt;&gt; a                 #添加新内容
+[root@git git_data]# git add .                       #提交到暂存区
+[root@git git_data]# git diff --cached               #对比暂存区和本地仓库的内容
+diff --git a/a b/a
+index 72943a1..959479a 100644
+--- a/a
++++ b/a
+@@ -1 +1,2 @@
+ aaa
++ccc
+[root@git git_data]# git status
+位于分支 master
+要提交的变更：
+  （使用 &quot;git restore --staged &lt;文件&gt;...&quot; 以取消暂存）  #本地仓库覆盖暂存区
+        修改：     a
+[root@git git_data]# git restore --staged a
+[root@git git_data]# git diff a                       #对比本地工作目录和暂存区文件的不同
+diff --git a/a b/a
+index 72943a1..959479a 100644
+--- a/a
++++ b/a
+@@ -1 +1,2 @@
+ aaa
++ccc
+[root@git git_data]# git status
+位于分支 master
+尚未暂存以备提交的变更：
+  （使用 &quot;git add &lt;文件&gt;...&quot; 更新要提交的内容）
+  （使用 &quot;git restore &lt;文件&gt;...&quot; 丢弃工作区的改动）
+        修改：     a
+修改尚未加入提交（使用 &quot;git add&quot; 和/或 &quot;git commit -a&quot;）
+[root@git git_data]# git  restore a
+[root@git git_data]# cat a
+aaa
+[root@git git_data]# git status                     #从暂存区覆盖本地工作目录
+位于分支 master
+无文件要提交，干净的工作区
+
+3）修改了工作目录后提交到了暂存区和本地仓库后进行数据恢复
+[root@git git_data]# echo &quot;bbb&quot; &gt;&gt; a                #提交新的bbb文件到a
+[root@git git_data]# git commit -am &quot;add bbb&quot;
+[root@git git_data]# echo &quot;ccc&quot; &gt;&gt; a            
+[root@git git_data]# git commit -am &quot;add ccc&quot;       #这时候发现改错代码了，想还原某一次提交的文件快照
+[root@git git_data]# git log --oneline
+71e8f34 (HEAD -&gt; master) add ccc
+4c65704 add bbb
+2442252 modified a
+0701126 rename a.txt a
+37c2e25 commit a.txt
+7b7886b commit a
+</code></pre>
+<p><code>git</code>服务程序中有一个叫做<code>HEAD</code>的版本指针，当用户申请还原数据时，其实就是将<code>HEAD</code>指针指向到某个特定的提交版本，但是因为<code>git</code>是分布式版本控制系统，为了避免历史记录冲突，故使用了<code>SHA-1</code>计算出十六进制的哈希字串来区分每个提交版本，另外默认的<code>HEAD</code>版本指针会指向到最近的一次提交版本记录。</p>
+<pre><code class="language-shell">[root@git git_data]# git reset --hard 2442252
+HEAD 现在位于 2442252 modified a
+</code></pre>
+<p>刚刚的操作实际上就是改变了一下<code>HEAD</code>的版本指针的位置，就是你将<code>HEAD</code>指针放在哪里，那么你的当前工作版本就会定位在哪里，要想把内容再还原到最新提交的版本，先查看下提交版本号。</p>
+<pre><code class="language-shell">[root@git git_data]# cat a                #打开发现回退错了，应该回退到bbb版本
+aaa
+[root@git git_data]# git log --oneline    #这时候查看log没有commit bbb的历史了      
+2442252 (HEAD -&gt; master) modified a
+0701126 rename a.txt a
+37c2e25 commit a.txt
+7b7886b commit a
+</code></pre>
+<p>怎么搞得？竟然没有了<code>add bbb</code>这个提交版本记录？</p>
+<p>原因很简单，因为我们当前的工作版本是历史的一个提交点，这个历史提交点还没有发生过<code>add bbb</code>更新记录，所以当然就看不到了，要是想&quot;还原到未来&quot;的历史更新点，可以用<code>git reflog</code>命令来查看所有的历史记录。</p>
+<pre><code class="language-shell">[root@git git_data]# git reflog
+2442252 (HEAD -&gt; master) HEAD@{0}: reset: moving to 2442252
+71e8f34 HEAD@{1}: commit: add ccc
+4c65704 HEAD@{2}: commit: add bbb
+2442252 (HEAD -&gt; master) HEAD@{3}: commit: modified a
+0701126 HEAD@{4}: commit: rename a.txt a
+37c2e25 HEAD@{5}: commit: commit a.txt
+7b7886b HEAD@{6}: commit (initial): commit a
+[root@git git_data]# git reset --hard 4c65704         #然后使用reset回到bbb的版本内容下
+HEAD 现在位于 4c65704 add bbb
+[root@git git_data]# cat a
+aaa
+bbb
+</code></pre>
+<h3 id="git分支"><code>git</code>分支</h3>
+<p>分支即是平行空间，假设你在为某个手机系统研发拍照功能，代码已经完成了80%，但如果将这不完整的代码直接提交到<code>git</code>仓库中，又有可能影响到其他人的工作，此时我们便可以在该软件的项目上创建一个名叫&quot;拍照功能&quot;的分支，这种分支只会属于你自己，而其他人看不到，等代码编写完成后再与原来的项目主分支合并即可，这样既能保证代码不丢失，又不影响其他人的工作。<br>
+<img src="https://ajie825.github.io/post-images/1695781627688.png" alt="" loading="lazy"></p>
+<p>一般在实际的项目开发中，我们要尽量保证<code>master</code>分支是非常稳定的，仅用于发布新版本，平时不要随便直接修改里面的数据文件，工作的时候则可以新建不同的工作分支，等到工作完成后再合并到<code>master</code>分支上面，所以团队的合作分支看起来会像上面图那样。</p>
+<pre><code class="language-shell">[root@git git_data]# git log --oneline
+4c65704 (HEAD -&gt; master) add bbb             #默认分支指向你最后一次的提交HEAD头、指针
+2442252 modified a
+0701126 rename a.txt a
+37c2e25 commit a.txt
+7b7886b commit a
+HEAD指针指向哪个分支，说明你当前在哪个分支下工作
+[root@git git_data]# git branch testing      #新建testing分支
+[root@git git_data]# git branch              # *号在哪里就说明当前在哪个分支上如下图所示
+* master
+  testing
+</code></pre>
+<figure data-type="image" tabindex="3"><img src="https://ajie825.github.io/post-images/1695878426384.png" alt="" loading="lazy"></figure>
+<pre><code class="language-shell">[root@git git_data]# git log --oneline      #通过命令查看分支指向
+4c65704 (HEAD -&gt; master, testing) add bbb
+2442252 modified a
+0701126 rename a.txt a
+37c2e25 commit a.txt
+7b7886b commit a
+[root@git git_data]# git checkout testing    #切换到testing分支，对应的HEAD指针也指向了testing
+切换到分支 'testing'
+[root@git git_data]# git branch
+  master
+* testing
+</code></pre>
+<figure data-type="image" tabindex="4"><img src="https://ajie825.github.io/post-images/1695879375563.png" alt="" loading="lazy"></figure>
+<pre><code class="language-shell">[root@git git_data]# touch test
+[root@git git_data]# git add .
+[root@git git_data]# git commit -m &quot;commit test&quot;
+</code></pre>
+<figure data-type="image" tabindex="5"><img src="https://ajie825.github.io/post-images/1695879694438.png" alt="" loading="lazy"></figure>
+<pre><code class="language-shell">[root@git git_data]# git checkout master      #切换到master分支后指针指向了master
+已经位于 'master'
+[root@git git_data]# git branch
+* master
+  testing
+[root@git git_data]# ll                       #正常情况下是没有test文件的，保证master分支是线上环境的
+总用量 4
+-rw-r--r-- 1 root root 8 9月  26 05:52 a
+</code></pre>
+<figure data-type="image" tabindex="6"><img src="https://ajie825.github.io/post-images/1695879949769.png" alt="" loading="lazy"></figure>
+<pre><code class="language-shell">[root@git git_data]# touch master
+[root@git git_data]# git add .
+[root@git git_data]# git commit -m &quot;commit master&quot;
+</code></pre>
+<figure data-type="image" tabindex="7"><img src="https://ajie825.github.io/post-images/1695880381706.png" alt="" loading="lazy"></figure>
+<pre><code class="language-shell">#合并分支
+[root@git git_data]# git merge testing                #提示输入描述信息，相当于git的-m参数
+提示：等待您的编辑器关闭文件... 
+Merge branch 'testing'
+# 请输入一个提交信息以解释此合并的必要性，尤其是将一个更新后的上游分支
+# 合并到主题分支。
+#
+# 以 '#' 开始的行将被忽略，而空的提交说明将终止提交。
+#Merge branch 'testing'
+[root@git git_data]# git log --oneline
+24d5b66 (HEAD -&gt; master) Merge branch 'testing'
+da9b2d7 commit master
+604cdcc (testing) commit test
+4c65704 add bbb
+2442252 modified a
+0701126 rename a.txt a
+37c2e25 commit a.txt
+7b7886b commit a
+</code></pre>
+<figure data-type="image" tabindex="8"><img src="https://ajie825.github.io/post-images/1695880829086.png" alt="" loading="lazy"></figure>
+<pre><code class="language-shell">[root@git git_data]# echo &quot;master&quot; &gt;&gt; a
+[root@git git_data]# git commit -am &quot;modified a master&quot;
+[root@git git_data]# git checkout testing
+切换到分支 'testing'
+[root@git git_data]# git branch
+  master
+* testing
+[root@git git_data]# cat a
+aaa
+bbb
+[root@git git_data]# echo &quot;testing&quot; &gt;&gt; a
+[root@git git_data]# git commit -am &quot;modified a on testing branch&quot;
+[root@git git_data]# git checkout master
+切换到分支 'master'
+[root@git git_data]# git merge testing
+自动合并 a
+冲突（内容）：合并冲突于 a
+自动合并失败，修正冲突然后提交修正的结果。
+[root@git git_data]# cat a               #冲突的文件自动标识到文件里，手动更改冲突要保留的代码
+aaa
+bbb
+&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD
+master
+=======
+testing
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; testing
+[root@git git_data]# git commit -am &quot;merge testing to master&quot;   #进行提交即可
+[root@git git_data]# git log --oneline
+149584d (HEAD -&gt; master) merge testing to master
+59acbe9 (testing) modified a on testing branch
+ebeec4c modified a master
+24d5b66 Merge branch 'testing'
+da9b2d7 commit master
+604cdcc commit test
+</code></pre>
+<pre><code class="language-shell">#删除分支 -d参数
+[root@git git_data]# git branch -d testing
+已删除分支 testing（曾为 59acbe9）。
+[root@git git_data]# git branch
+* master
+</code></pre>
+<h3 id="git标签使用"><code>git</code>标签使用</h3>
+<p>标签也是指向了某一次<code>commit</code>提交，是一个里程碑式的标签，回滚打标签直接加标签号，不需要加唯一字符串不好记。</p>
+<pre><code class="language-shell">[root@git git_data]# git tag -a v1.0 -m &quot;aaa bbb master testing version v1.0&quot; #-a：指定标签名 -m：指定说明文字
+[root@git git_data]# git tag
+v1.0
+[root@git git_data]# git tag -a v2.0 4c65704 -m &quot;add bbb version v2.0&quot; #指定某一次的提交为标签
+[root@git git_data]# git show v1.0         #查看v1.0的信息，git show加标签查看
+[root@git git_data]# git reset --hard v2.0 #直接还原数据到v2.0
+HEAD 现在位于 4c65704 add bbb
+[root@git git_data]# ll
+总用量 4
+-rw-r--r-- 1 root root 8 9月  27 13:20 a
+[root@git git_data]# cat a
+aaa
+bbb
+[root@git git_data]# git tag -d v2.0       #删除标签 -d参数
+已删除标签 'v2.0'（曾为 0c7794a）
+</code></pre>
+<h2 id="github使用"><code>github</code>使用</h2>
+<p><code>github</code>顾名思义是一个<code>git</code>版本库的托管服务，是目前全球最大的软件仓库，拥有上百万的开发者用户，也是软件开发和寻找资源的最佳途径，<code>github</code>不仅可以托管各种<code>git</code>版本仓库，还拥有了更美观的<code>web</code>界面，您的代码文件可以被任何人克隆，使得开发者为开源项目贡献代码变得更加容易，当然也可以付费购买私有库，这样高性价比的私有库真的是帮助到了很多团队和企业。<br>
+<img src="https://ajie825.github.io/post-images/1695894347132.png" alt="" loading="lazy"></p>
+<ol>
+<li>注册用户</li>
+<li>配置<code>ssh-key</code></li>
+<li>创建项目</li>
+<li>克隆项目到本地</li>
+<li>推送新代码到<code>github</code></li>
+</ol>
+<pre><code class="language-shell">#查看远程仓库
+[root@git git_data]# git remote
+#添加远程仓库
+[root@git git_data]# git remote add origin git@github.com:ajie825/local.git
+#生成密钥对，并将公钥复制粘贴到远程仓库中
+[root@git ~]# ssh-keygen -t rsa
+[root@git ~]# cat .ssh/id_rsa.pub 
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDr7Bydmz9bD8796LePK+hjv7/SK5c+qP2KgKXKoEcTBw/BdH2FQgr+TY0Oc7CGyYBxd+C5kJJVoSYXGLIZNrnCPgo6q3UPMhg0uMIpy+x2D6NNxDqcoOV/P8EwA+Uo/331vXdw0JSPjGOKV+rmfdDwMlI7nx4DLjS6YkIxwTsOZx9QxhJIYbi3XhFbmVXnH8crQgDpNO2kWbNdfUrtw6+qETXt/fD2oDZXjnVtodcYWxpbFs7jJLjqM8PpOtRvWnpP4c2HIm6evwJtY1J3Ctq5uh2FwpjjHA1/xPoQsem2H5b70vOM5Gd48SzBOc338LgYrs8AnVFq/lou9zXC6OSr root@git
+</code></pre>
+<figure data-type="image" tabindex="9"><img src="https://ajie825.github.io/post-images/1695956670531.png" alt="" loading="lazy"></figure>
+<pre><code class="language-shell">#将代码推送到远程仓库
+The authenticity of host 'github.com (20.205.243.166)' can't be established.
+ECDSA key fingerprint is SHA256:p2QAMXNIC1TJYWeIOttrVc98/R1BUFWu3/LiyKgUfQM.
+ECDSA key fingerprint is MD5:7b:99:81:1e:4c:91:a5:0d:5a:2e:2e:80:13:3f:24:ca.
+Are you sure you want to continue connecting (yes/no)? yes
+remote: Resolving deltas: 100% (1/1), done.
+To github.com:ajie825/local.git
+ * [new branch]      master -&gt; master
+分支 'master' 设置为跟踪 'origin/master'。
+</code></pre>
+<pre><code class="language-shell">#克隆远程仓库到本地进行测试
+[root@git git_data]# cd /opt/     #将其克隆到/opt目录
+[root@git opt]# git clone git@github.com:ajie825/local.git
+正克隆到 'local'...
+接收对象中: 100% (12/12), 完成.
+处理 delta 中: 100% (1/1), 完成.
+[root@git opt]# cat local/a 
+aaa
+bbb
+</code></pre>
+<h2 id="gitlab安装"><code>gitlab</code>安装</h2>
+<p><strong><code>gitlab</code>简介</strong></p>
+<p><code>gitlab</code>是一个用于仓库管理系统的开源项目。使用<code>git</code>作为代码管理工具，并在此基础上搭建起来的<code>web</code>服务。可通过<code>web</code>界面进行访问公开的或者私人项目。它拥有与<code>github</code>类似的功能，能够浏览源代码，管理缺陷和注释。可以管理团队对仓库的访问，它非常易于浏览提交过的版本并提供一个文件历史库。团队成员可以利用内置的简单聊天程序(<code>wall</code>)进行交流。它还提供了一个代码片段收集功能可以轻松实现代码复用。</p>
+<p><strong>常用的网站</strong></p>
+<ul>
+<li>官网：<code>https://about.gitlab.com/</code></li>
+<li>国内镜像：<code>https://mirrors.tuna.tsinghua.edu.cn/gitlab‐ce/yum/</code></li>
+</ul>
+<p><strong>安装环境</strong></p>
+<ol>
+<li><code>Centos 6</code>或者<code>7</code></li>
+<li><code>2G</code>内存（实验）生产（至少<code>4G</code>）</li>
+<li>安装包：<code>gitlab-ce-12.3.5-ce.0.el7.x86_64</code></li>
+<li>禁用防火墙，关闭<code>selinux</code></li>
+</ol>
+<p><code>https://about.gitlab.com/installation/#centos‐7</code>     #<code>git</code>官网安装地址</p>
+<pre><code class="language-shell">#安装依赖
+[root@git data]# yum install curl policycoreutils-python openssh-server -y 
+#上传gitlab安装包
+[root@git data]# ll -h
+总用量 664M
+drwxr-xr-x 3 root root   27 9月  27 13:20 git_data
+-rw-r--r-- 1 root root 664M 2月   8 2022 gitlab-ce-12.3.5-ce.0.el7.x86_64.rpm
+#通过rpm方式安装gitlab
+[root@git data]# rpm -ivh gitlab-ce-12.3.5-ce.0.el7.x86_64.rpm 
+警告：gitlab-ce-12.3.5-ce.0.el7.x86_64.rpm: 头V4 RSA/SHA1 Signature, 密钥 ID f27eab47: NOKEY
+准备中...                          ################################# [100%]
+正在升级/安装...
+   1:gitlab-ce-12.3.5-ce.0.el7        ################################# [100%]
+#修改gitlab配置文件，更改url地址为本机IP地址
+[root@git data]# vim /etc/gitlab/gitlab.rb 
+external_url 'http://192.168.40.181'
+#更改配置文件后需重新配置
+[root@git data]# gitlab-ctl reconfigure 
+</code></pre>
+<p>通过浏览器输入<code>IP</code>地址进行访问<code>gitlab</code>，首先访问需要设置管理密码，不得少于8位<br>
+<img src="https://ajie825.github.io/post-images/1695968389319.png" alt="" loading="lazy"></p>
+<p>使用超级管理员<code>root</code>和密码成功进入<code>gitlab</code>页面<br>
+<img src="https://ajie825.github.io/post-images/1695968973276.png" alt="" loading="lazy"></p>
+<pre><code class="language-shell">/opt/gitlab/                       #gitlab的程序安装目录
+/var/opt/gitlab/                   #gitlab目录数据目录
+/var/opt/gitlab/git-data/          #存放仓库数据
+gitlab-ctl status                  #查看目前gitlab所有服务运维状态
+gitlab-ctl stop                    #停止gitlab服务
+gitlab-ctl stop nginx              #单独停止某个服务
+gitlab-ctl tail                    #查看所有服务的日志
+</code></pre>
+<pre><code class="language-shell">gitlab的服务构成：
+nginx：	静态web服务器
+gitlab‐workhorse:  轻量级的反向代理服务器
+logrotate：  日志文件管理工具 postgresql：数据库
+redis：  缓存数据库
+sidekiq：  用于在后台执行队列任务（异步执行）。（Ruby）
+unicorn：  GitLab Rails应用是托管在这个服务器上面的。（Ruby Web Server,主要使用Ruby编写）
+</code></pre>
+<p><strong>gitlab汉化</strong></p>
+<pre><code class="language-shell">1）下载汉化补丁
+[root@git data]# git clone https://gitlab.com/xhang/gitlab.git 
+2）查看全部分支版本
+[root@git data]# cd gitlab
+[root@git gitlab]# git branch -a
+* 12-3-stable-zh
+  remotes/origin/10-0-stable
+  remotes/origin/10-0-stable-zh
+  remotes/origin/10-1-stable
+  remotes/origin/10-1-stable-zh
+3）对比版本、生成补丁包
+[root@git gitlab]# git diff remotes/origin/12-3-stable remotes/origin/12-3-stable-zh &gt; /tmp/12.3.5-zh.diff
+4）停止gitlab服务
+[root@git gitlab]# gitlab-ctl stop
+5）打补丁
+[root@git gitlab]# yum install patch -y
+#一路回车即可
+[root@git gitlab]# patch -d /opt/gitlab/embedded/service/gitlab-rails -p1 &lt; /tmp/12.3.5-zh.diff
+6）启动和重新配置gitlab
+gitlab-ctl start
+gitlab-ctl reconfigure
+</code></pre>
+<figure data-type="image" tabindex="10"><img src="https://ajie825.github.io/post-images/1695979660553.png" alt="" loading="lazy"></figure>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/chi-xu-ji-cheng-jiao-cheng/">
+              <h3 class="post-title">
+                下一篇：持续集成教程 (一)
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

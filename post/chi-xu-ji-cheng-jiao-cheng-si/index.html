@@ -1,0 +1,326 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>持续集成教程 (四) | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">持续集成教程 (四)</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2023-10-05</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/orkaNU-rT/">
+                    devops
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="创建一个自由风格的项目">创建一个自由风格的项目</h2>
+<p><img src="https://ajie825.github.io/post-images/1696470316574.png" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1696470445892.png" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1696470635002.png" alt="" loading="lazy"></p>
+<p>执行一条<code>shell</code>命令，查看运行的当前路径，构建后的产物存储在<code>/var/lib/jenkins/workspace/</code><br>
+<img src="https://ajie825.github.io/post-images/1696471013665.png" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1696471252069.png" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1696471268786.png" alt="" loading="lazy"></p>
+<pre><code class="language-shell">[root@jenkins ~]# cat  /var/lib/jenkins/workspace/freestyle-job/test 
+this is freestyle-job build
+</code></pre>
+<h2 id="jenkins获取git源代码"><code>Jenkins</code>获取<code>git</code>源代码</h2>
+<p>从码云导入大转盘项目到<code>gitlab</code>仓库，在<code>gitlab</code>新创建一个<code>dzp</code>项目仓库，将源代码导入进去</p>
+<p><code>https://gitee.com/xianzi/html5.git</code><br>
+<img src="https://ajie825.github.io/post-images/1696473827747.png" alt="" loading="lazy"></p>
+<p>管理员用户从<code>gitlab</code>克隆代码到本地</p>
+<pre><code class="language-shell">[root@git data]# git clone git@192.168.40.181:oldboy/dzp.git
+Cloning into 'dzp'...
+remote: Enumerating objects: 40, done.
+remote: Counting objects: 100% (40/40), done.
+remote: Compressing objects: 100% (35/35), done.
+remote: Total 40 (delta 7), reused 0 (delta 0)
+Receiving objects: 100% (40/40), 163.70 KiB | 14.88 MiB/s, done.
+Resolving deltas: 100% (7/7), done.
+</code></pre>
+<p>修改了源代码并提交到<code>gitlab</code></p>
+<pre><code class="language-shell">[root@git dzp]# mv 幸运大转盘/* . &amp;&amp; rm -rf 幸运大转盘/
+[root@git dzp]# git add .
+[root@git dzp]# git commit -m &quot;modify dzp&quot;
+[root@git dzp]# git push -u origin master
+Enumerating objects: 14, done.
+Counting objects: 100% (14/14), done.
+Compressing objects: 100% (12/12), done.
+Writing objects: 100% (13/13), 48.36 KiB | 48.36 MiB/s, done.
+Total 13 (delta 0), reused 11 (delta 0), pack-reused 0
+To 192.168.40.181:oldboy/dzp.git
+   bac093d..a80cb4b  master -&gt; master
+branch 'master' set up to track 'origin/master'
+</code></pre>
+<p>在<code>Jenkins</code>生成密钥对，并将公钥复制到<code>gitlab</code>进行认证下载代码</p>
+<pre><code class="language-shell">[root@jenkins ~]# ssh-keygen -t rsa
+[root@jenkins ~]# cat .ssh/id_rsa.pub 
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC7S2+JMYcVbR/wa1xjPdpw7RHwPKeX34v7kn+3I8BaytWt13gf1DlIRqS58IxGG1wuCM7S35RKkgTMn9lZ0kKHGY3oPDHqzaIZoEJ1t9bzVQlsiXmW8EmBRPFk0oMHpYFX8KIemht0SobG8eBCiC/sujdBXgt54hyThAg4T49v1CaIA9T8Nsq1Gp9UKt64Al4ilgCL0F743+yHSHfnJqgfLuQtw5KD4dGUeE4ICDpwROaURtFojSIg7Dd7WCaw+rqZmkZJniSYy3O9ZOpJHbO4EduNPhluc98c3QC1N1WwwWCW8HyNKdO32KDqmciEIv8E2WIxxUZ+vK0D1Vm50h+D root@jenkins
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1696475133896.png" alt="" loading="lazy"></figure>
+<p><code>Jenkins</code>配置从<code>Gitlab</code>获取代码,配置好后保存<br>
+<img src="https://ajie825.github.io/post-images/1696475656278.png" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1696475688593.png" alt="" loading="lazy"></p>
+<p>增加<code>Jenkins</code>的私钥认证<br>
+<img src="https://ajie825.github.io/post-images/1696476160492.png" alt="" loading="lazy"></p>
+<p>立即构建获取源代码<br>
+<img src="https://ajie825.github.io/post-images/1696476488719.png" alt="" loading="lazy"></p>
+<p><code>Jenkins</code>服务器查看代码</p>
+<pre><code class="language-shell">[root@jenkins freestyle-job]# pwd
+/var/lib/jenkins/workspace/freestyle-job
+[root@jenkins freestyle-job]# ll
+total 176
+drwxr-xr-x 2 root root     23 Oct  4 23:24 css
+-rw-r--r-- 1 root root 164297 Oct  4 23:24 html2canvas.min.js
+drwxr-xr-x 2 root root     85 Oct  4 23:24 images
+-rw-r--r-- 1 root root   7975 Oct  4 23:24 index.html
+drwxr-xr-x 2 root root     55 Oct  4 23:24 js
+-rw-r--r-- 1 root root      8 Oct  4 23:24 README.md
+drwxr-xr-x 6 root root     88 Oct  4 23:24 水果机
+</code></pre>
+<h2 id="jenkins代码推送到web服务器"><code>Jenkins</code>代码推送到<code>web</code>服务器</h2>
+<p><code>Jenkins</code>分发公钥到<code>web</code>服务器</p>
+<pre><code class="language-shell">[root@jenkins ~]# ssh-copy-id -i .ssh/id_rsa.pub root@192.168.40.180
+ECDSA key fingerprint is SHA256:YZtWFZbGSrtWSP3i8YpXxGG88jx3jsoPVRtY5sjDYrg.
+ECDSA key fingerprint is MD5:53:06:38:bb:ca:e0:37:97:f6:25:d9:51:89:39:b8:2b.
+Are you sure you want to continue connecting (yes/no)? yes
+root@192.168.40.180's password: 
+Now try logging into the machine, with:   &quot;ssh 'root@192.168.40.180'&quot;
+and check to make sure that only the key(s) you wanted were added.
+</code></pre>
+<p>写一个脚本把从<code>gitlab</code>仓库获取到的代码上传到<code>web</code>服务器站点目录下</p>
+<pre><code class="language-shell">[root@jenkins ~]# mkdir /data/scripts
+[root@jenkins scripts]# cat deploy.sh 
+#!/bin/bash
+Date=$(date +%s)
+Code_Dir=&quot;/var/lib/jenkins/workspace/freestyle-job&quot;
+Web_Dir=/code
+Ip=192.168.40.180
+
+Code_Tar() {
+   cd $Code_Dir &amp;&amp; tar zcf /opt/web_${Date}.tar.gz ./*
+}
+
+Scp_Code_Web() {
+   scp /opt/web_${Date}.tar.gz root@${Ip}:/opt
+}
+
+Code_Tar_Xf() {
+   ssh root@$Ip &quot; cd /opt &amp;&amp; mkdir web_$Date &amp;&amp; tar xf web_${Date}.tar.gz -C web_$Date &quot;
+}
+
+Ln_Html() {
+   ssh root@$Ip &quot; rm -rf $Web_Dir &amp;&amp; ln -s /opt/web_$Date $Web_Dir&quot;
+}
+
+Code_Tar;
+Scp_Code_Web;
+Code_Tar_Xf;
+Ln_Html
+</code></pre>
+<p><code>Jenkins</code>添加脚本进行构建<br>
+<img src="https://ajie825.github.io/post-images/1696485370821.png" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1696485445106.png" alt="" loading="lazy"></p>
+<p>查看网站是否更新成功<br>
+<img src="https://ajie825.github.io/post-images/1696485671876.png" alt="" loading="lazy"></p>
+<h2 id="配置自动触发构建">配置自动触发构建</h2>
+<p>需要设置安全令牌<code>Secret token</code><br>
+<img src="https://ajie825.github.io/post-images/1696559872924.png" alt="" loading="lazy"></p>
+<p><code>Enabled GitLab triggers</code> ：       允许<code>gitlab</code>触发<br>
+<code>push events</code>：                             允许<code>push</code>，只要<code>gitlab</code>收到<code>push</code>操作构建就执行触发事件<br>
+<code>Opened Merge Request Events</code>：  合并请求，合并操作也可以触发<br>
+<img src="https://ajie825.github.io/post-images/1696561638468.png" alt="" loading="lazy"></p>
+<p>可以单独定义，只允许<code>master</code>分支才能构建，根据自己需求定义。</p>
+<p><code>token</code>作用：访问<code>webhooks URL</code>需要携带<code>token</code>过来才能触发，有<code>url</code>也不行，有<code>url</code>和<code>token</code>才能触发。</p>
+<p><strong><code>gitlab</code>仓库配置<code>webhooks</code></strong></p>
+<p>进入集成配置页面，复制<code>jenkins</code>触发器配置页面的<code>url</code>及<code>Token</code>，默认触发事件是<code>push</code><br>
+<img src="https://ajie825.github.io/post-images/1696562734491.png" alt="" loading="lazy"></p>
+<p>配置完成后，添加<code>webhooks</code><br>
+<img src="https://ajie825.github.io/post-images/1696563841554.png" alt="" loading="lazy"></p>
+<p>如果出现下面的报错，请参考<code>https://computingforgeeks.com/resolve-url-is-blocked-requests-to-the-local-network-are-not-allowed-gitlab-error/</code><br>
+<img src="https://ajie825.github.io/post-images/1696564055902.png" alt="" loading="lazy"></p>
+<p>在下面测试触发设置，用<code>test</code>测试<code>push events</code>推送事件，200显示执行成功了<br>
+<img src="https://ajie825.github.io/post-images/1696564800323.png" alt="" loading="lazy"></p>
+<p>在<code>jenkins job</code>主页面看到构建任务被触发<br>
+<img src="https://ajie825.github.io/post-images/1696564560313.png" alt="" loading="lazy"></p>
+<p>更改代码后进行推送测试是否自动触发</p>
+<pre><code class="language-shell">[root@git data]# cd dzp/
+[root@git dzp]# vim index.html 
+[root@git dzp]# git add .
+[root@git dzp]# git commit -m &quot;modify index.html&quot;
+[master 72ae5b0] modify index.html
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+[root@git dzp]# git push -u origin master
+Enumerating objects: 5, done.
+Counting objects: 100% (5/5), done.
+Compressing objects: 100% (3/3), done.
+Writing objects: 100% (3/3), 305 bytes | 305.00 KiB/s, done.
+Total 3 (delta 2), reused 0 (delta 0), pack-reused 0
+To 192.168.40.181:oldboy/dzp.git
+   a80cb4b..72ae5b0  master -&gt; master
+branch 'master' set up to track 'origin/master'.
+</code></pre>
+<figure data-type="image" tabindex="2"><img src="https://ajie825.github.io/post-images/1696571547384.png" alt="" loading="lazy"></figure>
+<h2 id="jenkins返回构建状态到gitlab"><code>jenkins</code>返回构建状态到<code>Gitlab</code></h2>
+<p>构建完成后，<code>Jenkins</code>可以把构建的结果反馈给<code>Gitlab</code>，这样在<code>Gitlab</code>上就可以查看每一次<code>push</code>后构建的执行结果。</p>
+<p>首先在<code>Jenkins</code>配置可以访问<code>Gitlab</code>，打开<code>Jenkins</code>系统管理---&gt;系统设置页面---&gt;下拉找到<code>Gitlab</code>部分<br>
+<img src="https://ajie825.github.io/post-images/1696818570619.png" alt="" loading="lazy"></p>
+<p>需要<code>API token</code>认证，我们访问<code>gitlab</code>然后生成一个<code>token</code>，在<code>setting</code>设置页面，选择左侧<code>Access Tokens</code>，进入<code>Access Token</code>管理页面<br>
+<img src="https://ajie825.github.io/post-images/1696820898564.png" alt="" loading="lazy"></p>
+<p>拷贝生成的<code>token</code>，然后在<code>Jenkins</code>添加认证<br>
+<img src="https://ajie825.github.io/post-images/1696821157770.png" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1696821854066.png" alt="" loading="lazy"></p>
+<p>认证添加成功后，回到系统设置页面，为<code>Gitlab</code>选择认证并测试，成功后保存退出系统设置<br>
+<img src="https://ajie825.github.io/post-images/1696822714174.png" alt="" loading="lazy"></p>
+<p>在<code>job</code>配置页面添加构建后操作，所谓的构建后操作就是构建执行完以后，可以做些什么事情<br>
+<img src="https://ajie825.github.io/post-images/1696823116894.png" alt="" loading="lazy"></p>
+<p>把构建的状态推动<code>gitlab</code>上，构建后自动把构建的结果反馈给<code>gitlab</code><br>
+<img src="https://ajie825.github.io/post-images/1696823364391.png" alt="" loading="lazy"></p>
+<p>回到<code>job</code>主页面，执行&quot;立即构建&quot;，构建成功后，在<code>gitlab</code>仓库可以看到<code>pipeline passed</code>页面<br>
+<img src="https://ajie825.github.io/post-images/1696823913347.png" alt="" loading="lazy"></p>
+<p>点进去，有个<code>Jenkins</code>结果<br>
+<img src="https://ajie825.github.io/post-images/1696828337663.png" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1696828347470.png" alt="" loading="lazy"></p>
+<p>点击<code>Jenkins</code>，可以看到<code>Jenkins</code>构建后输出结果页面<br>
+<img src="https://ajie825.github.io/post-images/1696828740013.png" alt="" loading="lazy"></p>
+<p>我们还可以在页面点击<code>commit</code>，查看代码变更内容<br>
+<img src="https://ajie825.github.io/post-images/1696829211526.png" alt="" loading="lazy"><br>
+<img src="https://ajie825.github.io/post-images/1696829226341.png" alt="" loading="lazy"></p>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/chi-xu-ji-cheng-jiao-cheng-san/">
+              <h3 class="post-title">
+                下一篇：持续集成教程 (三)
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

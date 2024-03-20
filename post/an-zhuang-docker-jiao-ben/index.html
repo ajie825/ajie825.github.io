@@ -1,0 +1,819 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>安装docker脚本 | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">安装docker脚本</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-10-19</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/zGuY5LEhI/">
+                    Docker
+                    
+                      ，
+                    
+                  </a>
+                
+                  <a href="https://ajie825.github.io/tag/QVJpgtMyu/">
+                    脚本
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <pre><code class="language-bash">#!/bin/sh
+set -e
+# Docker CE for Linux installation script
+#
+# See https://docs.docker.com/engine/install/ for the installation steps.
+#
+# This script is meant for quick &amp; easy install via:
+#   $ curl -fsSL https://get.docker.com -o get-docker.sh
+#   $ sh get-docker.sh
+#
+# For test builds (ie. release candidates):
+#   $ curl -fsSL https://test.docker.com -o test-docker.sh
+#   $ sh test-docker.sh
+#
+# NOTE: Make sure to verify the contents of the script
+#       you downloaded matches the contents of install.sh
+#       located at https://github.com/docker/docker-install
+#       before executing.
+#
+# Git commit from https://github.com/docker/docker-install when
+# the script was uploaded (Should only be modified by upload job):
+SCRIPT_COMMIT_SHA=&quot;4f282167c425347a931ccfd95cc91fab041d414f&quot;
+
+# strip &quot;v&quot; prefix if present
+VERSION=&quot;${VERSION#v}&quot;
+
+# The channel to install from:
+#   * nightly
+#   * test
+#   * stable
+#   * edge (deprecated)
+DEFAULT_CHANNEL_VALUE=&quot;stable&quot;
+if [ -z &quot;$CHANNEL&quot; ]; then
+	CHANNEL=$DEFAULT_CHANNEL_VALUE
+fi
+
+DEFAULT_DOWNLOAD_URL=&quot;https://download.docker.com&quot;
+if [ -z &quot;$DOWNLOAD_URL&quot; ]; then
+	DOWNLOAD_URL=$DEFAULT_DOWNLOAD_URL
+fi
+
+DEFAULT_REPO_FILE=&quot;docker-ce.repo&quot;
+if [ -z &quot;$REPO_FILE&quot; ]; then
+	REPO_FILE=&quot;$DEFAULT_REPO_FILE&quot;
+fi
+
+mirror=''
+DRY_RUN=${DRY_RUN:-}
+while [ $# -gt 0 ]; do
+	case &quot;$1&quot; in
+		--mirror)
+			mirror=&quot;$2&quot;
+			shift
+			;;
+		--dry-run)
+			DRY_RUN=1
+			;;
+		--*)
+			echo &quot;Illegal option $1&quot;
+			;;
+	esac
+	shift $(( $# &gt; 0 ? 1 : 0 ))
+done
+
+case &quot;$mirror&quot; in
+	Aliyun)
+		DOWNLOAD_URL=&quot;https://mirrors.aliyun.com/docker-ce&quot;
+		;;
+	AzureChinaCloud)
+		DOWNLOAD_URL=&quot;https://mirror.azure.cn/docker-ce&quot;
+		;;
+esac
+
+command_exists() {
+	command -v &quot;$@&quot; &gt; /dev/null 2&gt;&amp;1
+}
+
+# version_gte checks if the version specified in $VERSION is at least
+# the given CalVer (YY.MM) version. returns 0 (success) if $VERSION is either
+# unset (=latest) or newer or equal than the specified version. Returns 1 (fail)
+# otherwise.
+#
+# examples:
+#
+# VERSION=20.10
+# version_gte 20.10 // 0 (success)
+# version_gte 19.03 // 0 (success)
+# version_gte 21.10 // 1 (fail)
+version_gte() {
+	if [ -z &quot;$VERSION&quot; ]; then
+			return 0
+	fi
+	eval calver_compare &quot;$VERSION&quot; &quot;$1&quot;
+}
+
+# calver_compare compares two CalVer (YY.MM) version strings. returns 0 (success)
+# if version A is newer or equal than version B, or 1 (fail) otherwise. Patch
+# releases and pre-release (-alpha/-beta) are not taken into account
+#
+# examples:
+#
+# calver_compare 20.10 19.03 // 0 (success)
+# calver_compare 20.10 20.10 // 0 (success)
+# calver_compare 19.03 20.10 // 1 (fail)
+calver_compare() (
+	set +x
+
+	yy_a=&quot;$(echo &quot;$1&quot; | cut -d'.' -f1)&quot;
+	yy_b=&quot;$(echo &quot;$2&quot; | cut -d'.' -f1)&quot;
+	if [ &quot;$yy_a&quot; -lt &quot;$yy_b&quot; ]; then
+		return 1
+	fi
+	if [ &quot;$yy_a&quot; -gt &quot;$yy_b&quot; ]; then
+		return 0
+	fi
+	mm_a=&quot;$(echo &quot;$1&quot; | cut -d'.' -f2)&quot;
+	mm_b=&quot;$(echo &quot;$2&quot; | cut -d'.' -f2)&quot;
+	if [ &quot;${mm_a#0}&quot; -lt &quot;${mm_b#0}&quot; ]; then
+		return 1
+	fi
+
+	return 0
+)
+
+is_dry_run() {
+	if [ -z &quot;$DRY_RUN&quot; ]; then
+		return 1
+	else
+		return 0
+	fi
+}
+
+is_wsl() {
+	case &quot;$(uname -r)&quot; in
+	*microsoft* ) true ;; # WSL 2
+	*Microsoft* ) true ;; # WSL 1
+	* ) false;;
+	esac
+}
+
+is_darwin() {
+	case &quot;$(uname -s)&quot; in
+	*darwin* ) true ;;
+	*Darwin* ) true ;;
+	* ) false;;
+	esac
+}
+
+deprecation_notice() {
+	distro=$1
+	distro_version=$2
+	echo
+	printf &quot;\033[91;1mDEPRECATION WARNING\033[0m\n&quot;
+	printf &quot;    This Linux distribution (\033[1m%s %s\033[0m) reached end-of-life and is no longer supported by this script.\n&quot; &quot;$distro&quot; &quot;$distro_version&quot;
+	echo   &quot;    No updates or security fixes will be released for this distribution, and users are recommended&quot;
+	echo   &quot;    to upgrade to a currently maintained version of $distro.&quot;
+	echo
+	printf   &quot;Press \033[1mCtrl+C\033[0m now to abort this script, or wait for the installation to continue.&quot;
+	echo
+	sleep 10
+}
+
+get_distribution() {
+	lsb_dist=&quot;&quot;
+	# Every system that we officially support has /etc/os-release
+	if [ -r /etc/os-release ]; then
+		lsb_dist=&quot;$(. /etc/os-release &amp;&amp; echo &quot;$ID&quot;)&quot;
+	fi
+	# Returning an empty string here should be alright since the
+	# case statements don't act unless you provide an actual value
+	echo &quot;$lsb_dist&quot;
+}
+
+echo_docker_as_nonroot() {
+	if is_dry_run; then
+		return
+	fi
+	if command_exists docker &amp;&amp; [ -e /var/run/docker.sock ]; then
+		(
+			set -x
+			$sh_c 'docker version'
+		) || true
+	fi
+
+	# intentionally mixed spaces and tabs here -- tabs are stripped by &quot;&lt;&lt;-EOF&quot;, spaces are kept in the output
+	echo
+	echo &quot;================================================================================&quot;
+	echo
+	if version_gte &quot;20.10&quot;; then
+		echo &quot;To run Docker as a non-privileged user, consider setting up the&quot;
+		echo &quot;Docker daemon in rootless mode for your user:&quot;
+		echo
+		echo &quot;    dockerd-rootless-setuptool.sh install&quot;
+		echo
+		echo &quot;Visit https://docs.docker.com/go/rootless/ to learn about rootless mode.&quot;
+		echo
+	fi
+	echo
+	echo &quot;To run the Docker daemon as a fully privileged service, but granting non-root&quot;
+	echo &quot;users access, refer to https://docs.docker.com/go/daemon-access/&quot;
+	echo
+	echo &quot;WARNING: Access to the remote API on a privileged Docker daemon is equivalent&quot;
+	echo &quot;         to root access on the host. Refer to the 'Docker daemon attack surface'&quot;
+	echo &quot;         documentation for details: https://docs.docker.com/go/attack-surface/&quot;
+	echo
+	echo &quot;================================================================================&quot;
+	echo
+}
+
+# Check if this is a forked Linux distro
+check_forked() {
+
+	# Check for lsb_release command existence, it usually exists in forked distros
+	if command_exists lsb_release; then
+		# Check if the `-u` option is supported
+		set +e
+		lsb_release -a -u &gt; /dev/null 2&gt;&amp;1
+		lsb_release_exit_code=$?
+		set -e
+
+		# Check if the command has exited successfully, it means we're in a forked distro
+		if [ &quot;$lsb_release_exit_code&quot; = &quot;0&quot; ]; then
+			# Print info about current distro
+			cat &lt;&lt;-EOF
+			You're using '$lsb_dist' version '$dist_version'.
+			EOF
+
+			# Get the upstream release info
+			lsb_dist=$(lsb_release -a -u 2&gt;&amp;1 | tr '[:upper:]' '[:lower:]' | grep -E 'id' | cut -d ':' -f 2 | tr -d '[:space:]')
+			dist_version=$(lsb_release -a -u 2&gt;&amp;1 | tr '[:upper:]' '[:lower:]' | grep -E 'codename' | cut -d ':' -f 2 | tr -d '[:space:]')
+
+			# Print info about upstream distro
+			cat &lt;&lt;-EOF
+			Upstream release is '$lsb_dist' version '$dist_version'.
+			EOF
+		else
+			if [ -r /etc/debian_version ] &amp;&amp; [ &quot;$lsb_dist&quot; != &quot;ubuntu&quot; ] &amp;&amp; [ &quot;$lsb_dist&quot; != &quot;raspbian&quot; ]; then
+				if [ &quot;$lsb_dist&quot; = &quot;osmc&quot; ]; then
+					# OSMC runs Raspbian
+					lsb_dist=raspbian
+				else
+					# We're Debian and don't even know it!
+					lsb_dist=debian
+				fi
+				dist_version=&quot;$(sed 's/\/.*//' /etc/debian_version | sed 's/\..*//')&quot;
+				case &quot;$dist_version&quot; in
+					11)
+						dist_version=&quot;bullseye&quot;
+					;;
+					10)
+						dist_version=&quot;buster&quot;
+					;;
+					9)
+						dist_version=&quot;stretch&quot;
+					;;
+					8)
+						dist_version=&quot;jessie&quot;
+					;;
+				esac
+			fi
+		fi
+	fi
+}
+
+do_install() {
+	echo &quot;# Executing docker install script, commit: $SCRIPT_COMMIT_SHA&quot;
+
+	if command_exists docker; then
+		cat &gt;&amp;2 &lt;&lt;-'EOF'
+			Warning: the &quot;docker&quot; command appears to already exist on this system.
+
+			If you already have Docker installed, this script can cause trouble, which is
+			why we're displaying this warning and provide the opportunity to cancel the
+			installation.
+
+			If you installed the current Docker package using this script and are using it
+			again to update Docker, you can safely ignore this message.
+
+			You may press Ctrl+C now to abort this script.
+		EOF
+		( set -x; sleep 20 )
+	fi
+
+	user=&quot;$(id -un 2&gt;/dev/null || true)&quot;
+
+	sh_c='sh -c'
+	if [ &quot;$user&quot; != 'root' ]; then
+		if command_exists sudo; then
+			sh_c='sudo -E sh -c'
+		elif command_exists su; then
+			sh_c='su -c'
+		else
+			cat &gt;&amp;2 &lt;&lt;-'EOF'
+			Error: this installer needs the ability to run commands as root.
+			We are unable to find either &quot;sudo&quot; or &quot;su&quot; available to make this happen.
+			EOF
+			exit 1
+		fi
+	fi
+
+	if is_dry_run; then
+		sh_c=&quot;echo&quot;
+	fi
+
+	# perform some very rudimentary platform detection
+	lsb_dist=$( get_distribution )
+	lsb_dist=&quot;$(echo &quot;$lsb_dist&quot; | tr '[:upper:]' '[:lower:]')&quot;
+
+	if is_wsl; then
+		echo
+		echo &quot;WSL DETECTED: We recommend using Docker Desktop for Windows.&quot;
+		echo &quot;Please get Docker Desktop from https://www.docker.com/products/docker-desktop&quot;
+		echo
+		cat &gt;&amp;2 &lt;&lt;-'EOF'
+
+			You may press Ctrl+C now to abort this script.
+		EOF
+		( set -x; sleep 20 )
+	fi
+
+	case &quot;$lsb_dist&quot; in
+
+		ubuntu)
+			if command_exists lsb_release; then
+				dist_version=&quot;$(lsb_release --codename | cut -f2)&quot;
+			fi
+			if [ -z &quot;$dist_version&quot; ] &amp;&amp; [ -r /etc/lsb-release ]; then
+				dist_version=&quot;$(. /etc/lsb-release &amp;&amp; echo &quot;$DISTRIB_CODENAME&quot;)&quot;
+			fi
+		;;
+
+		debian|raspbian)
+			dist_version=&quot;$(sed 's/\/.*//' /etc/debian_version | sed 's/\..*//')&quot;
+			case &quot;$dist_version&quot; in
+				11)
+					dist_version=&quot;bullseye&quot;
+				;;
+				10)
+					dist_version=&quot;buster&quot;
+				;;
+				9)
+					dist_version=&quot;stretch&quot;
+				;;
+				8)
+					dist_version=&quot;jessie&quot;
+				;;
+			esac
+		;;
+
+		centos|rhel|sles)
+			if [ -z &quot;$dist_version&quot; ] &amp;&amp; [ -r /etc/os-release ]; then
+				dist_version=&quot;$(. /etc/os-release &amp;&amp; echo &quot;$VERSION_ID&quot;)&quot;
+			fi
+		;;
+
+		*)
+			if command_exists lsb_release; then
+				dist_version=&quot;$(lsb_release --release | cut -f2)&quot;
+			fi
+			if [ -z &quot;$dist_version&quot; ] &amp;&amp; [ -r /etc/os-release ]; then
+				dist_version=&quot;$(. /etc/os-release &amp;&amp; echo &quot;$VERSION_ID&quot;)&quot;
+			fi
+		;;
+
+	esac
+
+	# Check if this is a forked Linux distro
+	check_forked
+
+	# Print deprecation warnings for distro versions that recently reached EOL,
+	# but may still be commonly used (especially LTS versions).
+	case &quot;$lsb_dist.$dist_version&quot; in
+		debian.stretch|debian.jessie)
+			deprecation_notice &quot;$lsb_dist&quot; &quot;$dist_version&quot;
+			;;
+		raspbian.stretch|raspbian.jessie)
+			deprecation_notice &quot;$lsb_dist&quot; &quot;$dist_version&quot;
+			;;
+		ubuntu.xenial|ubuntu.trusty)
+			deprecation_notice &quot;$lsb_dist&quot; &quot;$dist_version&quot;
+			;;
+		fedora.*)
+			if [ &quot;$dist_version&quot; -lt 33 ]; then
+				deprecation_notice &quot;$lsb_dist&quot; &quot;$dist_version&quot;
+			fi
+			;;
+	esac
+
+	# Run setup for each distro accordingly
+	case &quot;$lsb_dist&quot; in
+		ubuntu|debian|raspbian)
+			pre_reqs=&quot;apt-transport-https ca-certificates curl&quot;
+			if ! command -v gpg &gt; /dev/null; then
+				pre_reqs=&quot;$pre_reqs gnupg&quot;
+			fi
+			apt_repo=&quot;deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] $DOWNLOAD_URL/linux/$lsb_dist $dist_version $CHANNEL&quot;
+			(
+				if ! is_dry_run; then
+					set -x
+				fi
+				$sh_c 'apt-get update -qq &gt;/dev/null'
+				$sh_c &quot;DEBIAN_FRONTEND=noninteractive apt-get install -y -qq $pre_reqs &gt;/dev/null&quot;
+				$sh_c 'mkdir -p /etc/apt/keyrings &amp;&amp; chmod -R 0755 /etc/apt/keyrings'
+				$sh_c &quot;curl -fsSL \&quot;$DOWNLOAD_URL/linux/$lsb_dist/gpg\&quot; | gpg --dearmor --yes -o /etc/apt/keyrings/docker.gpg&quot;
+				$sh_c &quot;chmod a+r /etc/apt/keyrings/docker.gpg&quot;
+				$sh_c &quot;echo \&quot;$apt_repo\&quot; &gt; /etc/apt/sources.list.d/docker.list&quot;
+				$sh_c 'apt-get update -qq &gt;/dev/null'
+			)
+			pkg_version=&quot;&quot;
+			if [ -n &quot;$VERSION&quot; ]; then
+				if is_dry_run; then
+					echo &quot;# WARNING: VERSION pinning is not supported in DRY_RUN&quot;
+				else
+					# Will work for incomplete versions IE (17.12), but may not actually grab the &quot;latest&quot; if in the test channel
+					pkg_pattern=&quot;$(echo &quot;$VERSION&quot; | sed &quot;s/-ce-/~ce~.*/g&quot; | sed &quot;s/-/.*/g&quot;).*-0~$lsb_dist&quot;
+					search_command=&quot;apt-cache madison 'docker-ce' | grep '$pkg_pattern' | head -1 | awk '{\$1=\$1};1' | cut -d' ' -f 3&quot;
+					pkg_version=&quot;$($sh_c &quot;$search_command&quot;)&quot;
+					echo &quot;INFO: Searching repository for VERSION '$VERSION'&quot;
+					echo &quot;INFO: $search_command&quot;
+					if [ -z &quot;$pkg_version&quot; ]; then
+						echo
+						echo &quot;ERROR: '$VERSION' not found amongst apt-cache madison results&quot;
+						echo
+						exit 1
+					fi
+					if version_gte &quot;18.09&quot;; then
+							search_command=&quot;apt-cache madison 'docker-ce-cli' | grep '$pkg_pattern' | head -1 | awk '{\$1=\$1};1' | cut -d' ' -f 3&quot;
+							echo &quot;INFO: $search_command&quot;
+							cli_pkg_version=&quot;=$($sh_c &quot;$search_command&quot;)&quot;
+					fi
+					pkg_version=&quot;=$pkg_version&quot;
+				fi
+			fi
+			(
+				pkgs=&quot;docker-ce${pkg_version%=}&quot;
+				if version_gte &quot;18.09&quot;; then
+						# older versions didn't ship the cli and containerd as separate packages
+						pkgs=&quot;$pkgs docker-ce-cli${cli_pkg_version%=} containerd.io&quot;
+				fi
+				if version_gte &quot;20.10&quot;; then
+						pkgs=&quot;$pkgs docker-compose-plugin&quot;
+				fi
+				if version_gte &quot;20.10&quot; &amp;&amp; [ &quot;$(uname -m)&quot; = &quot;x86_64&quot; ]; then
+						# also install the latest version of the &quot;docker scan&quot; cli-plugin (only supported on x86 currently)
+						pkgs=&quot;$pkgs docker-scan-plugin&quot;
+				fi
+				# TODO(thaJeztah) remove the $CHANNEL check once 22.06 and docker-buildx-plugin is published to the &quot;stable&quot; channel
+				if [ &quot;$CHANNEL&quot; = &quot;test&quot; ] &amp;&amp; version_gte &quot;22.06&quot;; then
+						pkgs=&quot;$pkgs docker-buildx-plugin&quot;
+				fi
+				if ! is_dry_run; then
+					set -x
+				fi
+				$sh_c &quot;DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends $pkgs &gt;/dev/null&quot;
+				if version_gte &quot;20.10&quot;; then
+					# Install docker-ce-rootless-extras without &quot;--no-install-recommends&quot;, so as to install slirp4netns when available
+					$sh_c &quot;DEBIAN_FRONTEND=noninteractive apt-get install -y -qq docker-ce-rootless-extras${pkg_version%=} &gt;/dev/null&quot;
+				fi
+			)
+			echo_docker_as_nonroot
+			exit 0
+			;;
+		centos|fedora|rhel)
+			if [ &quot;$(uname -m)&quot; != &quot;s390x&quot; ] &amp;&amp; [ &quot;$lsb_dist&quot; = &quot;rhel&quot; ]; then
+				echo &quot;Packages for RHEL are currently only available for s390x.&quot;
+				exit 1
+			fi
+			if [ &quot;$lsb_dist&quot; = &quot;fedora&quot; ]; then
+				pkg_manager=&quot;dnf&quot;
+				config_manager=&quot;dnf config-manager&quot;
+				enable_channel_flag=&quot;--set-enabled&quot;
+				disable_channel_flag=&quot;--set-disabled&quot;
+				pre_reqs=&quot;dnf-plugins-core&quot;
+				pkg_suffix=&quot;fc$dist_version&quot;
+			else
+				pkg_manager=&quot;yum&quot;
+				config_manager=&quot;yum-config-manager&quot;
+				enable_channel_flag=&quot;--enable&quot;
+				disable_channel_flag=&quot;--disable&quot;
+				pre_reqs=&quot;yum-utils&quot;
+				pkg_suffix=&quot;el&quot;
+			fi
+			repo_file_url=&quot;$DOWNLOAD_URL/linux/$lsb_dist/$REPO_FILE&quot;
+			(
+				if ! is_dry_run; then
+					set -x
+				fi
+				$sh_c &quot;$pkg_manager install -y -q $pre_reqs&quot;
+				$sh_c &quot;$config_manager --add-repo $repo_file_url&quot;
+
+				if [ &quot;$CHANNEL&quot; != &quot;stable&quot; ]; then
+					$sh_c &quot;$config_manager $disable_channel_flag docker-ce-*&quot;
+					$sh_c &quot;$config_manager $enable_channel_flag docker-ce-$CHANNEL&quot;
+				fi
+				$sh_c &quot;$pkg_manager makecache&quot;
+			)
+			pkg_version=&quot;&quot;
+			if [ -n &quot;$VERSION&quot; ]; then
+				if is_dry_run; then
+					echo &quot;# WARNING: VERSION pinning is not supported in DRY_RUN&quot;
+				else
+					pkg_pattern=&quot;$(echo &quot;$VERSION&quot; | sed &quot;s/-ce-/\\\\.ce.*/g&quot; | sed &quot;s/-/.*/g&quot;).*$pkg_suffix&quot;
+					search_command=&quot;$pkg_manager list --showduplicates 'docker-ce' | grep '$pkg_pattern' | tail -1 | awk '{print \$2}'&quot;
+					pkg_version=&quot;$($sh_c &quot;$search_command&quot;)&quot;
+					echo &quot;INFO: Searching repository for VERSION '$VERSION'&quot;
+					echo &quot;INFO: $search_command&quot;
+					if [ -z &quot;$pkg_version&quot; ]; then
+						echo
+						echo &quot;ERROR: '$VERSION' not found amongst $pkg_manager list results&quot;
+						echo
+						exit 1
+					fi
+					if version_gte &quot;18.09&quot;; then
+						# older versions don't support a cli package
+						search_command=&quot;$pkg_manager list --showduplicates 'docker-ce-cli' | grep '$pkg_pattern' | tail -1 | awk '{print \$2}'&quot;
+						cli_pkg_version=&quot;$($sh_c &quot;$search_command&quot; | cut -d':' -f 2)&quot;
+					fi
+					# Cut out the epoch and prefix with a '-'
+					pkg_version=&quot;-$(echo &quot;$pkg_version&quot; | cut -d':' -f 2)&quot;
+				fi
+			fi
+			(
+				pkgs=&quot;docker-ce$pkg_version&quot;
+				if version_gte &quot;18.09&quot;; then
+					# older versions didn't ship the cli and containerd as separate packages
+					if [ -n &quot;$cli_pkg_version&quot; ]; then
+						pkgs=&quot;$pkgs docker-ce-cli-$cli_pkg_version containerd.io&quot;
+					else
+						pkgs=&quot;$pkgs docker-ce-cli containerd.io&quot;
+					fi
+				fi
+				if version_gte &quot;20.10&quot; &amp;&amp; [ &quot;$(uname -m)&quot; = &quot;x86_64&quot; ]; then
+						# also install the latest version of the &quot;docker scan&quot; cli-plugin (only supported on x86 currently)
+						pkgs=&quot;$pkgs docker-scan-plugin&quot;
+				fi
+				if version_gte &quot;20.10&quot;; then
+					pkgs=&quot;$pkgs docker-compose-plugin docker-ce-rootless-extras$pkg_version&quot;
+				fi
+				# TODO(thaJeztah) remove the $CHANNEL check once 22.06 and docker-buildx-plugin is published to the &quot;stable&quot; channel
+				if [ &quot;$CHANNEL&quot; = &quot;test&quot; ] &amp;&amp; version_gte &quot;22.06&quot;; then
+						pkgs=&quot;$pkgs docker-buildx-plugin&quot;
+				fi
+				if ! is_dry_run; then
+					set -x
+				fi
+				$sh_c &quot;$pkg_manager install -y -q $pkgs&quot;
+			)
+			echo_docker_as_nonroot
+			exit 0
+			;;
+		sles)
+			if [ &quot;$(uname -m)&quot; != &quot;s390x&quot; ]; then
+				echo &quot;Packages for SLES are currently only available for s390x&quot;
+				exit 1
+			fi
+			if [ &quot;$dist_version&quot; = &quot;15.3&quot; ]; then
+				sles_version=&quot;SLE_15_SP3&quot;
+			else
+				sles_minor_version=&quot;${dist_version##*.}&quot;
+				sles_version=&quot;15.$sles_minor_version&quot;
+			fi
+			opensuse_repo=&quot;https://download.opensuse.org/repositories/security:SELinux/$sles_version/security:SELinux.repo&quot;
+			repo_file_url=&quot;$DOWNLOAD_URL/linux/$lsb_dist/$REPO_FILE&quot;
+			pre_reqs=&quot;ca-certificates curl libseccomp2 awk&quot;
+			(
+				if ! is_dry_run; then
+					set -x
+				fi
+				$sh_c &quot;zypper install -y $pre_reqs&quot;
+				$sh_c &quot;zypper addrepo $repo_file_url&quot;
+				if ! is_dry_run; then
+						cat &gt;&amp;2 &lt;&lt;-'EOF'
+						WARNING!!
+						openSUSE repository (https://download.opensuse.org/repositories/security:SELinux) will be enabled now.
+						Do you wish to continue?
+						You may press Ctrl+C now to abort this script.
+						EOF
+						( set -x; sleep 30 )
+				fi
+				$sh_c &quot;zypper addrepo $opensuse_repo&quot;
+				$sh_c &quot;zypper --gpg-auto-import-keys refresh&quot;
+				$sh_c &quot;zypper lr -d&quot;
+			)
+			pkg_version=&quot;&quot;
+			if [ -n &quot;$VERSION&quot; ]; then
+				if is_dry_run; then
+					echo &quot;# WARNING: VERSION pinning is not supported in DRY_RUN&quot;
+				else
+					pkg_pattern=&quot;$(echo &quot;$VERSION&quot; | sed &quot;s/-ce-/\\\\.ce.*/g&quot; | sed &quot;s/-/.*/g&quot;)&quot;
+					search_command=&quot;zypper search -s --match-exact 'docker-ce' | grep '$pkg_pattern' | tail -1 | awk '{print \$6}'&quot;
+					pkg_version=&quot;$($sh_c &quot;$search_command&quot;)&quot;
+					echo &quot;INFO: Searching repository for VERSION '$VERSION'&quot;
+					echo &quot;INFO: $search_command&quot;
+					if [ -z &quot;$pkg_version&quot; ]; then
+						echo
+						echo &quot;ERROR: '$VERSION' not found amongst zypper list results&quot;
+						echo
+						exit 1
+					fi
+					search_command=&quot;zypper search -s --match-exact 'docker-ce-cli' | grep '$pkg_pattern' | tail -1 | awk '{print \$6}'&quot;
+					# It's okay for cli_pkg_version to be blank, since older versions don't support a cli package
+					cli_pkg_version=&quot;$($sh_c &quot;$search_command&quot;)&quot;
+					pkg_version=&quot;-$pkg_version&quot;
+
+					search_command=&quot;zypper search -s --match-exact 'docker-ce-rootless-extras' | grep '$pkg_pattern' | tail -1 | awk '{print \$6}'&quot;
+					rootless_pkg_version=&quot;$($sh_c &quot;$search_command&quot;)&quot;
+					rootless_pkg_version=&quot;-$rootless_pkg_version&quot;
+				fi
+			fi
+			(
+				pkgs=&quot;docker-ce$pkg_version&quot;
+				if version_gte &quot;18.09&quot;; then
+					if [ -n &quot;$cli_pkg_version&quot; ]; then
+						# older versions didn't ship the cli and containerd as separate packages
+						pkgs=&quot;$pkgs docker-ce-cli-$cli_pkg_version containerd.io&quot;
+					else
+						pkgs=&quot;$pkgs docker-ce-cli containerd.io&quot;
+					fi
+				fi
+				if version_gte &quot;20.10&quot;; then
+					pkgs=&quot;$pkgs docker-compose-plugin docker-ce-rootless-extras$pkg_version&quot;
+				fi
+				# TODO(thaJeztah) remove the $CHANNEL check once 22.06 and docker-buildx-plugin is published to the &quot;stable&quot; channel
+				if [ &quot;$CHANNEL&quot; = &quot;test&quot; ] &amp;&amp; version_gte &quot;22.06&quot;; then
+						pkgs=&quot;$pkgs docker-buildx-plugin&quot;
+				fi
+				if ! is_dry_run; then
+					set -x
+				fi
+				$sh_c &quot;zypper -q install -y $pkgs&quot;
+			)
+			echo_docker_as_nonroot
+			exit 0
+			;;
+		*)
+			if [ -z &quot;$lsb_dist&quot; ]; then
+				if is_darwin; then
+					echo
+					echo &quot;ERROR: Unsupported operating system 'macOS'&quot;
+					echo &quot;Please get Docker Desktop from https://www.docker.com/products/docker-desktop&quot;
+					echo
+					exit 1
+				fi
+			fi
+			echo
+			echo &quot;ERROR: Unsupported distribution '$lsb_dist'&quot;
+			echo
+			exit 1
+			;;
+	esac
+	exit 1
+}
+
+# wrapped up in a function so that we have some protection against only getting
+# half the file during &quot;curl | sh&quot;
+do_install
+</code></pre>
+<pre><code class="language-bash">来源：https://get.docker.com/
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/er-jin-zhi-bu-shu-loki-ri-zhi-xi-tong/">
+              <h3 class="post-title">
+                下一篇：二进制部署loki日志系统
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

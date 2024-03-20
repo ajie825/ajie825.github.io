@@ -1,0 +1,406 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>nginx代理缓存 | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">nginx代理缓存</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-08-16</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/YBDfkYHYeR/">
+                    nginx
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="缓存常见类型">缓存常见类型</h2>
+<h3 id="服务端缓存">服务端缓存</h3>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1660640629601.jpg" alt="" loading="lazy"></figure>
+<h3 id="代理缓存获取服务端内容进行缓存">代理缓存，获取服务端内容进行缓存</h3>
+<figure data-type="image" tabindex="2"><img src="https://ajie825.github.io/post-images/1660640717369.jpg" alt="" loading="lazy"></figure>
+<h3 id="客户端浏览器缓存">客户端浏览器缓存</h3>
+<figure data-type="image" tabindex="3"><img src="https://ajie825.github.io/post-images/1660640785271.jpg" alt="" loading="lazy"></figure>
+<h3 id="nginx代理缓存原理">nginx代理缓存原理</h3>
+<figure data-type="image" tabindex="4"><img src="https://ajie825.github.io/post-images/1660640874760.jpg" alt="" loading="lazy"></figure>
+<h2 id="缓存配置语法">缓存配置语法</h2>
+<pre><code class="language-bash">1）proxy_cache配置语法
+Syntax : proxy_cache zone | off;
+Default: proxy_cache off;
+Context: http, server, location
+</code></pre>
+<pre><code class="language-bash">2）缓存路径
+Syntax : proxy_cache_path path [levels=levels]
+[use_temp_path=on|off] keys_zone=name:size [inactive=time]
+[max_size=size] [manager_files=number] [manager_sleep=time][manager_threshold=time]
+[loader_files=number] [loader_sleep=time] [loader_threshold=time] [purger=on|off]
+[purger_files=number] [purger_sleep=time] [purger_threshold=time];
+Default: —
+Context: http
+</code></pre>
+<pre><code class="language-bash">3）缓存过期周期
+Syntax : proxy_cache_valid [code ...] time;
+Default: —
+Context: http, server, location
+#示例
+proxy_cache_valid 200 302 10m;
+proxy_cache_valid 404   1m;
+</code></pre>
+<pre><code class="language-bash">4）缓存的维度
+Syntax : proxy_cache_key string;
+Default: proxy_cache_key $scheme$proxy_host$request_uri;
+Context: http, server, location
+#示例
+proxy_cache_key &quot;$host$request_uri $cookie_user&quot;;
+proxy_cache_key $scheme$proxy_host$uri$is_args$args;
+</code></pre>
+<h2 id="代理缓存配置实践">代理缓存配置实践</h2>
+<pre><code class="language-bash">1）环境准备
+操作系统	            应用服务	          外网地址	          内网地址
+CentOS7.5	       Nginx Proxy        10.0.0.5	         172.16.1.5
+CentOS7.5	       Nginx Web	      172.16.1.7     
+</code></pre>
+<pre><code class="language-bash">2）web节点准备
+#准备nginx配置文件
+[root@web01 ~]# cd /etc/nginx/conf.d/
+[root@web01 conf.d]# cat web_node.conf 
+server {
+        listen 8081;
+        root /soft/code1;
+        index index.html;
+}
+server {
+        listen 8082;
+        root /soft/code2;
+        index index.html;
+}
+server {
+        listen 8083;
+        root /soft/code3;
+        index index.html;
+}
+#建立相关目录
+[root@web01 conf.d]# mkdir -p /soft/code{1..3}
+#建立相关html文件
+[root@web01 conf.d]# for i in {1..3};do echo Code1-Url$i &gt; /soft/code1/url$i.html;done
+[root@web01 conf.d]# for i in {1..3};do echo Code2-Url$i &gt; /soft/code2/url$i.html;done
+[root@web01 conf.d]# for i in {1..3};do echo Code3-Url$i &gt; /soft/code3/url$i.html;done
+#检查配置文件，重启nginx服务
+[root@web01 conf.d]# nginx -t
+[root@web01 conf.d]# systemctl reload nginx
+#检查监听端口
+[root@web01 conf.d]# netstat -lntp|grep 80
+tcp        0      0 0.0.0.0:8081            0.0.0.0:*               LISTEN      1740/nginx: master  
+tcp        0      0 0.0.0.0:8082            0.0.0.0:*               LISTEN      1740/nginx: master  
+tcp        0      0 0.0.0.0:8083            0.0.0.0:*               LISTEN      1740/nginx: master
+</code></pre>
+<pre><code class="language-bash">3）代理配置缓存
+[root@lb01 ~]# mkdir /soft/cache
+[root@lb01 ~]# vim /etc/nginx/nginx.conf
+http {
+    upstream cache {
+    server 172.16.1.7:8081;
+    server 172.16.1.7:8082;
+    server 172.16.1.7:8083;
+    }
+    proxy_cache_path /soft/cache levels=1:2 keys_zone=code_cache:10m max_size=10g inactive=60m use_temp_path=off;
+   ......
+}
+#proxy_cache_path  存放缓存临时目录
+#levels            按照两层目录分级
+#keys_zone         开辟空间名, 10m:开辟空间大小, 1m可存放8000key
+#max_size          控制最大大小, 超过后Nginx会启用淘汰规则
+#inactive          60分钟没有被访问缓存会被清理
+#use_temp_path     临时文件, 会影响性能, 建议关闭
+[root@lb01 conf.d]# cat proxy_cache.conf 
+server {
+        listen 80;
+        server_name cache.oldboy.com;
+        location / {
+                proxy_pass http://cache;
+                proxy_cache code_cache;
+                proxy_cache_valid 200 304 12h;
+                proxy_cache_valid any 10m;
+                proxy_cache_key $host$uri$is_args$args;
+                add_header Nginx-Cache &quot;$upstream_cache_status&quot;;
+                include proxy_params;
+        }
+}
+#proxy_cache        开启缓存
+#proxy_cache_valid  状态码200|304的过期为12h, 其余状态码10分钟过期
+#proxy_cache_key    缓存key
+#add_header         增加头信息, 观察客户端response是否命中
+</code></pre>
+<pre><code class="language-bash">4）客户端测试
+#第一次访问无法命中
+[root@lb01 ~]# curl -s -I http://cache.oldboy.com/url3.html|grep &quot;Nginx-Cache&quot;
+Nginx-Cache: MISS
+#第二次访问命中
+[root@lb01 ~]# curl -s -I http://cache.oldboy.com/url3.html|grep &quot;Nginx-Cache&quot;
+Nginx-Cache: HIT
+</code></pre>
+<h2 id="如何清理缓存">如何清理缓存</h2>
+<pre><code class="language-bash">1）使用rm删除已缓存数据
+[root@lb01 ~]# rm -rf /soft/cache/*
+[root@lb01 ~]# curl -s -I http://cache.oldboy.com/url3.html|grep &quot;Nginx-Cache&quot;   
+Nginx-Cache: MISS
+</code></pre>
+<pre><code class="language-bash">2）通过ngx_cache_purge扩展模块清理, 需要编译安装Nginx
+#建立对应目录
+[root@lb01 ~]# mkdir /soft/src
+[root@lb01 ~]# cd /soft/src
+#下载nginx包
+[root@lb01 src]# wget http://nginx.org/download/nginx-1.22.0.tar.gz
+[root@lb01 src]# tar xf nginx-1.22.0.tar.gz 
+#下载ngx_cache_purge
+[root@lb01 src]# wget http://labs.frickle.com/files/ngx_cache_purge-2.3.tar.gz
+[root@lb01 src]# tar xf ngx_cache_purge-2.3.tar.gz 
+#编译nginx
+[root@lb01 src]# cd nginx-1.22.0/ 
+[root@lb01 nginx-1.22.0]# ./configure --prefix=/etc/nginx --sbin-path=/usr/sbin/nginx --modules-path=/usr/lib64/nginx/modules --conf-path=/etc/nginx/nginx.conf --error-log-path=/var/log/nginx/error.log --http-log-path=/var/log/nginx/access.log --pid-path=/var/run/nginx.pid --lock-path=/var/run/nginx.lock --http-client-body-temp-path=/var/cache/nginx/client_temp --http-proxy-temp-path=/var/cache/nginx/proxy_temp --http-fastcgi-temp-path=/var/cache/nginx/fastcgi_temp --http-uwsgi-temp-path=/var/cache/nginx/uwsgi_temp --add-module=/soft/src/ngx_cache_purge-2.3 --http-scgi-temp-path=/var/cache/nginx/scgi_temp --user=nginx --group=nginx --with-compat --with-file-aio --with-threads --with-http_addition_module --with-http_auth_request_module --with-http_dav_module --with-http_flv_module --with-http_gunzip_module --with-http_gzip_static_module --with-http_mp4_module --with-http_random_index_module --with-http_realip_module --with-http_secure_link_module --with-http_slice_module --with-http_ssl_module --with-http_stub_status_module --with-http_sub_module --with-http_v2_module --with-mail --with-mail_ssl_module --with-stream --with-stream_realip_module --with-stream_ssl_module --with-stream_ssl_preread_module --with-cc-opt='-O2 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector-strong --param=ssp-buffer-size=4 -grecord-gcc-switches -m64 -mtune=generic -fPIC' --with-ld-opt='-Wl,-z,relro -Wl,-z,now -pie'
+[root@lb01 nginx-1.22.0]# make &amp;&amp; make install
+</code></pre>
+<pre><code class="language-bash">3）增加清理缓存的location，配置如下内容
+[root@lb01 ~]# cd /etc/nginx/conf.d/
+[root@lb01 conf.d]# cat proxy_cache.conf 
+server {
+        listen 80;
+        server_name cache.oldboy.com;
+        location / {
+                proxy_pass http://cache;
+                proxy_cache code_cache;
+                proxy_cache_valid 200 304 12h;
+                proxy_cache_valid any 10m;
+                proxy_cache_key $host$uri$is_args$args;
+                add_header Nginx-Cache &quot;$upstream_cache_status&quot;;
+                include proxy_params;
+        }        
+
+        location ~ /purge(/.*) {
+        allow   127.0.0.1;
+        allow   10.0.0.0/24;
+        deny    all;
+        proxy_cache_purge code_cache $host$1$is_args$args;
+        }
+}
+#检查配置重新加载
+[root@lb01 conf.d]# nginx -t
+[root@lb01 conf.d]# systemctl reload nginx
+</code></pre>
+<pre><code class="language-bash">4）使用浏览器访问建立缓存
+</code></pre>
+<figure data-type="image" tabindex="5"><img src="https://ajie825.github.io/post-images/1660885817263.jpg" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">5）通过访问purge/url地址，删除对应的缓存
+</code></pre>
+<figure data-type="image" tabindex="6"><img src="https://ajie825.github.io/post-images/1660885885968.jpg" alt="" loading="lazy"></figure>
+<pre><code class="language-bash">6）再次刷新就会因为缓存内容已清理，而出现404错误
+</code></pre>
+<figure data-type="image" tabindex="7"><img src="https://ajie825.github.io/post-images/1660886010031.jpg" alt="" loading="lazy"></figure>
+<h2 id="指定页面不缓存">指定页面不缓存</h2>
+<pre><code class="language-bash">[root@lb01 conf.d]# cat proxy_cache.conf 
+server {
+        listen 80;
+        server_name cache.oldboy.com; 
+
+        #如果请求文件如下，则设定nocache为1
+       if ($request_uri ~ ^/(url3|login|register|password)) {
+        set $nocache 1;
+        }
+
+        location / {
+                proxy_pass http://cache;
+                proxy_cache code_cache;
+                proxy_cache_valid 200 304 12h;
+                proxy_cache_valid any 10m;
+                proxy_cache_key $host$uri$is_args$args;
+                proxy_no_cache $nocache $arg_nocache $arg_comment;  #不缓存变量为nocache
+                proxy_no_cache $http_pargma $http_authorization;    #不缓存http参数以及http认证
+                add_header Nginx-Cache &quot;$upstream_cache_status&quot;;
+                include proxy_params;
+        }        
+
+        location ~ /purge(/.*) {
+         allow   127.0.0.1;
+        allow   10.0.0.0/24;
+        deny    all;
+        proxy_cache_purge code_cache $host$1$is_args$args;
+        }
+}
+#先清理缓存
+[root@lb01 ~]# rm -rf /soft/cache/*
+#无论如何请求url3都无法命中
+[root@lb01 ~]# curl -s -I http://cache.oldboy.com/url3.html|grep &quot;Nginx-Cache&quot;
+Nginx-Cache: MISS
+[root@lb01 ~]# curl -s -I http://cache.oldboy.com/url3.html|grep &quot;Nginx-Cache&quot;
+Nginx-Cache: MISS
+[root@lb01 ~]# curl -s -I http://cache.oldboy.com/url3.html|grep &quot;Nginx-Cache&quot;
+Nginx-Cache: MISS
+</code></pre>
+<h2 id="缓存日志记录">缓存日志记录</h2>
+<pre><code class="language-bash">1）修改nginx的log_format格式，增加&quot;$upstream_cache_status&quot;
+[root@lb01 ~]# vim /etc/nginx/nginx.conf
+log_format  main  '$remote_addr - $remote_user [$time_local] &quot;$request&quot; '
+                  '$status $body_bytes_sent &quot;$http_referer&quot; '
+                  '&quot;$http_user_agent&quot; &quot;$http_x_forwarded_for&quot;' '&quot;$upstream_cache_status&quot;';
+该变量包含如下几种状态
+#MISS 未命中，请求被传送到后端
+#HIT 缓存命中，通过缓存返回数据
+#EXPIRED 缓存已经过期请求被传送到后端
+#UPDATING 正在更新缓存，将使用旧的应答
+#STALE 后端将得到过期的应答
+</code></pre>
+<pre><code class="language-bash">2）在server标签中添加对应的access日志
+[root@lb01 ~]# cat /etc/nginx/conf.d/proxy_cache.conf     
+server {
+        listen 80;
+        server_name cache.oldboy.com; 
+        access_log /var/log/nginx/proxy_cache.log main;
+        ......
+}
+</code></pre>
+<pre><code class="language-bash">3）使用curl访问, 最后检查日志命令情况
+[root@lb01 ~]# tail /var/log/nginx/proxy_cache.log
+10.0.0.5 - - [19/Aug/2022:02:25:55 -0400] &quot;HEAD /url2.html HTTP/1.1&quot; 200 0 &quot;-&quot; &quot;curl/7.29.0&quot; &quot;-&quot;&quot;MISS&quot;
+10.0.0.5 - - [19/Aug/2022:02:25:57 -0400] &quot;HEAD /url2.html HTTP/1.1&quot; 200 0 &quot;-&quot; &quot;curl/7.29.0&quot; &quot;-&quot;&quot;HIT&quot;
+10.0.0.5 - - [19/Aug/2022:02:26:03 -0400] &quot;HEAD /url3.html HTTP/1.1&quot; 200 0 &quot;-&quot; &quot;curl/7.29.0&quot; &quot;-&quot;&quot;MISS&quot;
+10.0.0.5 - - [19/Aug/2022:02:26:04 -0400] &quot;HEAD /url3.html HTTP/1.1&quot; 200 0 &quot;-&quot; &quot;curl/7.29.0&quot; &quot;-&quot;&quot;MISS&quot;
+10.0.0.5 - - [19/Aug/2022:02:26:09 -0400] &quot;HEAD /url1.html HTTP/1.1&quot; 200 0 &quot;-&quot; &quot;curl/7.29.0&quot; &quot;-&quot;&quot;MISS&quot;
+10.0.0.5 - - [19/Aug/2022:02:26:10 -0400] &quot;HEAD /url1.html HTTP/1.1&quot; 200 0 &quot;-&quot; &quot;curl/7.29.0&quot; &quot;-&quot;&quot;HIT&quot;
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/nginx-xing-neng-you-hua-shi-jian/">
+              <h3 class="post-title">
+                下一篇：nginx性能优化实践
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

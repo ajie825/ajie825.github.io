@@ -1,0 +1,344 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>MySQL体系结构和基础管理（一） | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">MySQL体系结构和基础管理（一）</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-05-31</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/eb_lZhnX62/">
+                    mysql
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="客户端服务端cs的结构介绍">客户端/服务端（C/S）的结构介绍</h2>
+<p>两种连接方式（远程、本地）：</p>
+<p>​	TCP/IP：mysql -uroot -poldboy123  -h 10.0.0.51 -P3306</p>
+<p>​	Socket：mysql -uroot -poldboy123  -S /tmp/mysql.sock</p>
+<figure data-type="image" tabindex="1"><img src="https://ajie825.github.io/post-images/1653963768374.png" alt="" loading="lazy"></figure>
+<h2 id="实例的构成">实例的构成</h2>
+<p>所谓实例就是后台运行（或守护进程）的程序，一直工作在内存中</p>
+<p>公司： 老板  +  经理  + 员工 + 办公区</p>
+<p>实例： mysqld（进程）  +  master thread（线程） + 干活的Thread  + 预分配的内存</p>
+<h2 id="mysqld服务进程结构重点">mysqld服务进程结构（重点）</h2>
+<h3 id="sql语句引入">SQL语句引入</h3>
+<p>结构化的查询语言</p>
+<p>DQL     数据查询语言        （query）</p>
+<p>DDL     数据定义语言        （defined）</p>
+<p>DML     数据操作语言       （manager）</p>
+<p>DCL      数据控制语言       （control）</p>
+<pre><code class="language-mysql">mysql&gt; select user,host from mysql.user;
++---------------+-----------+
+| user          | host      |
++---------------+-----------+
+| mysql.session | localhost |
+| mysql.sys     | localhost |
+| root          | localhost |
++---------------+-----------+
+3 rows in set (0.00 sec)
+</code></pre>
+<h3 id="连接层">连接层</h3>
+<p>1）提供连接协议（socket、TCP/IP）</p>
+<p>2）验证用户名密码合法性，进行匹配专门的授权表</p>
+<p>3）派生一个专用连接线程（接收SQL语句，返回结果）</p>
+<pre><code class="language-mysql">mysql&gt; show processlist;    #默认151个
++----+------+-----------+------+---------+------+----------+------------------+
+| Id | User | Host      | db   | Command | Time | State    | Info             |
++----+------+-----------+------+---------+------+----------+------------------+
+|  2 | root | localhost | NULL | Query   |    0 | starting | show processlist |
++----+------+-----------+------+---------+------+----------+------------------+
+1 row in set (0.00 sec)
+</code></pre>
+<h3 id="sql层">SQL层</h3>
+<p>优化方面非常重要</p>
+<p>1）验证SQL语法和SQL_MODE</p>
+<p>2）验证语义和权限</p>
+<p>3）解析器进行语句解析，生成多种执行计划（解析树）</p>
+<p>4）优化器根据各种算法，找到代价（CPU IO MEM）最低的执行计划</p>
+<p>5）执行器按照优化器选择执行计划，执行SQL语句，得出获取数据的方法</p>
+<p>6）提供query cache（默认没有打开），一般不开，会用redis</p>
+<p>7）记录操作日志（binlog），默认没有打开</p>
+<h3 id="存储引擎层">存储引擎层</h3>
+<p>真正和磁盘打交道的一个层次，根据SQL层提供的获取数据的方法，拿到数据，返回给SQL层，结构化成表，再由连接层线程返回给用户</p>
+<h3 id="逻辑存储结构">逻辑存储结构</h3>
+<pre><code class="language-shell">库 				                                             ----》Linux目录
+
+create database wordpress charset utf8mb4;                   ----》mkdir /wordpress
+
+show databases;			                                     ----》ls /
+
+use wordpress;			                                     ----》cd /wordpress
+
+ 
+
+表 				                                             ----》Linux的文件
+
+列（字段） 				                                               无
+
+列属性					                                               无
+
+数据行（记录）			                                     ----》Linux数据行
+
+表属性（元数据）			                                     ----》Linux 文件属性
+</code></pre>
+<p>物理存储结构</p>
+<pre><code class="language-shell">库： 使用FS上的目录来表示
+
+表： 
+MyISAM(ext2)
+ user.frm  ： 存储的表结构（列，列属性）
+ user.MYD  :  存储的数据记录
+ user.MYI  ： 存储索引
+
+InnoDB(XFS)
+ time_zone.frm ： 存储的表结构（列，列属性）
+ time_zone.ibd ： 存储的数据记录和索引
+ ibdata1       :  数据字典信息
+</code></pre>
+<p>innodb 段、区、页</p>
+<p>段：一个表就是一个段，包含一个或多个区</p>
+<p>区：64个连续的页，共1M</p>
+<p>页：最小的存储单元，默认16KB</p>
+<h2 id="用户和权限管理">用户和权限管理</h2>
+<h3 id="用户的作用">用户的作用</h3>
+<p>登录MySQL</p>
+<p>管理MySQL中的逻辑对象（库、表）</p>
+<h3 id="用户的定义">用户的定义</h3>
+<pre><code class="language-shell">用户名@'白名单（主机域）'
+
+wordpress@'%'     #生产中不用
+wordpress@'localhost'
+wordpress@'127.0.0.1'
+wordpress@'10.0.0.%'
+wordpress@'10.0.0.5%'  （50-59）
+wordpress@'10.0.0.0/255.255.254.0'
+wordpress@'10.0.%'
+</code></pre>
+<h3 id="用户的操作增删改查">用户的操作（增删改查）</h3>
+<p>1、建用户</p>
+<pre><code class="language-mysql">mysql&gt; create user oldboy@'10.0.0.%' identified by '123';
+Query OK, 0 rows affected (0.00 sec)
+</code></pre>
+<p>说明：</p>
+<p>8.0以前，可以自动创建用户并授权</p>
+<pre><code class="language-mysql">mysql&gt; grant all on *.* to oldguo@'10.0.0.%' identified by '123';
+Query OK, 0 rows affected, 1 warning (0.00 sec)
+</code></pre>
+<p>2、查询用户</p>
+<pre><code class="language-mysql">mysql&gt; select user,host from mysql.user;
++---------------+-----------+
+| user          | host      |
++---------------+-----------+
+| oldboy        | 10.0.0.%  |
+| oldguo        | 10.0.0.%  |
+| mysql.session | localhost |
+| mysql.sys     | localhost |
+| root          | localhost |
++---------------+-----------+
+5 rows in set (0.00 sec)
+</code></pre>
+<p>3、修改用户即密码</p>
+<pre><code class="language-mysql">mysql&gt; alter user oldguo@'10.0.0.%' identified by '123456';
+Query OK, 0 rows affected (0.00 sec)
+</code></pre>
+<p>4、删除用户（生产中必须慎用）</p>
+<pre><code class="language-mysql">mysql&gt; drop user oldguo@'10.0.0.%';
+Query OK, 0 rows affected (0.00 sec)
+</code></pre>
+<h3 id="权限管理">权限管理</h3>
+<p>权限列表</p>
+<p>ALL<br>
+SELECT,INSERT, UPDATE, DELETE, CREATE, DROP, RELOAD, SHUTDOWN, PROCESS, FILE, REFERENCES, INDEX, ALTER, SHOW DATABASES, SUPER, CREATE TEMPORARY TABLES, LOCK TABLES, EXECUTE, REPLICATION SLAVE, REPLICATION CLIENT, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, CREATE USER, EVENT, TRIGGER, CREATE TABLESPACE<br>
+with grant option</p>
+<p>授权命令</p>
+<pre><code class="language-mysql">#（创建用户的同时授权）
+grant all  on  *.*    to oldguo@'10.0.0.%' identified by '123' with grant option;
+grant 权限  on 作用目标 to 用户  identified by 密码 with grant option;
+grant SELECT,INSERT, UPDATE, DELETE, CREATE on wordpress.* to 
+作用目标:
+*.*
+wordpress.* 
+worpress.t1 
+</code></pre>
+<p>授权需求</p>
+<p>创建一个管理员用户root，可以通过10网段，管理数据库</p>
+<pre><code class="language-mysql">mysql&gt; grant all on *.* to root@'10.0.0.%' identified by '123' with grant option;
+Query OK, 0 rows affected, 1 warning (0.00 sec)
+</code></pre>
+<p>创建一个应用用户wordpress，可以通过10网段，wordpress库下的所有表进行SELECT,INSERT, UPDATE, DELETE</p>
+<pre><code class="language-mysql">grant SELECT,INSERT,UPDATE,DELETE on wordpress.* to wordpress@'10.0.0.%' identified by '123';
+Query OK, 0 rows affected, 1 warning (0.00 sec)
+</code></pre>
+<p>回收权限</p>
+<pre><code class="language-mysql">mysql&gt; show grants for wordpress@'10.0.0.%';
++---------------------------------------------------------------------------------+
+| Grants for wordpress@10.0.0.%                                                   |
++---------------------------------------------------------------------------------+
+| GRANT USAGE ON *.* TO 'wordpress'@'10.0.0.%'                                    |
+| GRANT SELECT, INSERT, UPDATE, DELETE ON `wordpress`.* TO 'wordpress'@'10.0.0.%' |
++---------------------------------------------------------------------------------+
+2 rows in set (0.00 sec)
+
+mysql&gt; revoke delete on wordpress.*  from 'wordpress'@'10.0.0.%';
+Query OK, 0 rows affected (0.00 sec)
+
+mysql&gt; show grants for wordpress@'10.0.0.%';                     
++-------------------------------------------------------------------------+
+| Grants for wordpress@10.0.0.%                                           |
++-------------------------------------------------------------------------+
+| GRANT USAGE ON *.* TO 'wordpress'@'10.0.0.%'                            |
+| GRANT SELECT, INSERT, UPDATE ON `wordpress`.* TO 'wordpress'@'10.0.0.%' |
++-------------------------------------------------------------------------+
+2 rows in set (0.00 sec)
+</code></pre>
+<p>关于生产中开用户（面试题）</p>
+<p>（1）如何沟通开用户</p>
+<p>是否有邮件批复</p>
+<p>对哪些库和表做操作</p>
+<p>做什么操作</p>
+<p>从什么地址来登录</p>
+<p>（2）开发人员找你要root用户密码？</p>
+<p>走流程拒绝他</p>
+<p>如果是金融类的公司</p>
+<p>​	      原则上是不允许任何非DBA人员持有或申请root</p>
+<p>​	      如果有人私下索要root密码，即使举报。</p>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/mysql-jian-jie-ji-an-zhuang-yi/">
+              <h3 class="post-title">
+                下一篇：MySQL简介及安装（一）
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

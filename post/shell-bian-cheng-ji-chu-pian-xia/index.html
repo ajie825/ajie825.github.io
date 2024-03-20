@@ -1,0 +1,1227 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>Shell编程基础篇-下 | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">Shell编程基础篇-下</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2023-08-31</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/uw58vclBw/">
+                    Shell
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="11-条件表达式">1.1 条件表达式</h2>
+<h3 id="111-文件判断">1.1.1 文件判断</h3>
+<p>常用文件测试操作符</p>
+<table>
+<thead>
+<tr>
+<th>常用文件测试操作符</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>-d 文件 ，d的全拼为directory</td>
+<td>文件存在且为目录则为真，即测试表达式成立</td>
+</tr>
+<tr>
+<td>-f 文件，f的全拼为file</td>
+<td>文件存在且为普通文件则为真，即测试表达式成立</td>
+</tr>
+<tr>
+<td>-e 文件，e的全拼为exist</td>
+<td>文件存在则为真，即测试表达式成立。注意区别于&quot;-f&quot;和&quot;-d&quot;，&quot;-e&quot;不辨别是目录还是文件</td>
+</tr>
+<tr>
+<td>-r 文件，r的全拼为read</td>
+<td>文件存在且可读则为真，即测试表达式成立</td>
+</tr>
+<tr>
+<td>-s 文件，s的全拼为size</td>
+<td>文件存在且大小不为0则为真，即测试表达式成立</td>
+</tr>
+<tr>
+<td>-w 文件，w的全拼为write</td>
+<td>文件存在且可写则为真，即测试表达式成立</td>
+</tr>
+<tr>
+<td>-x 文件，x的全拼为executable</td>
+<td>文件存在且可执行则为真，即测试表达式成立</td>
+</tr>
+<tr>
+<td>-L 文件，L的全拼为link</td>
+<td>文件存在且为链接文件则为真，即测试表达式成立</td>
+</tr>
+<tr>
+<td>f1 -nt f2 nt的全拼为newer than</td>
+<td>文件f1比文件f2新则为真，即测试表达式成立。根据文件的修改时间来计算</td>
+</tr>
+<tr>
+<td>f1 -ot f2 nt的全拼为older than</td>
+<td>文件f1比文件f2旧则为真，即测试表达式成立。根据文件的修改时间来计算</td>
+</tr>
+</tbody>
+</table>
+<p><strong>判断文件是否存在</strong></p>
+<pre><code class="language-shell">[root@ops scripts]# [ -f /etc/hosts ]
+[root@ops scripts]# echo $?
+0
+[root@ops scripts]# [ -f /etc/hosts1 ]
+[root@ops scripts]# echo $?           
+1
+</code></pre>
+<p>判断文件是否存在，返回方式</p>
+<pre><code class="language-shell">[root@ops scripts]# [ -f /etc/hosts ] &amp;&amp; echo &quot;文件存在&quot; || echo &quot;文件不存在&quot;
+文件存在
+[root@ops scripts]# [ -f /etc/hosts1 ] &amp;&amp; echo &quot;文件存在&quot; || echo &quot;文件不存在&quot;
+文件不存在
+</code></pre>
+<p><strong>判断目录是否存在</strong></p>
+<pre><code class="language-shell">[root@ops scripts]# [ -d /tmp ] &amp;&amp; echo &quot;目录存在&quot; || echo &quot;目录不存在&quot; 
+目录存在
+[root@ops scripts]# [ -d /tmp1 ] &amp;&amp; echo &quot;目录存在&quot; || echo &quot;目录不存在&quot;
+目录不存在
+</code></pre>
+<p>使用变量的方法进行判断</p>
+<pre><code class="language-shell">[root@ops scripts]# dir=/etc1/;[ -d $dir ] &amp;&amp; tar zcf etc.tar.gz $dir || echo &quot;$dir目录不存在&quot;
+</code></pre>
+<h3 id="112-字符串判断">1.1.2 字符串判断</h3>
+<p>字符串测试操作符</p>
+<table>
+<thead>
+<tr>
+<th>常用字符串测试操作符</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>-n &quot;字符串&quot;</td>
+<td>若字符串的长度不为0，则为真，即测试表达式成立，n可以理解为no zero</td>
+</tr>
+<tr>
+<td>-z &quot;字符串&quot;</td>
+<td>若字符串的长度为0，则为真，即测试表达式成立，z可以理解为zero的缩写</td>
+</tr>
+<tr>
+<td>&quot;串1&quot; == &quot;串2&quot;</td>
+<td>若字符串1等于字符串2，则为真，即测试表达式成立</td>
+</tr>
+<tr>
+<td>&quot;串1&quot; != &quot;串2&quot;</td>
+<td>若字符串1不等于字符串2，则为真，即测试表达式成立</td>
+</tr>
+</tbody>
+</table>
+<ol>
+<li>对于字符串的测试，一定要将字符串加双引号之后再进行比较。</li>
+<li>空格非空</li>
+</ol>
+<p><strong><code>-z</code>判断字符串长度</strong></p>
+<pre><code class="language-shell">[root@ops scripts]# x= ; [ -z &quot;$x&quot; ] &amp;&amp; echo &quot;输入为空&quot; || echo '输入有内容'
+输入为空
+[root@ops scripts]# x=12; [ -z &quot;$x&quot; ] &amp;&amp; echo &quot;输入为空&quot; || echo '输入有内容' 
+输入有内容
+</code></pre>
+<p><strong><code>-n</code>判断字符串长度</strong></p>
+<pre><code class="language-shell">[root@ops scripts]# x=12; [ -n &quot;$x&quot; ] &amp;&amp; echo &quot;输入有内容&quot; || echo '输入为空'             
+输入有内容
+[root@ops scripts]# x= ; [ -n &quot;$x&quot; ] &amp;&amp; echo &quot;输入有内容&quot; || echo '输入为空'   
+输入为空
+</code></pre>
+<p><strong>&quot;串1&quot; == &quot;串2&quot;</strong></p>
+<pre><code class="language-shell">[root@ops scripts]# cmd=start;[ &quot;$cmd&quot; == &quot;start&quot; ] &amp;&amp; echo start || echo stop
+start
+</code></pre>
+<h3 id="113-整数判断">1.1.3 整数判断</h3>
+<p>整数二元比较操作符</p>
+<table>
+<thead>
+<tr>
+<th>在[]以及test中使用的比较符号（常用）</th>
+<th>在(())和[[]]使用的比较符号</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>-eq</td>
+<td>==或=</td>
+<td>相等，全拼为equal</td>
+</tr>
+<tr>
+<td>-ne</td>
+<td>!=</td>
+<td>不相等，全拼为not equal</td>
+</tr>
+<tr>
+<td>-gt</td>
+<td>&gt;</td>
+<td>大于，全拼为greater than</td>
+</tr>
+<tr>
+<td>-ge</td>
+<td>&gt;=</td>
+<td>大于等于，全拼为greater equeal</td>
+</tr>
+<tr>
+<td>-lt</td>
+<td>&lt;</td>
+<td>小于，全拼为less than</td>
+</tr>
+<tr>
+<td>-le</td>
+<td>&lt;=</td>
+<td>小于等于，全拼为less equal</td>
+</tr>
+</tbody>
+</table>
+<p><strong>判断两数是否相等</strong></p>
+<pre><code class="language-shell">[root@ops scripts]# [ 1 -eq 1 ] &amp;&amp; echo &quot;两数相等&quot; || echo &quot;两数不相等&quot;
+两数相等
+[root@ops scripts]# [ 1 -eq 2 ] &amp;&amp; echo &quot;两数相等&quot; || echo &quot;两数不相等&quot;
+两数不相等
+</code></pre>
+<p><strong>大于等于</strong></p>
+<pre><code class="language-shell">[root@ops scripts]# [ 11 -ge 2 ] &amp;&amp; echo &quot;成立&quot; || echo &quot;不成立&quot;              
+成立
+</code></pre>
+<p><strong>小于</strong></p>
+<pre><code class="language-shell">[root@ops scripts]# [ 11 -lt 2 ] &amp;&amp; echo &quot;成立&quot; || echo &quot;不成立&quot;   
+不成立
+</code></pre>
+<p><strong>大于</strong></p>
+<pre><code class="language-shell">[root@ops scripts]# [ 11 -gt 2 ] &amp;&amp; echo &quot;成立&quot; || echo &quot;不成立&quot; 
+成立
+</code></pre>
+<p><strong>不等于</strong></p>
+<pre><code class="language-shell">[root@ops scripts]# [ 11 -ne 2 ] &amp;&amp; echo &quot;成立&quot; || echo &quot;不成立&quot;  
+成立
+</code></pre>
+<h3 id="114-逻辑符号">1.1.4 逻辑符号</h3>
+<p>常用逻辑操作符</p>
+<table>
+<thead>
+<tr>
+<th>在[]和test中使用的操作符</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>-a</td>
+<td>and，与，两端都为真，则结果为真</td>
+</tr>
+<tr>
+<td>-o</td>
+<td>or，或，两端有一个为真，则结果为真</td>
+</tr>
+<tr>
+<td>!</td>
+<td>not，非，两端相反，则结果为真</td>
+</tr>
+</tbody>
+</table>
+<p><strong>两边都为真</strong></p>
+<pre><code class="language-shell">[root@ops scripts]# [ 11 -ne 2 -a 3 -eq 3 ] &amp;&amp; echo &quot;成立&quot; || echo &quot;不成立&quot;
+成立
+</code></pre>
+<p><strong>至少有一边为真</strong></p>
+<pre><code class="language-shell">[root@ops scripts]# [ 11 -ne 2 -o 3 -eq 5 ] &amp;&amp; echo &quot;成立&quot; || echo &quot;不成立&quot; 
+成立
+</code></pre>
+<p><strong>取反</strong></p>
+<pre><code class="language-shell">[root@ops scripts]# [ ! 3 -eq 5 ] &amp;&amp; echo &quot;成立&quot; || echo &quot;不成立&quot;
+成立
+</code></pre>
+<p><strong>感叹号的特殊用法</strong></p>
+<p>使用历史命令，感叹号加上<code>history</code>中的序号，即可执行</p>
+<pre><code class="language-shell">[root@ops scripts]# !735
+[ 1 -eq 1 ] &amp;&amp; echo &quot;两数相等&quot; || &quot;两数不相等&quot;
+两数相等
+</code></pre>
+<h3 id="115-开发3个shell脚本比较2个整数大小">1.1.5 开发3个shell脚本比较2个整数大小</h3>
+<p>要求：</p>
+<ol>
+<li>分别以定义变量，脚本传参以及read读入的方式写3个脚本。</li>
+<li>用条件表达式（禁止<code>if</code>语句）进行判断。</li>
+<li>将2个整数的比较结果输出到屏幕，出错需要提示。</li>
+</ol>
+<p><strong>使用定义变量方法</strong></p>
+<pre><code class="language-bash">[root@ops scripts]# cat panduan1.sh 
+#!/bin/bash
+##############################################################
+# File Name: panduan1.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-09-01 02:06:34
+# Description:
+##############################################################
+NUM1=15
+NUM2=15
+
+expr 1 + $NUM1 &amp;&gt; /dev/null
+[ $? -eq 2 ] &amp;&amp; echo &quot;$NUM1 不是整数&quot; &amp;&amp; exit 2
+
+expr 1 + $NUM2 &amp;&gt; /dev/null
+[ $? -eq 2 ] &amp;&amp; echo &quot;$NUM2 不是整数&quot; &amp;&amp; exit 2
+
+[ &quot;$NUM1&quot; -eq &quot;$NUM2&quot; ] &amp;&amp; echo &quot;$NUM1 = $NUM2&quot;  &amp;&amp; exit
+[ &quot;$NUM1&quot; -gt &quot;$NUM2&quot; ] &amp;&amp; echo &quot;$NUM1 &gt; $NUM2&quot; &amp;&amp; exit
+[ &quot;$NUM1&quot; -lt &quot;$NUM2&quot; ] &amp;&amp; echo &quot;$NUM1 &lt; $NUM2&quot;
+</code></pre>
+<p><strong>使用传参方法</strong></p>
+<pre><code class="language-bash">[root@ops scripts]# cat panduan_chuancan.sh 
+#!/bin/bash
+##############################################################
+# File Name: panduan_chuancan.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-09-01 02:13:13
+# Description:
+##############################################################
+[ $# -ne 2 ] &amp;&amp; echo &quot;UASGE: $0 NUM1 NUM2&quot; &amp;&amp; exit
+
+NUM1=$1
+NUM2=$2
+
+expr 1 + $NUM1 &amp;&gt; /dev/null
+[ $? -eq 2 ] &amp;&amp; echo &quot;$NUM1 不是整数&quot; &amp;&amp; exit 2
+
+expr 1 + $NUM2 &amp;&gt; /dev/null
+[ $? -eq 2 ] &amp;&amp; echo &quot;$NUM2 不是整数&quot; &amp;&amp; exit 2
+
+[ &quot;$NUM1&quot; -eq &quot;$NUM2&quot; ] &amp;&amp; echo &quot;$NUM1 = $NUM2&quot;  &amp;&amp; exit
+[ &quot;$NUM1&quot; -gt &quot;$NUM2&quot; ] &amp;&amp; echo &quot;$NUM1 &gt; $NUM2&quot; &amp;&amp; exit
+[ &quot;$NUM1&quot; -lt &quot;$NUM2&quot; ] &amp;&amp; echo &quot;$NUM1 &lt; $NUM2&quot;
+</code></pre>
+<p><strong>使用<code>read</code>命令读入</strong></p>
+<pre><code class="language-bash">[root@ops scripts]# cat panduan_read.sh 
+#!/bin/bash
+##############################################################
+# File Name: panduan_read.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-09-01 02:19:20
+# Description:
+##############################################################
+read -p &quot;请输入第一个整数：&quot; NUM1
+expr 1 + $NUM1  &amp;&gt;/dev/null
+[ $? -eq 2 ] &amp;&amp; echo &quot;$NUM1 不是整数 &quot; &amp;&amp;  exit 2
+
+read -p &quot;请输入第二个整数：&quot; NUM2
+expr 1 + $NUM2  &amp;&gt;/dev/null 
+[ $? -eq 2 ] &amp;&amp; echo &quot;$NUM2 不是整数 &quot; &amp;&amp;  exit 2
+
+[ &quot;$NUM1&quot; -eq &quot;$NUM2&quot; ] &amp;&amp; echo &quot;$NUM1 = $NUM2&quot;  &amp;&amp; exit
+[ &quot;$NUM1&quot; -gt &quot;$NUM2&quot; ] &amp;&amp; echo &quot;$NUM1 &gt; $NUM2&quot; &amp;&amp; exit
+echo &quot;$NUM1 &lt; $NUM2
+</code></pre>
+<h2 id="12-if条件语句">1.2 <code>if</code>条件语句</h2>
+<p>条件表达式和<code>if</code>语句可以互相转换</p>
+<h3 id="121-三种语法">1.2.1 三种语法</h3>
+<p><strong>单分支语句</strong></p>
+<pre><code class="language-shell">if [ -f /etc/host ];then
+    echo &quot;文件存在&quot;
+fi
+</code></pre>
+<p><strong>双分支语句</strong></p>
+<pre><code class="language-shell">if [ -f /etc/hosts ];then
+    echo &quot;文件存在&quot;
+else
+    echo &quot;文件不存在&quot;
+    echo &quot;...&quot;&gt;/tmp/test.log
+fi
+</code></pre>
+<p><strong>多分支语句</strong></p>
+<pre><code class="language-shell">if [ -f /etc/hosts ];then
+    echo &quot;文件存在&quot;
+elif [ -f /etc/hostname ];then
+    echo &quot;文件存在&quot;
+else
+    echo &quot;文件不存在&quot;
+fi
+</code></pre>
+<h3 id="122-if条件语句小结">1.2.2 <code>if</code>条件语句小结</h3>
+<ul>
+<li>单分支：一个条件一个结果</li>
+</ul>
+<pre><code class="language-shell">如果 &lt;你给我足够多的钱&gt;;那么
+　　　　我就给你干活
+果如
+</code></pre>
+<ul>
+<li>双分支：一个条件两个结果</li>
+</ul>
+<pre><code class="language-shell">如果 &lt;你给我足够多的钱&gt;;那么
+　　　　我就给你干活
+否则
+　　　　我再考虑一下
+果如
+</code></pre>
+<ul>
+<li>多分支：多个条件多个结果</li>
+</ul>
+<pre><code class="language-shell">如果 &lt;你有房&gt;;那么
+        我就嫁给你
+或者如果 &lt;你家里有钱&gt;;那么
+        我也可以嫁给你
+或者如果 &lt;你很努力很吃苦&gt;;那么
+        我们可以先谈谈男女朋友
+否则
+        我们没戏
+果如
+</code></pre>
+<h3 id="123-输入2个数字比较大小使用if语句结合条件表达式实现">1.2.3 输入2个数字，比较大小（使用<code>if</code>语句结合条件表达式实现）</h3>
+<p>说明：</p>
+<p>3个脚本：使用直接赋值，传参，<code>read</code>任一种方法写3种脚本（单分支，双分支，多分支）</p>
+<p><strong>示例脚本一：</strong></p>
+<pre><code class="language-bash">[root@ops scripts]# cat if_panduan_1.sh 
+#!/bin/bash
+##############################################################
+# File Name: if_panduan_2.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-09-01 21:40:23
+# Description:
+##############################################################
+NUM1=20
+NUM2=15
+expr 1 + $NUM1 &amp;&gt;/dev/null
+if [ $? -eq 2 ];then
+    echo &quot;$NUM1不是整数&quot;
+    exit 2
+fi
+expr 1 + $NUM2 &amp;&gt;/dev/null
+if [ $? -eq 2 ];then
+    echo &quot;$NUM2不是整数&quot;
+    exit 2
+fi
+# 判断输入数值大小
+if [ $NUM1 -eq $NUM2 ];then
+    echo &quot;$NUM1 = $NUM2&quot;
+    exit 
+fi
+if [ $NUM1 -gt $NUM2 ];then
+    echo &quot;$NUM1 &gt; $NUM2&quot;
+    exit
+fi
+if [ $NUM1 -lt $NUM2 ];then
+    echo &quot;$NUM1 &lt; $NUM2&quot;
+fi
+</code></pre>
+<p><strong>示例脚本二：</strong></p>
+<pre><code class="language-bash">[root@ops scripts]# cat if_panduan_2.sh 
+#!/bin/bash
+##############################################################
+# File Name: if_panduan_2.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-09-01 21:40:23
+# Description:
+##############################################################
+[ $# -ne 2 ] &amp;&amp; echo &quot;USAGE: $0 NUM1 NUM2&quot; &amp;&amp; exit
+NUM1=$1
+NUM2=$2
+expr 1 + $NUM1 &amp;&gt;/dev/null
+if [ $? -eq 2 ];then
+    echo &quot;$NUM1不是整数&quot;
+    exit 2
+fi
+expr 1 + $NUM2 &amp;&gt;/dev/null
+if [ $? -eq 2 ];then
+    echo &quot;$NUM2不是整数&quot;
+    exit 2
+fi
+# 判断输入数值大小
+if [ $NUM1 -eq $NUM2 ];then
+    echo &quot;$NUM1 = $NUM2&quot;
+    exit 
+else
+    if [ $NUM1 -gt $NUM2 ];then
+        echo &quot;$NUM1 &gt; $NUM2&quot;
+        exit
+    else 
+        if [ $NUM1 -lt $NUM2 ];then
+        echo &quot;$NUM1 &lt; $NUM2&quot;
+        fi
+     fi
+fi
+</code></pre>
+<p><strong>示例脚本三：</strong></p>
+<pre><code class="language-bash">[root@ops scripts]# cat if_panduan_3.sh 
+#!/bin/bash
+##############################################################
+# File Name: if_panduan_2.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-09-01 21:40:23
+# Description:
+##############################################################
+read -p &quot;请输入第一个整数：&quot; NUM1
+expr 1 + $NUM1 &amp;&gt;/dev/null
+if [ $? -eq 2 ];then
+    echo &quot;$NUM1不是整数&quot;
+    exit 2
+fi
+
+read -p &quot;请输入第二个整数：&quot; NUM2
+expr 1 + $NUM2 &amp;&gt;/dev/null
+if [ $? -eq 2 ];then
+    echo &quot;$NUM2不是整数&quot;
+    exit 2
+fi
+# 判断输入数值大小
+if [ $NUM1 -eq $NUM2 ];then
+    echo &quot;$NUM1 = $NUM2&quot;
+    exit 
+elif
+   [ $NUM1 -gt $NUM2 ];then
+    echo &quot;$NUM1 &gt; $NUM2&quot;
+    exit
+else 
+    echo &quot;$NUM1 &lt; $NUM2&quot;
+fi
+</code></pre>
+<h3 id="124-系统内存低于100m邮件报警加入计划任务3分钟检查一次">1.2.4 系统内存低于100M邮件报警，加入计划任务，3分钟检查一次</h3>
+<p>对于开发程序而言，一般来说应该遵循下面的3步法则。</p>
+<p>1）分析需求</p>
+<p>明白开发需求，是完成程序的大前提，因此，分析需求至关重要，一切不以需求为主的程序开发，都是耍流氓！</p>
+<p>2）设计思路</p>
+<p>设计思路就是根据需求，把需求进行拆解，分模块逐步实现，例如本题可以分为如下几步：</p>
+<ul>
+<li>获取当前系统剩余内存的值（先在命令行实现）。</li>
+<li>配置邮件报警（可采用第三方邮件服务器）。</li>
+<li>判断取到的值是否小于100MB，如果小于100MB，就报警（采用<code>if</code>语句）。</li>
+<li>编码实现shell脚本</li>
+<li>加入<code>crond</code>定时任务，每三分钟检查一次。</li>
+</ul>
+<p>3）编码实现</p>
+<p>编码实现就是具体的编码及调试过程，工作中很可能需要先在测试环境下调试，调试好了，再发布到生产环境中。</p>
+<p>第一步：先配置邮件服务，保证能够正常发邮件</p>
+<pre><code class="language-shell">[root@ops scripts]# yum install mailx
+[root@ops scripts]# cat /etc/mail.rc
+set smtp=smtps://smtp.gmail.com:465
+set smtp-auth=login
+set smtp-auth-user=******@gmail.com
+set smtp-auth-password=******
+set ssl-verify=ignore
+set nss-config-dir=/etc/pki/nssdb/
+</code></pre>
+<p>发送测试邮件</p>
+<pre><code class="language-shell">echo &quot;`date +%F_%T`&quot; |mail -s &quot;这是测试邮件&quot; ******@gmail.com
+</code></pre>
+<p>第二步：编写检查脚本</p>
+<pre><code class="language-bash">[root@ops scripts]# cat mem_info.sh 
+#!/bin/bash
+##############################################################
+# File Name: mem_info.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-09-01 23:20:27
+# Description:
+##############################################################
+Mem=`free -m |awk 'NR==2{print $NF}'`
+host=`hostname`
+Ip=`hostname -I`
+Date=`date +%F_%T`
+mail_file=/tmp/mail.s
+dest_user=******@gmail.com
+
+if [ $Mem -lt 1600 ];then
+ echo &quot;发送时间: $Date&quot; &gt;$mail_file
+ echo &quot;发生主机 $host 主机IP地址: $Ip&quot;  &gt;&gt;mail_file
+ echo &quot;内存余量: $Mem M&quot; &gt;&gt;$mail_file
+ mail -s [警告]内存不足了呀!$dest_user &lt; $mail_file
+fi
+</code></pre>
+<p>第三步：测试脚本（可以修改判断的值）</p>
+<pre><code class="language-shell">[root@ops scripts]# sh mem_info.sh
+</code></pre>
+<p>第四步：脚本测试成功，写入定时任务</p>
+<pre><code class="language-shell">[root@ops scripts]#  crontab -l
+# 检查内存剩余大小
+*/3 * * * * /bin/sh/data/scripts/mem_info.sh &amp;&gt;/dev/null
+</code></pre>
+<p>至此，一个监控脚本就写好了</p>
+<h3 id="125-模拟编写启动nginx脚本">1.2.5 模拟编写启动<code>nginx</code>脚本</h3>
+<p>脚本内容</p>
+<pre><code class="language-bash">[root@ops scripts]# cat nginx.sh 
+#!/bin/bash
+##############################################################
+# File Name: nginx.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-09-02 01:52:43
+# Description:
+##############################################################
+. /etc/init.d/functions  
+
+StartCheck=`netstat -lntup  |grep -c 80`
+StartCMD='/application/nginx/sbin/nginx '
+StopCMD='/application/nginx/sbin/nginx -s stop '
+StatusCheck=`netstat -lntp|grep -c nginx`
+ReloadCMD='/application/nginx/sbin/nginx -s reload'
+CheckCMD='/application/nginx/sbin/nginx  -t'
+USAGE=&quot;Usage: $0 {start|stop|status|reload|check}&quot;
+
+COMMAND=$1
+if [  $# -ne 1 ];then
+    echo $USAGE  &amp;&amp; exit 2
+fi 
+
+if [ $COMMAND = start ];then
+    if [ $StartCheck  == 1  ];then
+      action  &quot;启动Nginx失败,端口被占用&quot;  /bin/false
+    else
+      $StartCMD
+      action  &quot;启动Nginx&quot;  /bin/true
+    fi
+elif [ $COMMAND = stop ];then
+      $StopCMD  &amp;&gt;/dev/null
+      if [ $? -eq 0 ];then
+          action   &quot;停止Nginx&quot;   /bin/true 
+      else
+          action   &quot;停止Nginx&quot;   /bin/false
+      fi
+elif [ $COMMAND = status ];then
+    if [ $StatusCheck -eq 1 ];then
+        echo &quot;nginx 正在运行...&quot;
+    else
+        echo &quot;Nginx 未运行.&quot;
+    fi
+elif [ $COMMAND = reload ];then
+    $ReloadCMD
+    action  &quot;reload&quot; /bin/true
+elif [ $COMMAND = check ];then 
+    $CheckCMD
+else 
+    echo $USAGE
+    exit 2
+fi
+</code></pre>
+<h3 id="126-web及mysql服务异常监测案例">1.2.6 web及MySQL服务异常监测案例</h3>
+<p>用<code>if</code>条件语句实现对<code>Nginx Web</code>服务以及<code>Mysql</code>数据库服务是否正常进行检测，如果服务未启动，则启动相应服务。</p>
+<p>脚本编写思路：</p>
+<p>判断<code>web</code>服务器正常</p>
+<ol>
+<li>进程 <code>ps -ef|grep nginx</code></li>
+<li>端口 <code>netstat ss losf telnet nc nmap</code></li>
+<li><code>curl</code> 页面 返回值</li>
+<li><code>curl check.html</code>的内容</li>
+</ol>
+<p>判断<code>mysql</code>服务正常</p>
+<ol>
+<li>端口 <code>netstat ss losf telnet nc nmap</code></li>
+<li>进程 <code>ps -ef|grep mysql</code></li>
+<li><code>mysql</code>登录访问看一下</li>
+<li><code>mysql insert</code>一个数据 <code>select</code>一个数据</li>
+</ol>
+<p><strong><code>web</code>服务监控脚本示例</strong></p>
+<pre><code class="language-bash">[root@ops scripts]# cat web_check.sh 
+#!/bin/bash
+##############################################################
+# File Name: web_check.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-09-03 22:26:05
+# Description:
+##############################################################
+. /etc/init.d/functions
+
+JinChen=`ps -ef |grep -c  [n]ginx`
+QiDong='/data/scripts/nginx.sh start'
+StatuS=`curl -I -w &quot;%{http_code}\n&quot; -o /dev/null -s   192.168.40.185`
+
+if [ $JinChen -ge 2  ];then 
+    if [ &quot;$StatuS&quot; -eq 200 ];then
+            action &quot;Nginx 服务运行正常！&quot; /bin/true
+    else
+            action &quot;Nginx 启动失败！&quot; /bin/false
+    fi
+else
+    action &quot;Nginx 未正常运行！&quot; /bin/false
+    sh $QiDong
+fi
+</code></pre>
+<h2 id="13-case条件结构语句">1.3 <code>case</code>条件结构语句</h2>
+<h3 id="131-case语法结构">1.3.1 <code>case</code>语法结构</h3>
+<pre><code class="language-shell">case &quot;字符串变量&quot; in
+  值1)
+    指令1
+    ;;
+  值2)
+    指令2
+    ;;
+  *)
+    指令
+    ;;
+esac 
+</code></pre>
+<h3 id="132-case与if的对比">1.3.2 <code>case</code>与<code>if</code>的对比</h3>
+<p><code>case</code>书写方式</p>
+<pre><code class="language-shell">case $name in
+  值1) 
+      指令1
+      ;;
+  值2) 
+      指令2
+      ;;
+   *) 
+      指令
+esac
+</code></pre>
+<p><code>if</code>书写方式</p>
+<pre><code class="language-shell">if [ $name == &quot;值1&quot; ];then 
+    指令1
+elif [ $name == &quot;值2&quot; ];then 
+    指令2
+else
+    指令    
+fi
+</code></pre>
+<p>1.3.3 <code>case</code>值的书写方式</p>
+<pre><code class="language-shell">apple)
+      echo -e &quot;$RED_COLOR apple $RES&quot;
+      ;;
+</code></pre>
+<p>也可以这样写，输入2种格式找同一个选项</p>
+<pre><code class="language-shell">apple|APPLE)
+      echo -e &quot;$RED_COLOR apple $RES&quot;
+      ;;
+</code></pre>
+<h3 id="134-case语句小结">1.3.4 <code>case</code>语句小结</h3>
+<ul>
+<li><code>case</code>语句就相当于多分支的<code>if</code>语句。<code>case</code>语句的优势是更规范、易读。</li>
+<li><code>case</code>语句适合变量的值少，且为固定的数字或字符串集合。（<code>1，2，3</code>）或(<code>start，stop，restart</code>)。</li>
+<li>系统服务启动脚本传参的判断多用<code>case</code>语句，多参考<code>rpcbind/nfs/crond</code>脚本；菜单脚本也可以使用<code>case</code>。</li>
+</ul>
+<h3 id="135-使用case编写一个菜单脚本">1.3.5 使用case编写一个菜单脚本</h3>
+<p>脚本内容</p>
+<pre><code class="language-bash">[root@ops scripts]# cat menu.sh 
+#!/bin/bash
+##############################################################
+# File Name: menu.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-09-03 23:16:51
+# Description:
+##############################################################
+cat&lt;&lt;EOF
+1. install rsync
+2. install nfs
+3. install mysql
+4. install all
+EOF
+
+read -p &quot;请输入你的选择：&quot; chs
+
+case $chs in
+  1)
+    echo install rsync success
+    ;;
+  2)
+    echo install nfs success
+    ;;
+  3)
+    echo install mysql success
+    ;;
+  4)
+    echo install rsync/nfs/mysql success
+    ;;
+  *)
+    echo &quot;你输入有误！&quot;
+esac
+</code></pre>
+<h3 id="136-输出带有颜色的水果菜单">1.3.6 输出带有颜色的水果菜单</h3>
+<pre><code class="language-bash">[root@ops scripts]# cat fruits.sh 
+#!/bin/bash
+##############################################################
+# File Name: fruits.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-09-03 23:25:53
+# Description:
+##############################################################
+cat &lt;&lt;EOF
+=======================
+1.apple
+2.pear
+3.banana
+4.exit
+=======================
+EOF
+read -t 10 -p  &quot;你要看什么水果:&quot; Menu_Num
+
+case &quot;$Menu_Num&quot; in 
+  1)
+   echo -e &quot;\033[31m apple \033[0m&quot;
+   ;;
+  2)
+   echo -e &quot;\033[32m pear \033[0m&quot;
+   ;;
+  3)
+   echo -e &quot;\033[33m banana \033[0m&quot; 
+   ;;
+  *)
+   exit
+esac
+</code></pre>
+<h3 id="137-写脚本规范及注意事项">1.3.7 写脚本规范及注意事项</h3>
+<ol>
+<li>变量名称不能和系统已经存在的命令等重复 <code>free = =&gt; Free</code></li>
+<li>判断单位要统一</li>
+<li>脚本一行不超过一屏的一半</li>
+<li>能写出变量的内容尽量写成变量</li>
+</ol>
+<h2 id="14-练习题">1.4 练习题</h2>
+<h3 id="141-监控memcached缓存服务是否正常">1.4.1 监控<code>Memcached</code>缓存服务是否正常</h3>
+<p>监控<code>Memcached</code>缓存服务是否正常，模拟用户（<code>web</code>客户端）检测。</p>
+<p>使用<code>nc</code>命令加上<code>set/get</code>来模拟检测。</p>
+<p><code>memcached</code>安装：<code>http://www.cnblogs.com/clsn/p/7999510.html</code></p>
+<p>脚本内容</p>
+<pre><code class="language-bash">[root@ops scripts]# cat memcache_check.sh 
+#!/bin/bash
+##############################################################
+# File Name: memcache_check.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-09-04 01:23:46
+# Description:
+##############################################################
+. /etc/init.d/functions
+MemPort=`netstat -lntp  |grep -c  0.0.0.0:11211`
+Set_Key='printf &quot;set ops2017 0 10 8\r\nops2018\r\n&quot;|nc 192.168.40.185 11211'
+Get_Key='printf &quot;get ops2017\r\n&quot; |nc 192.168.40.185 11211 |grep -c ops2018'
+ReStart='systemctl restart memcached.service'
+
+if [ $MemPort -eq 1 ];then
+    $Set_Key
+    $Get_Key
+    if [ $? -ne 1 ];then
+      action &quot;Memcached 运行正常！&quot; /bin/true
+    else
+      action &quot;Memcached 服务异常！&quot;  /bin/false
+    fi
+else
+    action &quot;服务未启动！&quot; /bin/false
+    $ReStart
+fi
+</code></pre>
+<h3 id="142-使用case编写rsync管理脚本">1.4.2 使用（<code>case</code>）编写<code>rsync</code>管理脚本</h3>
+<p>写网络服务独立进程模式下<code>rsync</code>的系统启动脚本，例如：<code>/etc/init.d/rsyncd {start/stop/restart}</code>。</p>
+<p>要求：</p>
+<ol>
+<li>要使用系统函数库技巧。</li>
+<li>要用函数，不能一坨💩的方式。</li>
+<li>在<code>centos 6</code>中可用<code>chkconfig</code>管理。</li>
+</ol>
+<p>注意：</p>
+<p>服务的停止操作和启动操作之间要有间隔时间，使用<code>sleep 1</code></p>
+<pre><code class="language-shell">pkill 进程
+   sleep 1
+start 服务
+</code></pre>
+<p><code>rsync</code>服务启动脚本</p>
+<pre><code class="language-bash">[root@ops scripts]# cat rsyncd.sh 
+#!/bin/bash
+##############################################################
+# File Name: rsyncd.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-09-04 02:04:09
+# Description:
+##############################################################
+. /etc/init.d/functions
+
+Rsync_Port=`netstat -lntup|grep -c 873`
+Rsync_COM1='rsync --daemon'
+Rsync_COM2='pkill rsync'
+
+Rsync_Start() {
+  if [ $Rsync_Port -ne 0 ]; then
+   action &quot;rsyncd服务已启动&quot;  /bin/false
+ else
+   $Rsync_COM1
+   action &quot;正在启动rsyncd服务...&quot;  /bin/true
+  fi
+}
+
+Rsync_Stop() {
+  if [ $Rsync_Port -eq 0 ]; then
+   action &quot;服务未启动&quot;  /bin/false
+ else
+   $Rsync_COM2
+   action &quot;正在停止rsyncd服务...&quot;  /bin/true
+  fi
+}
+
+Rsync_Status() {
+  if [ $Rsync_Port -eq 2 ]; then
+       echo  &quot;Rsync服务运行中...&quot;
+   else       
+       echo  &quot;Rsync服务未运行...&quot;
+  fi
+ }
+
+Rsync_Restart() {
+   Rsync_Stop
+   sleep 1
+   Rsync_Start
+}
+
+COMMAND=$1
+case &quot;$COMMAND&quot; in
+  start)
+    Rsync_Start
+    ;;
+  stop)
+    Rsync_Stop
+    ;;
+  status)
+    Rsync_Status
+    ;;
+  restart|reload|force-reload)
+    Rsync_Restart
+    ;;
+   *)
+   echo &quot;Usage: $0 {start|stop|status|restart|reload|force-reload}&quot;
+   exit 2
+esac
+</code></pre>
+<h3 id="143-菜单自动化软件部署脚本实践">1.4.3 菜单自动化软件部署脚本实践</h3>
+<p><strong>综合实例：</strong> 打印选择菜单，按照选择一键安装不同的<code>web</code>服务。</p>
+<pre><code class="language-shell">示例菜单：
+[root@ops scripts]# sh menu.sh
+    1.[install lamp]
+    2.[install lnmp]
+    3.[exit]
+</code></pre>
+<p><strong>要求：</strong></p>
+<ol>
+<li>当用户输入1时，输出&quot;<code>start installing lamp.</code>提示&quot;，然后执行<code>/data/cripts/lamp.sh</code>，脚本内容输出<code>&quot;lamp is installed&quot;</code>后退出脚本，工作中就是正是<code>lamp</code>一键安装脚本；</li>
+</ol>
+<pre><code class="language-shell">echo 'echo lamp is installed' &gt; /data/scripts/lamp.sh
+chmod +x /data/scripts/lamp.sh
+</code></pre>
+<ol start="2">
+<li>当用户输入2时，输出&quot;<code>start installing lnmp.</code>提示&quot;，然后执行<code>/data/cripts/lnmp.sh</code>，脚本内容输出<code>&quot;lnmp is installed&quot;</code>后退出脚本，工作中就是正是<code>lnmp</code>一键安装脚本；</li>
+</ol>
+<pre><code class="language-shell">echo 'echo lamp is installed' &gt; /data/scripts/lnmp.sh
+chmod +x /data/scripts/lamp.sh
+</code></pre>
+<ol start="3">
+<li>当输入3时，退出当前菜单及脚本；</li>
+<li>当输入任何其它字符，给出提示<code>&quot;Input error&quot;</code>后退出脚本；</li>
+<li>要对执行的脚本进行相关的条件判断，例如：脚本文件是否存在，是否可执行等判断。</li>
+</ol>
+<p><strong>脚本内容：</strong></p>
+<pre><code class="language-bash">[root@ops scripts]# cat menu.sh 
+#!/bin/bash
+##############################################################
+# File Name: menu.sh
+# Version: V1.0
+# Author: ops
+# Organization: http://blog.znix.top
+# Created Time : 2023-09-03 23:16:51
+# Description:
+##############################################################
+cat &lt;&lt;EOF
+1.[install lamp]
+2.[install lnmp]
+3.[exit]
+EOF
+
+read -p &quot;please input the num you want:&quot; Num
+
+case &quot;$Num&quot; in 
+  1)
+    if [ -f /data/scripts/lamp.sh ];then
+         echo -e &quot;\033[36mstart installing lamp\033[0m&quot;
+         sh /data/scripts/lamp.sh
+    else
+      echo -e &quot;\033[5;41;37m /data/scripts/lamp.sh 文件不存在 \033[0m&quot;
+    fi 
+    ;;
+  2) 
+    if [ -f /data/scripts/lnmp.sh ];then
+         echo -e &quot;\033[36mstart installing lnmp\033[0m&quot;
+         sh /data/scripts/lnmp.sh
+    else
+      echo -e &quot;\033[5;41;37m /data/scripts/lnmp.sh 文件不存在 \033[0m&quot;
+    fi
+    ;;
+  3)
+    exit
+    ;;
+  *)
+    echo -e &quot;\033[31mInput error \033[0m&quot;
+    exit 2 
+esac
+</code></pre>
+<h3 id="144-if与case对比">1.4.4<code> if</code>与<code>case</code>对比</h3>
+<p><code>if</code>语句类似黑名单，需要把这种错误场景封堵</p>
+<p><code>case</code>语句类似白名单，只要把正确结果列完整即可</p>
+<h2 id="15-其他补充说明">1.5 其他补充说明</h2>
+<h3 id="151-linux中产生随机数的方法">1.5.1<code> linux</code>中产生随机数的方法</h3>
+<pre><code class="language-shell">[root@ops scripts]# echo $RANDOM
+15788
+[root@ops scripts]# echo $RANDOM
+28477
+[root@ops scripts]# echo $RANDOM
+5965
+</code></pre>
+<h3 id="152-echo命令输出带颜色字符">1.5.2 <code>echo</code>命令输出带颜色字符</h3>
+<p><strong>彩色字体</strong></p>
+<pre><code class="language-shell">echo -e &quot;\033[30m 黑色字 ops \033[0m&quot;
+echo -e &quot;\033[31m 红色字 ops \033[0m&quot;
+echo -e &quot;\033[32m 绿色字 ops \033[0m&quot;
+echo -e &quot;\033[33m 黄色字 ops \033[0m&quot;
+echo -e &quot;\033[34m 蓝色字 ops \033[0m&quot;
+echo -e &quot;\033[35m 紫色字 ops \033[0m&quot;
+echo -e &quot;\033[36m 天蓝字 ops \033[0m&quot;
+echo -e &quot;\033[37m 白色字 ops \033[0m&quot;
+</code></pre>
+<p><strong>彩色底纹</strong></p>
+<pre><code class="language-shell">echo -e &quot;\033[40;37m 黑底白字 ops \033[0m&quot;
+echo -e &quot;\033[41;37m 红底白字 ops \033[0m&quot;
+echo -e &quot;\033[42;37m 绿底白字 ops \033[0m&quot;
+echo -e &quot;\033[43;37m 黄底白字 ops \033[0m&quot;
+echo -e &quot;\033[44;37m 蓝底白字 ops \033[0m&quot;
+echo -e &quot;\033[45;37m 紫底白字 ops \033[0m&quot;
+echo -e &quot;\033[46;37m 天蓝白字 ops \033[0m&quot;
+</code></pre>
+<p><strong>特效字体</strong></p>
+<pre><code class="language-shell">\033[0m 关闭所有属性
+\033[1m 设置高亮度
+\033[4m 下划线
+\033[5m 闪烁
+\033[7m 反显
+\033[8m 消隐
+\033[30m — \033[37m 设置前景色
+\033[40m — \033[47m 设置背景色
+\033[nA 光标上移 n 行
+\033[nB 光标下移 n 行
+\033[nC 光标右移 n 行
+\033[nD 光标左移 n 行
+\033[y;xH 设置光标位置
+\033[2J 清屏
+\033[K 清除从光标到行尾的内容
+\033[s 保存光标位置
+\033[u 恢复光标位置
+\033[?25l 隐藏光标
+\033[?25h 显示光标
+</code></pre>
+<h3 id="153-显示文本中的隐藏字符">1.5.3 显示文本中的隐藏字符</h3>
+<p><strong>使用<code>cat -A</code> 命令查看文本中的隐藏字符</strong></p>
+<pre><code class="language-shell">[root@ops scripts]# cat --help
+用法：cat [选项]... [文件]...
+将[文件]或标准输入组合输出到标准输出。
+
+  -A, --show-all           等于-vET
+  -b, --number-nonblank    对非空输出行编号
+  -e                       等于-vE
+  -E, --show-ends          在每行结束处显示&quot;$&quot;
+  -n, --number             对输出的所有行编号
+  -s, --squeeze-blank      不输出多行空行
+  -t                       与-vT 等价
+  -T, --show-tabs          将跳格字符显示为^I
+  -u                       (被忽略)
+  -v, --show-nonprinting   使用^ 和M- 引用，除了LFD和 TAB 之外
+</code></pre>
+<pre><code class="language-shell">[root@ops scripts]# cat -A /etc/hosts
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4$
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6$
+</code></pre>
+<p><strong>关于隐藏字符常见错误</strong></p>
+<p>在<code>Windows</code>中编写的脚本换行使用的是<code>\r\n</code></p>
+<p>但是在<code>linux</code>中使用<code>\n</code>进行换行</p>
+<pre><code class="language-shell">[root@ops scripts]# cat -A windows.sh 
+n1=2^M$
+n2=1^M$
+^M$
+[ $n1 -gt $n2 ] &amp;&amp; echo &quot;$n1 &gt; $n2&quot; &amp;&amp; exit^M$
+[ $n1 -eq $n2 ] &amp;&amp; echo &quot;$n1 = $n2&quot; &amp;&amp; exit^M$
+echo &quot;$n1 &lt; $n2&quot;^M$
+</code></pre>
+<p>使用<code>dos2unix</code>把<code>Windows</code>上的脚本转化为<code>linux</code>格式</p>
+<pre><code class="language-shell">[root@ops scripts]# dos2unix windows.sh    
+dos2unix: converting file windows.sh to Unix format ...
+</code></pre>
+<p>转换后，脚本的隐藏内容改变</p>
+<pre><code class="language-shell">[root@ops scripts]# cat -A windows.sh         
+n1=2$
+n2=1$
+$
+[ $n1 -gt $n2 ] &amp;&amp; echo &quot;$n1 &gt; $n2&quot; &amp;&amp; exit$
+[ $n1 -eq $n2 ] &amp;&amp; echo &quot;$n1 = $n2&quot; &amp;&amp; exit$
+echo &quot;$n1 &lt; $n2&quot;$
+</code></pre>
+<h3 id="154-排错技巧">1.5.4 排错技巧</h3>
+<pre><code class="language-shell">sh -x  脚本.sh  #-x：开启脚本调试模式
+</code></pre>
+<h3 id="155-pv命令-类似进度条效果">1.5.5 <code>pv</code>命令-类似进度条效果</h3>
+<p>安装<code>pv</code>命令</p>
+<pre><code class="language-shell">wget https://www.ivarch.com/programs/sources/pv-1.7.24.tar.gz
+tar xzf pv-1.7.24.tar.gz
+cd pv-1.7.24
+./configure &amp;&amp; make &amp;&amp; make install
+</code></pre>
+<p>示例</p>
+<pre><code class="language-shell">[root@ops ~]# echo {1..20}|pv -qL 20
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/shell-bian-cheng-ji-chu-pian-shang/">
+              <h3 class="post-title">
+                下一篇：Shell编程基础篇-上
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

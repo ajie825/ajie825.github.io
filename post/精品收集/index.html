@@ -1,0 +1,285 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>精品收集 | Ajie的博客</title>
+<meta name="description" content="运维技术文档">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ajie825.github.io/favicon.ico?v=1710921747786">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ajie825.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://ajie825.github.io">
+        <img class="avatar" src="https://ajie825.github.io/images/avatar.png?v=1710921747786" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://ajie825.github.io">
+        <h1 class="site-title">Ajie的博客</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="/" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+          <h2 class="post-title">精品收集</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2022-04-20</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://ajie825.github.io/tag/Pqun0ftw3v/">
+                    精品收集
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <pre><code class="language-shell">#Docker 安装配置宝塔面板
+https://cloud.tencent.com/developer/article/1830313?from=15425
+
+#jumpserver文档
+https://docs.jumpserver.org/zh/master/
+
+#何以.解忧
+https://www.cnblogs.com/LiuChang-blog/
+
+#Jenkins实用发布与回滚PHP项目生产实践
+https://www.cnblogs.com/linuxk/p/11962892.html
+
+#Nginx - 用日期命名日志文件并实现自动切割
+https://blog.csdn.net/u011511786/article/details/117411291
+
+#在Kibana 中为不同用户生成不同的 Space
+https://learnku.com/elasticsearch/t/45099
+
+#elasticsearch定期删除索引ELK清理索引脚本
+https://codeantenna.com/a/wUSduymQ06
+
+#Linux命令之find命令中的-mtime参数
+https://blog.csdn.net/liuzx32/article/details/45219849
+
+#alertmanager告警模板
+https://github.com/metalmatze/alertmanager-bot
+
+#lua清除nginx代理缓存目录
+https://scene-si.org/2017/01/08/improving-nginx-lua-cache-purge/
+
+#lua清除nginx代理缓存文件
+https://scene-si.org/2016/11/02/purging-cached-items-from-nginx-with-lua/
+
+#linux查看CPU、内存
+https://www.cnblogs.com/emanlee/p/3587571.html
+
+#gitlab-runner
+https://meigit.readthedocs.io/en/latest/configure_gitlab_i18n_and_create_gitlab_ci_with_gitlab_runner.html#id4
+
+#mysql数据库课程
+https://www.jianshu.com/p/7e3e2f814d22
+
+#nginx缓存
+http://m.studyofnet.com/news/7212.html
+
+#win10命令行kms激活
+https://www.jianshu.com/p/77f528973dc7
+https://www.kms.pub/
+
+#nice_小浪（老男孩学友）
+https://blog.51cto.com/u_15316348/p_12
+
+#地铁昌平站（老男孩学友）
+https://developer.aliyun.com/profile/expert/u6oktzwia2sn2
+
+#zsh安装
+https://blog.51cto.com/u_15064643/4107732
+
+#k8s云原生
+https://jimmysong.io/kubernetes-handbook/concepts/rbac.html
+
+#k8s韩先超老师教学文档
+https://www.cnblogs.com/yangmeichong/category/2185187.html
+
+#shell编程基础篇上
+https://www.cnblogs.com/clsn/p/7992981.html
+
+#shell编程基础篇下
+https://www.cnblogs.com/clsn/p/8006210.html
+
+#shell编程进阶篇
+https://www.cnblogs.com/clsn/p/8028337.html
+
+#MM-Wiki
+https://github.com/phachon/mm-wiki
+
+#python
+https://github.com/jackfrued/Python-Core-50-Courses
+
+#纯真IP数据库同步仓库
+https://github.com/metowolf/qqwry.dat/releases/download/20230726/qqwry.dat
+https://github.com/lionsoul2014/ip2region
+https://github.com/zoujingli/ip2region
+
+#上善若水-小辉
+https://www.cnblogs.com/strugger-0316/
+
+#运维派
+http://www.yunweipai.com/35637.html
+
+#Jenkins环境部署
+https://blog.csdn.net/weixin_39218464/article/details/120590493?utm_medium=distribute.pc_relevant.none-task-blog-2~default~baidujs_baidulandingword~default-4-120590493-blog-88988352.235^v38^pc_relevant_sort_base3&amp;spm=1001.2101.3001.4242.3&amp;utm_relevant_index=7
+
+#柴少的官方网站
+http://www.51niux.com/?cate=46
+
+#二丫讲梵
+https://wiki.eryajf.net/
+
+#SRE运维进阶之路
+https://clay-wangzhi.com/
+
+#阳明的博客
+https://www.qikqiak.com/k8s-book/
+
+#烟雨浮华
+https://www.cnblogs.com/linuxk/
+
+#Mr.Ye Blog
+https://system51.github.io/
+
+#小吉猫
+https://www.cnblogs.com/wangguishe
+
+#Redis5.0.5配置文件详解
+https://cloud.tencent.com/developer/article/2095073
+
+#Redis的AOF重写机制
+https://www.cnblogs.com/shoshana-kong/p/17519636.html
+
+#数据库全栈体系
+https://pdai.tech/md/db/nosql-redis/db-redis-x-sentinel.html
+
+#redis
+https://bbs.huaweicloud.com/blogs/344366
+
+#极客时间书籍
+https://github.com/it-ebooks-0/geektime-books
+
+#openresty+waf
+https://www.modb.pro/db/611036
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://ajie825.github.io/post/docker/">
+              <h3 class="post-title">
+                下一篇：Docker
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+
+      <div class="site-footer">
+  <div class="slogan">运维技术文档</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  既然选择了远方，便只顾风雨兼程！ | <a class="rss" href="https://ajie825.github.io/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>
